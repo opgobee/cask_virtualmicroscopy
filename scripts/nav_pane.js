@@ -375,13 +375,13 @@ xx-3-2009 NEW
 20-5-2009 CHG removed navPaneSenser (mut 1 & 2) and set navPaneTab to react to mouseover instead of click (mut 3)
 15-2-2012 CHG made it to retry with a timeout if the file with the arLinks has not yet loaded - first it simply exited
 */
-function createNavPane()
+function createMenuPane()
 	{
 	
 	chosenMenu = menuData[useMenu]; //define which links collection to use
 
 	//if the necessary file with links has not yet loaded, retry
-	if(typeof chosenMenu == "undefined") {setTimeout("createNavPane()",250);return;}
+	if(typeof chosenMenu == "undefined") {setTimeout("createMenuPane()",250);return;}
 	
 	arLinks = chosenMenu['data'];
 	
@@ -397,7 +397,7 @@ function createNavPane()
 	jQ("#all").append(navPane);
 
 	//create navPane list
-	var linkList=createNavPaneList(arLinks); 
+	var linkList=createMenuPaneList(arLinks); 
 	//alert(linkList);
 	//insert the html
 	jQ("#navPane").append(linkList);
@@ -432,7 +432,7 @@ function createNavPane()
 		]	
 	]
 */
-function createNavPaneList(arLinks,level)
+function createMenuPaneList(arLinks,level)
 	{var x,xx,expands,typeAnchor;
 	var lvl=(exists(level))? level : 0; //start level
 	var str= (lvl==0)? "<ul id='navigation' class='greygradient'>" : "<ul>"; //1st level gets an id
@@ -448,7 +448,7 @@ function createNavPaneList(arLinks,level)
 		str+="<li class='liLvl"+lvl+" greygradient'><a onclick='loadSlideSet(\""+x.slideSet+"\")' class='aLvl"+lvl+typeAnchor+"'>"+ header + "</a>";
 		//if follower up is a lower level list
 		if(expands) 
-			{str+=createNavPaneList(xx,lvl+1);//recursively create list a level deeper
+			{str+=createMenuPaneList(xx,lvl+1);//recursively create list a level deeper
 			i++; //as following entry was a list, skip this entry when continuing list
 			}
 		str+="</li>"	
