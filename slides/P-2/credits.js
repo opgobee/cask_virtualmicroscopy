@@ -1,0 +1,1 @@
+var credits = "Uniformed Services University provided the glass slides<br />Digitized files received from <a href='http://images.nlm.nih.gov/pathlab'>National Library of Medicine</a>"

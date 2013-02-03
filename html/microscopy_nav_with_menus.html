@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+<head>
+	<title></title>
+<style>
+body{background-color:#ecefed;margin:0;overflow:hidden}
+img#logo {position:absolute;left:0px;top:0px;border:none;}
+img#wrench {position:absolute;left:180px;top:75px;cursor:pointer;}
+div#all {width:100%;height:100%;}
+div#slidesCont {position:absolute;left:0px;top:271px;width:220px;overflow:auto;}
+div#settingsDiv {display:none;position:absolute;left:0px;top:115px;width:220px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial;}
+.shiftUp{position:relative;top:-10px;}
+.cont {position:relative;left:0px;top:20px;width:198px;height:125px;z-index:1;list-style-type:none}
+.slide {position:absolute;left:5px;top:0px;z-index:0;}
+.img {position:absolute;left:20px;top:10px;z-index:1; margin-left:auto;margin-right:auto;}
+.sensor {position:absolute;left:10px;top:6px;width:175px;height:62px;z-index:2;cursor:pointer;}
+.caption {position:absolute;left:10px;top:75px;width:188px;height:40px;font-family:Courier;font-size:70%;color:black;line-height:1}
+.written {position:absolute;left:145px;top:10px;width:40px;height:55px;font-family:script, monospace;font-size:9px;font-style:italic;line-height:0.8;color:#767676;z-index:1;overflow:hidden;word-wrap:break-word;}
+.menutab {position:absolute;left:0px;width:220px;height:45px;z-index:20;font-family:Arial;font-size:1.5em; font-weight:bolder;color:white;}
+div#menutab1{top:112px;background-color:blue;opacity: 0.90;filter: alpha(opacity=90);}
+div#menutab2{top:160px;background-color:red;opacity: 0.90;filter: alpha(opacity=90);}
+div#menutab3{top:210px;background-color:green;opacity: 0.90;filter: alpha(opacity=90);}
+img#slideBoxOpen {position:absolute;left:0px;top:112px;z-index:10;cursor:pointer;}
+img#slideBox1 {position:absolute;left:0px;top:113px;cursor:pointer;}
+img#slideBox2 {position:absolute;left:0px;top:144px;cursor:pointer;}
+img#slideBox3 {position:absolute;left:0px;top:175px;cursor:pointer;}
+
+div#log {display:none;position:absolute;top:450px;left:10px;width:200px;height:240px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:black;font-size:70%;overflow:auto;}
+
+</style>
+
+<link rel="stylesheet" href="../css/nav_pane_menus.css" type="text/css" />
+
+<!-- libs -->
+<script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.0.custom.min.js"></script>
+<!--<script type="text/javascript" src="../scripts/libs/accordionImageMenu.js"></script>-->
+
+<!-- engine -->
+<script type="text/javascript" src="../scripts/nav_pane.js"></script>
+
+<!-- content-->
+<script type="text/javascript" src="../scripts/texts.js"></script>
+<script type="text/javascript" src="../scripts/nav_pane_menus_links.js"></script>
+<script type="text/javascript" src="../scripts/slides.js"></script>
+
+<script>
+
+jQ(document).ready(function(){ 
+    
+	jQ("document").ready(createNavPane);
+ 
+  }); //end jquery.document.ready
+
+</script>
+
+</head>
+
+<body onload="init()" >
+<div id="all"> 
+<a href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank">
+<img id="logo" src="../img/logo_cask_micr_220x112grey.png" width="220" height="112" alt="Logo CASK microscopy"></a>
+<img id="wrench" src="../img/wrench.png" title="Settings" onclick="showHideSettings()">
+<!--<img id="slideBox1" src="../img/slide_box_side_220.png" >
+<img id="slideBox2" src="../img/slide_box_side_220.png" >
+<img id="slideBox3" src="../img/slide_box_side_220.png" >-->
+<img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
+
+<div id="menutab1" class="menutab">Body regions</div>
+<div id="menutab2" class="menutab">Pathology</div>
+<div id="menutab3" class="menutab">LUMC</div>
+
+<div id="slidesCont" onclick="handleClick()">
+</div> <!--eof slidesCont -->
+
+
+<div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
+<form id="settingsForm">
+Scroll-wheel<hr />
+	<input class="shiftUp" type="radio" name="scrollDir" value="1" id="optScrollUp" checked><label id="optA" for="optScrollUp"><img src="../img/wheeldown.gif"> <span class="shiftUp">Zoom In </span></label><br />
+	<input class="shiftUp" type="radio" name="scrollDir" value="-1" id="optScrollDown"><label id="optB" for="optScrollDown"><img src="../img/wheelup.gif"> <span class="shiftUp">Zoom In </span></label>
+<br />
+</form> <!--end of radioform  -->			
+</div>
+
+<div id="log"></div>
+
+</div> <!--eof all -->
+
+
+</body>
+</html>
