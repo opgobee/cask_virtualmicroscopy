@@ -410,8 +410,6 @@ function createNavPane()
 	hideNavPane() //initially hide NavPane
 	//jQ("#navPaneSenser").mouseover(showNavPane); //show navPane at mouseover senser	//mut 2
 //	jQ("#slideBoxOpen").click(toggleNavPane); //on IE (i think) tabNavPane with z-index 1000 'burns' through empty navpaneSenser with z-index 10000, so if mouse on tabNavPaneLeft no mousemove event on navPaneSenser, hence this extra option to open navPane is necessary //mut 3
-	jQ("#slideBoxOpen").mouseover(showMenuTabs);
-	jQ("#slideBoxOpen").mouseout(hideMenuTabs);
 	jQ("body").click(hideNavAtClick); //hide directly at click outside navPane
 	
 	}
@@ -469,15 +467,7 @@ function createHref(url)
 	return URL;
 	}
 
-function showMenuTabs()
-{
-	jQ(".menutab").show();
-}
 
-function hideMenuTabs()
-{
-	jQ(".menutab").hide();
-}
 
 //NavPane behaviour	
 function showNavPane()

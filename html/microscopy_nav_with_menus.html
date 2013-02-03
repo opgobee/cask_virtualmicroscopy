@@ -17,10 +17,9 @@ div#settingsDiv {display:none;position:absolute;left:0px;top:115px;width:220px;p
 .sensor {position:absolute;left:10px;top:6px;width:175px;height:62px;z-index:2;cursor:pointer;}
 .caption {position:absolute;left:10px;top:75px;width:188px;height:40px;font-family:Courier;font-size:70%;color:black;line-height:1}
 .written {position:absolute;left:145px;top:10px;width:40px;height:55px;font-family:script, monospace;font-size:9px;font-style:italic;line-height:0.8;color:#767676;z-index:1;overflow:hidden;word-wrap:break-word;}
-.menutab {position:absolute;left:0px;width:220px;height:45px;z-index:20;font-family:Arial;font-size:1.5em; font-weight:bolder;color:white;}
-div#menutab1{top:112px;background-color:blue;opacity: 0.90;filter: alpha(opacity=90);}
-div#menutab2{top:160px;background-color:red;opacity: 0.90;filter: alpha(opacity=90);}
-div#menutab3{top:210px;background-color:green;opacity: 0.90;filter: alpha(opacity=90);}
+.menutab {position:absolute;left:0px;width:220px;height:85px;z-index:20;font-family:Arial;font-size:1.5em; font-weight:bolder;color:white;}
+div#menutab1{top:112px;background-color:blue;opacity: 0.50;filter: alpha(opacity=50);}
+div#menutab2{top:197px;background-color:red;opacity: 0.50;filter: alpha(opacity=50);}
 img#slideBoxOpen {position:absolute;left:0px;top:112px;z-index:10;cursor:pointer;}
 img#slideBox1 {position:absolute;left:0px;top:113px;cursor:pointer;}
 img#slideBox2 {position:absolute;left:0px;top:144px;cursor:pointer;}
@@ -69,8 +68,8 @@ jQ(document).ready(function(){
 <img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
 
 <div id="menutab1" class="menutab">Body regions</div>
-<div id="menutab2" class="menutab">Pathology</div>
-<div id="menutab3" class="menutab">LUMC</div>
+<div id="menutab2" class="menutab">Institution/Module</div>
+
 
 <div id="slidesCont" onclick="handleClick()">
 </div> <!--eof slidesCont -->
