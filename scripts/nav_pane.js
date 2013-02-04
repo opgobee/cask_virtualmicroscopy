@@ -1,16 +1,9 @@
-
-
-
-////////////////////////////////////////////
-//
-//	Scripts that handle the forming of the clickable images in the nav pane
-//
-/////////////////////////////////////////////
-
-
 //Settings
 //var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
 //var slideSets; //global var 'slideSets' containing the list of slideSets. Is now defined and set in slides.js
+var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
+var currentSlideSetMenu = null;
+var loadedSlideSetMenuNames = Array(); //array with names of the slideSetsMenus that have been created and inserted in the slideSetsMenuPane
 var initialSlideSet = "demo1"; //slideSet to load opening
 var currentSlideSetName = null; 
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
@@ -31,12 +24,21 @@ var slidesCont;
 var logwin;
 var viewportWidth, viewportHeight;
 
+//var slideSetMenu = "collectionsAnatomicalRegions"; //default
+var slideSetsMenus = {};
+var slideSetsMenuData = Array();
+//var glb_pathtoroot ="";
+
+
+
+
 
 function init()
 	{
 	winsize();//do after onload for IE
 	setHandlers();
 	logwin=document.getElementById("log");
+	createSlideSetsMenus();
 	setCurrentSlideSet(initialSlideSet);
 	loadSlides();	
 	}
@@ -46,6 +48,7 @@ function setHandlers()
 {
 	window.onresize=winsize; 
 	ref("all").onclick=handleClick;
+	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
 	ref("settingsDiv").style.display="none";
 	ref("settingsForm")["scrollDir"][0].checked=true;
 	slidesCont = ref("slidesCont");
@@ -58,7 +61,184 @@ function setHandlers()
 		{ref("settingsForm").onchange= setScrollDir;
 		}
 }	
+
+//////////////////////////////////////////
+//
+// 	Scripts for the pop-out menu panel with slidesets
+//
+////////////////////////////////////////////	
+
+/*
+ * From the datacontainer slideSetsMenus creates all slideSetsMenus and places them in the slideSetsMenuPane
+ */
+function createSlideSetsMenus()
+{
+	//if the necessary file with links has not yet loaded, retry
+	if(slideSetsMenus.length == 0) {setTimeout("createSlideSetsMenu()",250);return;}
 	
+	for (slideSetMenuName in slideSetsMenus)
+		{
+			createSlideSetsMenu(slideSetMenuName);
+		}
+	
+	//set show/hide behaviour of SlideSetsMenuPane
+	hideSlideSetsMenuPane() //initially hide SlideSetsMenuPane
+//	jQ("body").click(hideSlideSetsMenuPane); //hide directly at click outside SlideSetsMenuPane
+
+}
+
+/*
+ * 
+ * xx-3-2009 NEW
+ * 20-5-2009 CHG removed SlideSetsMenuPaneSenser (mut 1 & 2) and set SlideSetsMenuPaneTab to react to mouseover instead of click (mut 3)
+ * 15-2-2012 CHG made it to retry with a timeout if the file with the slideSetsMenuData has not yet loaded - first it simply exited
+*/
+function createSlideSetsMenu(slideSetMenuName)
+	{
+	//create SlideSetsMenu
+	var slideSetsMenuHtml = createSlideSetsMenuHtml(slideSetMenuName); 
+	//alert(linkList);
+	//insert the html
+	jQ("#SlideSetsMenuPane").append(slideSetsMenuHtml);
+	
+	//set accordion behaviour
+	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7
+	jQ(".navigation").accordion({header:"a.accordionHeader",collapsible:true,active:false,autoHeight:false});
+	}
+
+
+/*
+ * Creates the contents of the SlideSetsMenuPane: the menu listing itself
+ * from an slideSetsMenuData like so: 
+	"menuAnatomicalRegions":
+	[
+		{
+			"header":{linkText:"CardioVascular System",infoText:"infoVariants",slideSet:""},
+			"list":[
+				{linkText:"Vessels",infoText:"infoFrontPageChp",slideSet:"vessels"},
+				{linkText:"BB",infoText:"infoHepVascVar",slideSet:""},
+				{linkText:"CC",infoText:"inforenVascVar",slideSet:""}
+				]
+		},
+*/
+function createSlideSetsMenuHtml(slideSetMenuName)
+	{
+	var entry;
+	loadedSlideSetMenuNames[loadedSlideSetMenuNames.length] = slideSetMenuName;
+	var slideSetsMenuData = slideSetsMenus[slideSetMenuName];
+	var str="";
+	
+	str+= "<ul id='" + slideSetMenuName + "' class='navigation greygradient'>"; //1st level gets an id
+	for (var i=0;i<slideSetsMenuData.length;i++)
+     	{
+		header = slideSetsMenuData[i]["header"];
+		list = slideSetsMenuData[i]["list"];
+		//create a header link entry
+		str+="<li class='liLvl0 greygradient'><a onclick='loadSlideSet(\""+header.slideSet+"\")' class='aLvl0 accordionHeader'>"+ header.linkText + "</a>";
+			str+="<ul>";
+			for(var y=0;y<list.length;y++)
+				{
+				entry = list[y];
+				//create an entry link entry
+				str+="<li class='liLvl1 greygradient'><a onclick='loadSlideSet(\""+entry.slideSet+"\")' class='aLvl1'>"+ entry.linkText + "</a></li>";			
+				}
+			str+="</ul>";
+		str+="</li>";	
+     	} //end for
+	str+="</ul>";
+	return str;
+	}//end function	
+
+	
+
+
+/*
+ * shows the slideSetsMenuPane and the requested slideSetMenu in it, or hides the pane
+ * @param string slideSetMenuName
+ */
+function toggleSlideSetsMenuPane(slideSetMenuName)
+{
+	//alert("clicked, currentSlideSetMenu= "+currentSlideSetMenu+ ", slideSetMenuName="+slideSetMenuName);
+	if(jQ("#SlideSetsMenuPane").css("display")=="none" || (currentSlideSetMenu != slideSetMenuName)) //pane closed or wrong menu shown
+	{
+	//alert("Going to show menu "+ slideSetMenuName);
+	//clearTimeout(toSlideSetsMenuPane);
+	//	jQ("body").bind("mouseover",hideNavAtMouseOut);
+	hideAllSlideSetMenus();
+	showSlideSetsMenu(slideSetMenuName);
+	
+	currentSlideSetMenu = slideSetMenuName;
+	}
+else
+	{
+	hideSlideSetsMenuPane();
+	}	
+}
+	
+/*
+ * shows the requested slideSetMenu in the slideSetMenuPane
+ * @param string slideSetMenuName
+ */	
+function showSlideSetsMenu(slideSetMenuName)
+{
+	
+	jQ("#"+slideSetMenuName).show();
+	jQ("#SlideSetsMenuPane").show();
+	jQ("#slidesContOverlay").show();
+
+}
+
+//if mouseover outside SlideSetsMenuPane delayed hides SlideSetsMenuPane
+/*function hideNavAtMouseOut(e)	
+	{
+	//mouseover from inside SlideSetsMenuPane or its senser?
+	//no mouseover from scrollbar in SlideSetsMenuPane, hence elemincont useless, 165=5 pixels spare necessary for good behaviour 
+	var onLeftBorder=(e.pageX<=215)? true : false
+	if(onLeftBorder) {clearTimeout(toSlideSetsMenuPane)}
+	//if mouseover from outside go hide the SlideSetsMenuPane
+	else {delayedHideSlideSetsMenuPane();}
+	}
+*/
+
+//if click outside SlideSetsMenuPane direct hide SlideSetsMenuPane	
+function hideNavAtClick(e)
+	{var onLeftBorder=(e.pageX<=215)? true : false;
+	if(!onLeftBorder) {hideSlideSetsMenuPane();}
+	}	
+	
+function hideSlideSetsMenuPane()
+	{jQ("#SlideSetsMenuPane").hide();
+	jQ("#slidesContOverlay").hide();
+//	jQ("body").unbind("mouseover",hideNavAtMouseOut)
+	}
+
+function hideAllSlideSetMenus()
+{
+	names= loadedSlideSetMenuNames.join();
+	for(var i=0;i<loadedSlideSetMenuNames.length;i++)
+	{
+		jQ("#"+loadedSlideSetMenuNames[i]).hide();
+	}
+}
+
+/*var toSlideSetsMenuPane;
+function delayedHideSlideSetsMenuPane()
+	{clearTimeout(toSlideSetsMenuPane);
+	toSlideSetsMenuPane=setTimeout("hideSlideSetsMenuPane()",500);
+	}
+*/	
+
+
+////////////////////////////////////////////
+//
+//	Scripts that handle the forming of the clickable images in the nav pane
+//
+/////////////////////////////////////////////
+
+
+/*
+ * creates and shows a series of slides in the left panel
+ */
 function loadSlideSet(slideSetName)
 {
 	if(slideSetExists(slideSetName))
@@ -66,11 +246,13 @@ function loadSlideSet(slideSetName)
 		setCurrentSlideSet(slideSetName);
 		loadSlides(slideSetName);
 		
-		setTimeout("hideNavPane()",100);
+		setTimeout("hideSlideSetsMenuPane()",100);
 	}
 }
 
-//tests if a slideSet with this name is amongst the slideSets
+/*
+ * tests if a slideSet with this name is amongst the slideSets
+ */
 function slideSetExists(slideSetName)
 {
 	if (typeof slideSetName != "string"  || slideSetName == "") 
@@ -89,7 +271,9 @@ function slideSetExists(slideSetName)
 	return false;
 }
 
-
+/*
+ * sets the globals that state what the currently viewed slideset is
+ */
 function setCurrentSlideSet(slideSetName)		
 {
 	if(typeof slideSets != "undefined")
@@ -108,7 +292,7 @@ function setCurrentSlideSet(slideSetName)
 }
 
 /*
-* loads the slides in global slides or a subset as determined by the currentSlideSetName
+* from the global var slides, loads all slides or a subset, as determined by the currentSlideSetName
 */
 function loadSlides()
 {
@@ -147,7 +331,7 @@ function loadSlides()
 	var timer2 = setTimeout("checkFit()",1000);	
 }
 
-//removes the slides
+//removes all loaded slides
 function removeSlides()
 {
 	loadedSlides = Array(); //empty the memory
@@ -156,6 +340,7 @@ function removeSlides()
 
 
 /*
+* Creates DOM elements for a slide, and appends it to div with id 'slidescont'
 * @param object slideInfo 
 *
 */
@@ -221,8 +406,11 @@ function createSlide(slideInfo)
 
 	} 
 
-//fits thumbnail of microscopy specimen onto image of empty glass slide
-//cant this be simpler done using the length and width props if there is no thumb?
+/*
+ * fits thumbnail of microscopy specimen onto image of empty glass slide
+ * 
+ * //cant this be simpler done using the length and width props if there is no thumb?
+ */
 function fitToSlide(imgId,imgIndex)
 	{
 		
@@ -281,28 +469,9 @@ function fitToSlide(imgId,imgIndex)
 
 	}	
  
-//
-function getElemDim(elemRef)
-	{dim={};
-	if(window.getComputedStyle)
-		{var compStyle= getComputedStyle(elemRef,"");
-		dim.width= stripPx(compStyle.getPropertyValue("width"));
-		dim.height= stripPx(compStyle.getPropertyValue("height"));		
-		}
-	else if (elemRef.currentStyle)
-		{//var currStyle=elemRef.currentStyle;
-		dim.width= stripPx(elemRef.currentStyle.width);
-		dim.height= stripPx(elemRef.currentStyle.height);		
-		}	
-	//l("img="+elemRef.id+", w="+dim.width+",h="+dim.height)
-
-	if(isOpera && dim.width == 39 && dim.height== 22) {return;} //workaround Opera measures some default img values if img is not yet loaded
-	return dim;
-	}
-	 
-	 
-
-	
+/*
+ * support function to re-attempt resizing of thumbnail on slide
+ */
 function checkFit()
  	{//l("checkFit attempt "+fitAttempt)
 	for(var i=0;i<loadedSlides.length;i++)
@@ -312,6 +481,10 @@ function checkFit()
 	fitAttempt++;	
 	}	
 
+/*
+ * loads the clicked slide into the main panel
+ * @param object slideInfo 
+ */
 function loadVirtualSlide(slideInfo)
 	{var URL = viewerFile;
 
@@ -331,7 +504,18 @@ function loadVirtualSlide(slideInfo)
 		presentSlideInfo=slideInfo; //for reloading
 		}
 	}
-		
+	
+
+
+//////////////////////////////////////////
+//
+// 	Functions handling user settings
+//
+////////////////////////////////////////////	
+
+/*
+ * sets the scroll direction to zoom in or out on scroll (up or down)
+ */
 function setScrollDir()
 	{scrollDirection = readradio("settingsForm","scrollDir");
 	//alert(scrollDirection)
@@ -352,170 +536,6 @@ function setScrollDir()
 	} 
 
 	
-//////////////////////////////////////////
-//
-// 	Scripts for the pop-out menu panel
-//
-////////////////////////////////////////////	
-	
-;
-var menuData = {};
-var arLinks = Array();
-
-var glb_pathtoroot ="";
-
-//Settings
-var useMenu = "collectionsAnatomicalRegions";
-
-
-function exists(subject) //
-    {return (typeof subject != "undefined")? true : false}
-/*
-xx-3-2009 NEW
-20-5-2009 CHG removed navPaneSenser (mut 1 & 2) and set navPaneTab to react to mouseover instead of click (mut 3)
-15-2-2012 CHG made it to retry with a timeout if the file with the arLinks has not yet loaded - first it simply exited
-*/
-function createMenuPane()
-	{
-	
-	chosenMenu = menuData[useMenu]; //define which links collection to use
-
-	//if the necessary file with links has not yet loaded, retry
-	if(typeof chosenMenu == "undefined") {setTimeout("createMenuPane()",250);return;}
-	
-	arLinks = chosenMenu['data'];
-	
-	//Load navPane texts
-	//var newtext=loadXMLcontents_texts(pathNavPaneTexts)	//path temp set in cask_hybrid.js
-	//concatenate the general and page-specific texts 
-	//note: general texts are overwritten by specific texts with same textid
-	//text=concatassocarray(text,newtext)
-	
-	//create navPane, navPaneSenser and tabNavPane
-	var navPane="<div id='navPane'></div>"//mut 1 DEL: <div id='navPaneSenser'></div>
-	//insert the html
-	jQ("#all").append(navPane);
-
-	//create navPane list
-	var linkList=createMenuPaneList(arLinks); 
-	//alert(linkList);
-	//insert the html
-	jQ("#navPane").append(linkList);
-	
-	//set accordion behaviour
-	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7
-	jQ("#navigation").accordion({header:"a.accordionHeader",collapsible:true,active:false,autoHeight:false});
-
-	//set show/hide behaviour of navPane
-	hideNavPane() //initially hide NavPane
-	//jQ("#navPaneSenser").mouseover(showNavPane); //show navPane at mouseover senser	//mut 2
-//	jQ("#slideBoxOpen").click(toggleNavPane); //on IE (i think) tabNavPane with z-index 1000 'burns' through empty navpaneSenser with z-index 10000, so if mouse on tabNavPaneLeft no mousemove event on navPaneSenser, hence this extra option to open navPane is necessary //mut 3
-	jQ("body").click(hideNavAtClick); //hide directly at click outside navPane
-	
-	}
-
-
-////////////////////////////////////////////////////////////////////////////////
-//support functions	
-/*creates a navpanelist from an arLinks like so: 
-	[{linkText:"frontPage",infoText:"infoFrontPage",url:"ROOT/pages_pg_2002/lsn_mod/frontpage_lesson/page.htm"}, //will NOT become an accordion header (href works)
-	{linkText:"variants",infoText:"infoVariants",url:""}, 														//WILL become an accordion header (href doesn't work)
-		[{linkText:"hepaticArt",infoText:"infoHepaticArt",url:""}, //!! if entry is an array the previous entry becomes an accordion header, the array contains the sublist
-		{linkText:"hepatoGastricLig",infoText:"infoHepatoGastricLig",url:""},
-		{linkText:"hepatoDuodenLig",infoText:"infoHepatoDuodenLig",url:"ROOT/pages_pg_2002/e04.936.450_organ_transplantation/c2_anat_lig_hepatoduoden/page.htm"}
-		],
-	{linkText:"prep",infoText:"infoPrep",url:""},
-		[{linkText:"donorCheck",infoText:"infoDonorCheck",url:""},
-		{linkText:"theatreCheck",infoText:"infoTheatreCheck",url:""},
-		{linkText:"donorTransportation",infoText:"infoDonorTransportation",url:""},
-		{linkText:"introdAnesthTeam",infoText:"infoIntrodAnesthTeam",url:""}
-		]	
-	]
-*/
-function createMenuPaneList(arLinks,level)
-	{var x,xx,expands,typeAnchor;
-	var lvl=(exists(level))? level : 0; //start level
-	var str= (lvl==0)? "<ul id='navigation' class='greygradient'>" : "<ul>"; //1st level gets an id
-
-	for (var i=0;i<arLinks.length;i++)
-     	{
-		x=arLinks[i];//the entry
-		xx=arLinks[i+1];//the following entry
-		expands = (exists(xx) && (xx instanceof Array))? true : false; //if following entry is a lower level list
-		typeAnchor = (expands)? " accordionHeader" : "";//if following entry is a lower level list, present entry becomes an accordion header
-		header = (expands)? '<div class="menuheader">'+ x.linkText + '</div>' : x.linkText;
-		//create a link entry
-		str+="<li class='liLvl"+lvl+" greygradient'><a onclick='loadSlideSet(\""+x.slideSet+"\")' class='aLvl"+lvl+typeAnchor+"'>"+ header + "</a>";
-		//if follower up is a lower level list
-		if(expands) 
-			{str+=createMenuPaneList(xx,lvl+1);//recursively create list a level deeper
-			i++; //as following entry was a list, skip this entry when continuing list
-			}
-		str+="</li>"	
-     	} //end for
-	str+="</ul>";
-	return str;
-	}//end function	
-
-	
-//from the url got, if empty sets 'javascript:' else sets the url, with 'ROOT' setto correct pathtoroot	
-function createHref(url)
-	{//if no link specified or empty link, set href to "javascript:" to prevent jumping
-	var URL=(exists(url) && url!="")? url : "javascript:";
-	//replace 'ROOT' in url by the glb_pathtoroot
-	URL=URL.replace(/ROOT\//i,glb_pathtoroot); //NOTE: LAST PART OF REPLACE IS NOT A COMMENT!!!
-	return URL;
-	}
-
-
-
-//NavPane behaviour	
-function showNavPane()
-	{clearTimeout(toNavPane);
-	jQ("#navPane").show();
-	jQ("body").bind("mouseover",hideNavAtMouseOut);
-	}
-
-function toggleNavPane()
-	{if(jQ("#navPane").css("display")=="none")
-		{
-		showNavPane();
-		}
-	else
-		{
-		hideNavPane();
-		}	
-	}
-	
-//if mouseover outside navPane delayed hides navPane
-function hideNavAtMouseOut(e)	
-	{
-	//mouseover from inside navPane or its senser?
-	//no mouseover from scrollbar in navPane, hence elemincont useless, 165=5 pixels spare necessary for good behaviour 
-	var onLeftBorder=(e.pageX<=215)? true : false
-	if(onLeftBorder) {clearTimeout(toNavPane)}
-	//if mouseover from outside go hide the navPane
-	else {delayedHideNavPane();}
-	}
-
-//if click outside navPane direct hide navPane	
-function hideNavAtClick(e)
-	{var onLeftBorder=(e.pageX<=215)? true : false;
-	if(!onLeftBorder) {hideNavPane();}
-	}	
-	
-function hideNavPane()
-	{jQ("#navPane").hide();
-	jQ("body").unbind("mouseover",hideNavAtMouseOut)
-	}
-
-var toNavPane;
-function delayedHideNavPane()
-	{clearTimeout(toNavPane);
-	toNavPane=setTimeout("hideNavPane()",500);
-	}
-	
-
 
 
 
@@ -528,6 +548,9 @@ function delayedHideNavPane()
 ////////////////////////////////////////////
 		
 function ref(i) { return document.getElementById(i);}
+
+function exists(subject) //
+	{return (typeof subject != "undefined")? true : false}
 
 function stripPx(value) { if (value == ""){ return 0;}
 return parseFloat(value.substring(0, value.length - 2));}
@@ -544,11 +567,13 @@ function handleClick(e)
 	if(e)
 		{var elem=getSrcElem(e);
 		var id=elem.id;
-		var cont= ref("settingsDiv")
 
-		if(!inElem(elem,cont) && id!="wrench")
+		if(!inElem(elem,ref("settingsDiv")) && id!="wrench")
 			{hideSettings();}
-		}	
+		if(inElem(elem,ref("slidesContOverlay")))
+			{hideSlideSetsMenuPane();}
+		}
+	
 	}
 
 //workaround because doesn't recognize first time else...
@@ -620,6 +645,27 @@ function inElem(elem,cont) //
 	//if the container elem was not encountered..
 	return false    
     }
+
+function getElemDim(elemRef) 
+{
+	dim = {};
+	if (window.getComputedStyle) {
+		var compStyle = getComputedStyle(elemRef, "");
+		dim.width = stripPx(compStyle.getPropertyValue("width"));
+		dim.height = stripPx(compStyle.getPropertyValue("height"));
+	} else if (elemRef.currentStyle) {// var currStyle=elemRef.currentStyle;
+		dim.width = stripPx(elemRef.currentStyle.width);
+		dim.height = stripPx(elemRef.currentStyle.height);
+	}
+	// l("img="+elemRef.id+", w="+dim.width+",h="+dim.height)
+
+	if (isOpera && dim.width == 39 && dim.height == 22) {
+		return;
+	} // workaround Opera measures some default img values if img is not yet
+		// loaded
+	return dim;
+}
+
 
 //tests if string is in array - as we only use such a simple test dont use the jquery version, because this script must also work without jQ
 function inArray(str, arr)
