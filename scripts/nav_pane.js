@@ -181,35 +181,22 @@ else
  */	
 function showSlideSetsMenu(slideSetMenuName)
 {
-	
 	jQ("#"+slideSetMenuName).show();
 	jQ("#SlideSetsMenuPane").show();
 	jQ("#slidesContOverlay").show();
 
 }
 
-//if mouseover outside SlideSetsMenuPane delayed hides SlideSetsMenuPane
-/*function hideNavAtMouseOut(e)	
-	{
-	//mouseover from inside SlideSetsMenuPane or its senser?
-	//no mouseover from scrollbar in SlideSetsMenuPane, hence elemincont useless, 165=5 pixels spare necessary for good behaviour 
-	var onLeftBorder=(e.pageX<=215)? true : false
-	if(onLeftBorder) {clearTimeout(toSlideSetsMenuPane)}
-	//if mouseover from outside go hide the SlideSetsMenuPane
-	else {delayedHideSlideSetsMenuPane();}
-	}
-*/
-
 //if click outside SlideSetsMenuPane direct hide SlideSetsMenuPane	
 function hideNavAtClick(e)
-	{var onLeftBorder=(e.pageX<=215)? true : false;
+{
+	var onLeftBorder=(e.pageX<=215)? true : false;
 	if(!onLeftBorder) {hideSlideSetsMenuPane();}
-	}	
+}	
 	
 function hideSlideSetsMenuPane()
 	{jQ("#SlideSetsMenuPane").hide();
 	jQ("#slidesContOverlay").hide();
-//	jQ("body").unbind("mouseover",hideNavAtMouseOut)
 	}
 
 function hideAllSlideSetMenus()
@@ -221,12 +208,7 @@ function hideAllSlideSetMenus()
 	}
 }
 
-/*var toSlideSetsMenuPane;
-function delayedHideSlideSetsMenuPane()
-	{clearTimeout(toSlideSetsMenuPane);
-	toSlideSetsMenuPane=setTimeout("hideSlideSetsMenuPane()",500);
-	}
-*/	
+
 
 
 ////////////////////////////////////////////
@@ -254,48 +236,6 @@ function loadSlideSet(stringSlideNames)
 
 }
 
-/*
- * tests if a slideSet with this name is amongst the slideSets
- */
-/*function slideSetExists(slideSetName)
-{
-	if (typeof slideSetName != "string"  || slideSetName == "") 
-	{
-		return false;
-	}
-	
-	for(var i=0;i<slideSets.length;i++)
-	{
-		//if this is the requested slideSet, return true
-		if(slideSets[i].name && slideSets[i].name == slideSetName)
-		{
-			return true;
-		}
-	}	
-	return false;
-}
-*/
-
-/*
- * sets the globals that state what the currently viewed slideset is
- */
-/*function setCurrentSlideSet(slideSetName)		
-{
-	if(typeof slideSets != "undefined")
-	{
-		//set the current slideSetName and the array with slideNames in the set
-		for(var i=0;i<slideSets.length;i++)
-		{
-			//if this is the requested slideSet, load it
-			if(slideSets[i].name && slideSets[i].name == slideSetName)
-			{
-				currentSlideSetName = slideSets[i].name;
-				currentSlideSetSlideNames = slideSets[i].slideNames;
-			}
-		}
-	}
-}
-*/
 
 /*
 * from the global var slides, loads all slides or a subset, as determined by the currentSlideSetName
