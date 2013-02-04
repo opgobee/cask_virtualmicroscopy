@@ -4,8 +4,8 @@
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
 var currentSlideSetMenu = null;
 var loadedSlideSetMenuNames = Array(); //array with names of the slideSetsMenus that have been created and inserted in the slideSetsMenuPane
-var initialSlideSet = "demo1"; //slideSet to load opening
-var currentSlideSetName = null; 
+var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load opening
+//var currentSlideSetName = null; 
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
 var loadedSlides = Array(); //array with the slides-objects that are loaded
 
@@ -39,7 +39,7 @@ function init()
 	setHandlers();
 	logwin=document.getElementById("log");
 	createSlideSetsMenus();
-	setCurrentSlideSet(initialSlideSet);
+	loadSlideSet(initialSlideSet);
 	loadSlides();	
 	}
 	
@@ -134,13 +134,13 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 		header = slideSetsMenuData[i]["header"];
 		list = slideSetsMenuData[i]["list"];
 		//create a header link entry
-		str+="<li class='liLvl0 greygradient'><a onclick='loadSlideSet(\""+header.slideSet+"\")' class='aLvl0 accordionHeader'>"+ header.linkText + "</a>";
+		str+="<li class='liLvl0 greygradient'><a onclick='loadSlideSet(\""+header.slides+"\")' class='aLvl0 accordionHeader'>"+ header.linkText + "</a>";
 			str+="<ul>";
 			for(var y=0;y<list.length;y++)
 				{
 				entry = list[y];
 				//create an entry link entry
-				str+="<li class='liLvl1 greygradient'><a onclick='loadSlideSet(\""+entry.slideSet+"\")' class='aLvl1'>"+ entry.linkText + "</a></li>";			
+				str+="<li class='liLvl1 greygradient'><a onclick='loadSlideSet(\""+entry.slides+"\")' class='aLvl1'>"+ entry.linkText + "</a></li>";			
 				}
 			str+="</ul>";
 		str+="</li>";	
@@ -238,22 +238,26 @@ function delayedHideSlideSetsMenuPane()
 
 /*
  * creates and shows a series of slides in the left panel
+ * @param string stringSlideNames e.g. "a,b,c"
  */
-function loadSlideSet(slideSetName)
+function loadSlideSet(stringSlideNames)
 {
-	if(slideSetExists(slideSetName))
+	if (typeof stringSlideNames != "string"  || stringSlideNames == "") 
 	{
-		setCurrentSlideSet(slideSetName);
-		loadSlides(slideSetName);
-		
-		setTimeout("hideSlideSetsMenuPane()",100);
+		return false;
 	}
+	
+	currentSlideSetSlideNames = stringSlideNames.split(",");
+	loadSlides();
+	
+	setTimeout("hideSlideSetsMenuPane()",100);
+
 }
 
 /*
  * tests if a slideSet with this name is amongst the slideSets
  */
-function slideSetExists(slideSetName)
+/*function slideSetExists(slideSetName)
 {
 	if (typeof slideSetName != "string"  || slideSetName == "") 
 	{
@@ -270,11 +274,12 @@ function slideSetExists(slideSetName)
 	}	
 	return false;
 }
+*/
 
 /*
  * sets the globals that state what the currently viewed slideset is
  */
-function setCurrentSlideSet(slideSetName)		
+/*function setCurrentSlideSet(slideSetName)		
 {
 	if(typeof slideSets != "undefined")
 	{
@@ -290,30 +295,34 @@ function setCurrentSlideSet(slideSetName)
 		}
 	}
 }
+*/
 
 /*
 * from the global var slides, loads all slides or a subset, as determined by the currentSlideSetName
 */
 function loadSlides()
 {
+	var slideName;
+	
 	//first remove any existing slides
 	removeSlides();
 	
 	//load only the slides of a specific SlideSet if that is defined
-	if(currentSlideSetName != null) 
+	if(currentSlideSetSlideNames.length != 0) 
 	{
 			//debug showNames
 			showNames = currentSlideSetSlideNames.join();
 				
 
-		for(var i=0;i<slides.length;i++)
+		for(var i=0;i<currentSlideSetSlideNames.length;i++)
 		{
+			slideName = currentSlideSetSlideNames[i];
 			//alert("Testing Is slide  with name: '" + slides[i].name + "' amongst: "+ showNames);
 			//check if this slide's name is amongst the currentSlideSet-SlideNames
-			if(slides[i].name && inArray( slides[i].name, currentSlideSetSlideNames) != -1 ) 
+			if(slides[slideName]) 
 			{
-				//alert("Creating slide with name:"+slides[i].name);
-				createSlide(slides[i]);
+				//alert("Creating slide with name:"+slideName;
+				createSlide(slides[slideName]);
 			}			
 		}	
 	}
@@ -321,9 +330,9 @@ function loadSlides()
 	//var slides is a global var defined in slides.js
 	else
 	{
-		for(var i=0;i<slides.length;i++)
+		for(slideName in slides)
 		{
-			createSlide(slides[i]);		
+			createSlide(slides[slideName]);		
 		}	
 	}
 
