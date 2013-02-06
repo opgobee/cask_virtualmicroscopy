@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html style="height:100%;">
+<head>
+<!-- 
+5-8-2010 ADD credit info
+11-8-10 ADD body css overflow hidden hides scroll bar on IE
+-->
+<meta http-equiv="imagetoolbar" content="no">
+<meta name="viewport" content="initial-scale=1.0, width=device-width" />
+<title>Virtual Microscopy powered by Brainmaps-CASK viewer</title>
+
+<!-- NOTE Styles in document instead of in a separate css appears to work slightly faster, gives a more immediate response experience-->
+<style>
+body {margin:0px;height:100%;overflow:hidden;}
+div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
+div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
+span#signalI {display:none;}
+span#signalj {display:none;}
+div#barCont {position:absolute;left:0px;top:15px;width:200px;height:20px; z-index:100;}
+.bar {position:absolute;top:0px;}
+#bar_mid {top:7px;height:6px;}
+#theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:15px;font-family:Arial, sans-serif;color:white;}
+#theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:15px;font-family:Arial, sans-serif;color:black;}
+
+div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:0px solid black;overflow:hidden;}
+	div#outerDiv {position:absolute;height:100%;width:100%;border:1px solid black;overflow:hidden;}
+		div#nav {display:none;position:absolute;top:70px;left:20px;z-index:1}
+			div#divNext {position:absolute;top:0px;left:79px;}
+		div#wheelMode {display:none;position:absolute;left:10px;top:260px;overflow:hidden;font-size:11px;font-family:sans-serif;}
+		div#innerDiv {position:absolute;top:0px;left:0px;z-index:0;}
+			div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;}
+			div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}
+			div.label {font-family:Arial,sans-serif;font-weight:bold;font-size:80%;color:black;cursor:pointer}
+		div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
+
+div#controls0 {position:absolute;right:10px;top:10px;width:200px;height:200px;z-index:1;}
+	div#Thumb0 {display:block;position:absolute;left:0px;right:0px;top:0px;text-align:center;width:200px;height:150px;overflow:hidden;}
+		div#Thumb {display:none;position:absolute;right:0px;top:0px;border:1px solid blue;overflow:hidden;}
+	div#Thumb2 {display:none;position:absolute;border:1px solid #29ffde;overflow:hidden;} /*cyan: #29ffde*/
+		div#Thumb3 {display:none;position:absolute;}
+	div#controls1 {position:absolute;right:0px;width:80px;height:30px;}
+		#zoomin {position:absolute;left:0px;top:0px;cursor:pointer;}
+		#zoomout {position:absolute;left:40px;top:0px;cursor:pointer;}
+	div#tips {display:none;position:absolute;right:0px;bottom:-50px;width:200px;height:50px;padding:3px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef}
+
+.arw {position:absolute;left:0px;top:0px;width:45px;height:40px;}
+.arwCont{position:absolute;width:45px;height:40px;z-index:100;cursor:pointer;}
+#btUpCont {display:none;position:absolute;left:100px;top:0px;}
+#btDownCont {display:none;position:absolute;left:100px;bottom:0px;}
+#btLeftCont {display:none;position:absolute;left:0px;top:100px;}
+#btRightCont {display:none;position:absolute;right:0px;top:100px;}
+#iconMobileCont  {position:absolute;right:7px;bottom:7px;width:26px;height:36px;cursor:pointer;z-index:100;}
+.iconMobile  {position:absolute;left:0px;top:0px;width:26px;height:36px;cursor:pointer;z-index:100;}
+#mobileHint  {display:none;position:absolute;left:-180px;top:5px;width:165px;height:15px;padding:5px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef;}
+#test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
+
+</style>
+<!--[if IE]>
+<style type="text/css">
+div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "thumb2"*/
+</style>
+<![endif]-->
+
+<script src="../scripts/ajax-tiledviewer.js" type="text/javascript"></script>
+<script type="text/javascript">
+//EXAMPLE SHOWING HOW TO SET JAVASCRIPT VARIABLES FOR USE IN THE BRAIN MAPS API.  
+//UNCOMMENT THE LINE BELOW TO USE THESE VARIABLE VALUES OR ADD YOUR OWN VALUES.
+//path="http://brainmaps.org/HBP2/c.aethiops/AGM1/AGM1-highres/350/";height=78181;width=92160;
+//path="P-2/";height=16946;width=25347;//height=25581;width=12480;
+
+</script>
+</head>
+    
+<body onload="init0()">
+
+<div id="test" onclick="testMobile()"></div>
+<div id="log"></div>
+<div id="warning"></div>
+<div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
+
+<div id="barCont">
+	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
+	<img id="bar_right" src="../img/bar_vert.gif" class="bar" />
+	<img id="bar_mid" src="../img/bar_mid.gif" class="bar" />
+	<div id="theScale2"></div><div id="theScale1"></div> 
+</div> 
+	
+<div id="outerDiv0">
+	<div id="outerDiv">
+	
+		<!--  for stacks of images ->
+		<!-- 
+			<div id="Nav">
+			<div><a href="javascript:slidePrev();" id="slidePrev"><img src="../img/prev.gif" border="0"/></a></div>
+			<div id="divNext"><a href="javascript:slideNext();" id="slideNext"><img src="../img/next.gif" border="0"/></a></div>
+		</div>
+		-->
+		<div id="wheelMode"><b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev</div>
+		
+		<div id="innerDiv">
+			<noscript><big><b><br><br><br><br><br><br><br><br><br><blockquote>JavaScript must be enabled in order for you to use the BrainMaps-CASK Viewer.</b>  However, it seems JavaScript is either disabled or not supported by your browser. To view this page, enable JavaScript by changing your browser options, and then try again.</big></noscript>
+			<div id="bgDiv"></div>
+			<div id="imageTiles" style="position:relative;top:0;left:0;z-index:0;width:100%;"></div>
+			<div id="imageLabels" ></div>
+		</div>
+
+		<div id="credit" >
+		<a href="http://brainmaps.org/index.php?p=brain-maps-api" target="_blank">BrainMaps</a>-<a href="http://www.caskanatomy.info/developer/brainmaps-cask-api" target="_blank">CASK</a> Viewer
+		</div> <!--eof credit -->
+		
+		
+	</div> <!--eof outerdiv -->
+		
+</div> <!--eof outerdiv0 -->
+		
+<div id="coords" style="position:absolute;top:2px;right:10px;z-index:10;"></div>
+
+<div id="controls0">
+	<div id="Thumb0">
+		<div id="Thumb"></div>
+		<div id="Thumb2"></div>
+		<div id="Thumb3"></div>			  	  
+	</div><!-- eof Thumb0 -->
+		
+	<div id="controls1">
+		<img id="zoomin" src="../img/zoomin.png" onclick="btZoomIn()" onmouseover="showZoomInTips()" onmouseout="hideTips()"/>  
+		<img id="zoomout" src="../img/zoomout.png" onclick="btZoomOut()"  onmouseover="showZoomOutTips()" onmouseout="hideTips()"/>
+	</div> 
+	
+	<div id="tips"></div>
+</div><!--eof controls0 -->
+
+
+<div id="btUpCont" class="arwCont">
+	<img id="up2" class="arw" src="../img/up2.gif">
+	<img id="up1" class="arw" src="../img/up1.gif">
+	<img id="upSens" class="arw" src="../img/emptyimage.gif"  onclick="clickArw('up')" alt="Pan up">
+</div>
+
+<div id="btLeftCont" class="arwCont">
+	<img id="left2" class="arw" src="../img/left2.gif">
+	<img id="left1" class="arw" src="../img/left1.gif">
+	<img id="leftSens" class="arw" src="../img/emptyimage.gif"  onclick="clickArw('left')" alt="Pan left">
+</div>
+
+<div id="btRightCont" class="arwCont">
+	<img id="right2" class="arw" src="../img/right2.gif">
+	<img id="right1" class="arw" src="../img/right1.gif">
+	<img id="rightSens" class="arw" src="../img/emptyimage.gif"  onclick="clickArw('right')" alt="Pan right">
+</div>
+
+<div id="btDownCont" class="arwCont">
+	<img id="down2" class="arw" src="../img/down2.gif">
+	<img id="down1" class="arw" src="../img/down1.gif">
+	<img id="downSens" class="arw" src="../img/emptyimage.gif"  onclick="clickArw('down')" alt="Pan down">
+</div>	
+
+<div id="iconMobileCont">
+	<div id="mobileHint">View mobile &amp; iPad-friendly</div>
+	<img id="iconMobile2" class="iconMobile" src="../img/iconmobile2.gif" >
+	<img id="iconMobile" class="iconMobile" src="../img/iconmobile.gif" >
+	<img id="iconMobileSens" class="iconMobile" src="../img/emptyimage.gif" onclick="mobileOnOff()" onmouseover="showMobileHint()" onmouseout="hideMobileHint()">
+</div>
+
+
+</body>
+
+</html>

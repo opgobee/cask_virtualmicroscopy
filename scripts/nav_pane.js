@@ -9,7 +9,7 @@ var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load openin
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
 var loadedSlides = Array(); //array with the slides-objects that are loaded
 
-var viewerFile = "../html/ajax-viewer.html";
+var viewerFile = "../html/main.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif"
 var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides
@@ -97,30 +97,30 @@ function createSlideSetsMenu(slideSetMenuName)
 	{
 	//create SlideSetsMenu
 	var slideSetsMenuHtml = createSlideSetsMenuHtml(slideSetMenuName); 
-	//alert(linkList);
 	//insert the html
-	jQ("#SlideSetsMenuPane").append(slideSetsMenuHtml);
-	
+	jQ("#SlideSetsMenuPane").append(slideSetsMenuHtml);	
 	//set accordion behaviour
 	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7
-	jQ(".navigation").accordion({header:"a.accordionHeader",collapsible:true,active:false,autoHeight:false});
+	jQ(".slideSetsMenu").accordion({collapsible:true,active:false,autoHeight:false});
 	}
 
 
 /*
  * Creates the contents of the SlideSetsMenuPane: the menu listing itself
- * from an slideSetsMenuData like so: 
-	"menuAnatomicalRegions":
-	[
-		{
-			"header":{linkText:"CardioVascular System",infoText:"infoVariants",slideSet:""},
-			"list":[
-				{linkText:"Vessels",infoText:"infoFrontPageChp",slideSet:"vessels"},
-				{linkText:"BB",infoText:"infoHepVascVar",slideSet:""},
-				{linkText:"CC",infoText:"inforenVascVar",slideSet:""}
-				]
-		},
-*/
+ * from an slideSetsMenuData with this format: 
+ *	"menuAnatomicalRegions":
+ *	[
+ *		{
+ *			"header":{linkText:"CardioVascular System",infoText:"infoVariants",slideSet:""},
+ *			"list":[
+ *				{linkText:"Vessels",infoText:"infoFrontPageChp",slideSet:"vessels"},
+ *				{linkText:"BB",infoText:"infoHepVascVar",slideSet:""},
+ *				{linkText:"CC",infoText:"inforenVascVar",slideSet:""}
+ *				]
+ *		},
+ *	.....
+ *	]
+ */
 function createSlideSetsMenuHtml(slideSetMenuName)
 	{
 	var entry;
@@ -128,24 +128,45 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	var slideSetsMenuData = slideSetsMenus[slideSetMenuName];
 	var str="";
 	
-	str+= "<ul id='" + slideSetMenuName + "' class='navigation greygradient'>"; //1st level gets an id
+	str+= "<div id='" + slideSetMenuName + "' class='slideSetsMenu'>"; //1st level gets an id
 	for (var i=0;i<slideSetsMenuData.length;i++)
      	{
 		header = slideSetsMenuData[i]["header"];
 		list = slideSetsMenuData[i]["list"];
 		//create a header link entry
-		str+="<li class='liLvl0 greygradient'><a onclick='loadSlideSet(\""+header.slides+"\")' class='aLvl0 accordionHeader'>"+ header.linkText + "</a>";
+		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.linkText + "</h3>";
+			str+="<div>";
+			for(var y=0;y<list.length;y++)
+				{
+				entry = list[y];
+				//create an entry link entry
+				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.linkText + "</div>";			
+				}
+			str+="</div>";
+    	} //end for
+	str+= "</div>";	
+
+/*	
+  str+= "<ul id='" + slideSetMenuName + "' class='slideSetsMenu greygradient'>"; //1st level gets an id
+	for (var i=0;i<slideSetsMenuData.length;i++)
+     	{
+		header = slideSetsMenuData[i]["header"];
+		list = slideSetsMenuData[i]["list"];
+		//create a header link entry
+		str+="<li class=' liLevel0 greygradient' onclick='loadSlideSet(\""+header.slides+"\")'><a  class='accordionHeader'>"+ header.linkText + "</a>";
 			str+="<ul>";
 			for(var y=0;y<list.length;y++)
 				{
 				entry = list[y];
 				//create an entry link entry
-				str+="<li class='liLvl1 greygradient'><a onclick='loadSlideSet(\""+entry.slides+"\")' class='aLvl1'>"+ entry.linkText + "</a></li>";			
+				str+="<li class='liLevel1 greygradient' onclick='loadSlideSet(\""+entry.slides+"\")'>BLABLA"+ entry.linkText +"<a  class='aLevel1'>"+ entry.linkText + "</a></li>";			
 				}
 			str+="</ul>";
 		str+="</li>";	
      	} //end for
 	str+="</ul>";
+*/
+	
 	return str;
 	}//end function	
 
