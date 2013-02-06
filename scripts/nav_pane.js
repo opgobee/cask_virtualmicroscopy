@@ -111,11 +111,11 @@ function createSlideSetsMenu(slideSetMenuName)
  *	"menuAnatomicalRegions":
  *	[
  *		{
- *			"header":{linkText:"CardioVascular System",infoText:"infoVariants",slideSet:""},
- *			"list":[
- *				{linkText:"Vessels",infoText:"infoFrontPageChp",slideSet:"vessels"},
- *				{linkText:"BB",infoText:"infoHepVascVar",slideSet:""},
- *				{linkText:"CC",infoText:"inforenVascVar",slideSet:""}
+ *			"header":{showText:"CardioVascular System",infoText:"infoVariants",slideSet:""},
+ *			"sets":[
+ *				{showText:"Vessels",infoText:"infoFrontPageChp",slideSet:"vessels"},
+ *				{showText:"BB",infoText:"infoHepVascVar",slideSet:""},
+ *				{showText:"CC",infoText:"inforenVascVar",slideSet:""}
  *				]
  *		},
  *	.....
@@ -132,15 +132,15 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	for (var i=0;i<slideSetsMenuData.length;i++)
      	{
 		header = slideSetsMenuData[i]["header"];
-		list = slideSetsMenuData[i]["list"];
+		list = slideSetsMenuData[i]["sets"];
 		//create a header link entry
-		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.linkText + "</h3>";
+		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.showText + "</h3>";
 			str+="<div>";
 			for(var y=0;y<list.length;y++)
 				{
 				entry = list[y];
 				//create an entry link entry
-				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.linkText + "</div>";			
+				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.showText + "</div>";			
 				}
 			str+="</div>";
     	} //end for
@@ -151,15 +151,15 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	for (var i=0;i<slideSetsMenuData.length;i++)
      	{
 		header = slideSetsMenuData[i]["header"];
-		list = slideSetsMenuData[i]["list"];
+		list = slideSetsMenuData[i]["sets"];
 		//create a header link entry
-		str+="<li class=' liLevel0 greygradient' onclick='loadSlideSet(\""+header.slides+"\")'><a  class='accordionHeader'>"+ header.linkText + "</a>";
+		str+="<li class=' liLevel0 greygradient' onclick='loadSlideSet(\""+header.slides+"\")'><a  class='accordionHeader'>"+ header.showText + "</a>";
 			str+="<ul>";
 			for(var y=0;y<list.length;y++)
 				{
 				entry = list[y];
 				//create an entry link entry
-				str+="<li class='liLevel1 greygradient' onclick='loadSlideSet(\""+entry.slides+"\")'>BLABLA"+ entry.linkText +"<a  class='aLevel1'>"+ entry.linkText + "</a></li>";			
+				str+="<li class='liLevel1 greygradient' onclick='loadSlideSet(\""+entry.slides+"\")'>BLABLA"+ entry.showText +"<a  class='aLevel1'>"+ entry.showText + "</a></li>";			
 				}
 			str+="</ul>";
 		str+="</li>";	

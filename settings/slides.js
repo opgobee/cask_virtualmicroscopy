@@ -5,7 +5,9 @@ var slides={
 "brain" : {"path":"../slides/4qw_rot/","res":0.789,"width":25347,"height":16946,"thumb":"0-0-0rot.jpg","thumbwidth":198,"thumbheight":132,"info":"Brain"},
 "hippocampus_humaan_normaal_he" : {"path":"../slides/hippocampus_humaan_normaal_he/","res":0.921,"width":27953,"height":19748,"info":"Hippocampus, human. Normal. HE. "},
 "hippocampus_humaan_ad_he1" : {"path":"../slides/hippocampus_humaan_ad_he1/","res":0.921,"width":24841,"height":17915,"info":"Hippocampus, human. Alzheimer's Disease. HE."},
-"hippocampus_humaan_ad_tau_protein" : {"path":"../slides/hippocampus_humaan_ad_tau_protein/","res":0.921,"width":24888,"height":17733,"info":"Hippocampus, human. Alzheimer's Disease. Tau Protein."}
+"hippocampus_humaan_ad_tau_protein" : {"path":"../slides/hippocampus_humaan_ad_tau_protein/","res":0.921,"width":24888,"height":17733,"info":"Hippocampus, human. Alzheimer's Disease. Tau Protein."},
+"kidney1" : {"path":"../slides/kidney1/","res":0.921,"width":11059,"height":17899,"info":"Kidney, human."}
+
 };
 
 
