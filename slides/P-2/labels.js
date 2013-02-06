@@ -11,5 +11,4 @@ jsLabels = { "labels": [
 		{"label": "Adv", "name": "Adventitia", "x": "0.772", "y": "0.806"},
 		{"label": "Lum", "name": "Lumen of vessel", "x": "0.501", "y": "0.76"}
 	] 
-};
-
+}
