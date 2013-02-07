@@ -58,11 +58,11 @@ function setHandlers()
 	slidesCont = ref("slidesCont");
 	
 	if(isIE)
-		{ref("optScrollUp").onclick= setScrollDir;
+		{ref("optScrollUp").onclick= setScrollDir; //@todo: testen of dit weg kan. jQ vangt wrschl goed op
 		ref("optScrollDown").onclick= setScrollDir;
 		}
 	else
-		{ref("settingsForm").onchange= setScrollDir;
+		{jQ(".scrollDir").change= setScrollDir;
 		}
 }	
 
@@ -474,12 +474,14 @@ function loadVirtualSlide(slideInfo)
 				}
 			}	
 		if (scrollDirection=="-1") 	{URL+= "&scrolldirection=-1"; }
-		URL+= "&showcoords=" + showCoords;
+		//URL+= "&showcoords=" + showCoords;
 		parent.view.location= URL;
 		presentSlideInfo=slideInfo; //for reloading
 		}
 	}
 	
+//@todo append showcoords and scrolldirection only once to URL . NOw its is appended many times
+
 function appendQuerySetting(URL,queryArg,value)
 	{
 	
@@ -496,7 +498,9 @@ function appendQuerySetting(URL,queryArg,value)
  * sets the scroll direction to zoom in or out on scroll (up or down)
  */
 function setScrollDir()
-	{scrollDirection = readradio("settingsForm","scrollDir");
+	{
+	alert("set scroll");
+	scrollDirection = readradio("settingsForm","scrollDir");
 	//alert(scrollDirection)
 	if(presentSlideInfo)
 		{loadVirtualSlide(presentSlideInfo);}
@@ -519,19 +523,20 @@ function handleCoordsSetting()
 	{
 	showCoordinates = readradio("settingsForm","showCoords");
 	
+	
+	//alert(parent.view.document.getElementById("coordsPane").style.display);
 	if(showCoordinates == 1  && parent.view)
 		{
-			showCoords = 1;	
-			parent.view.document.getElementById("coords").style.display ="block";
-			//parent.view.document.coords = 1;
+			//showCoords = 1;	
+			parent.view.document.getElementById("coordsPane").style.display ="block";
+			parent.view.document.showCoords = 1;
 		}
 	else if(showCoordinates == 0  && parent.view)
 		{
-			showCoords = 0;
-			parent.view.document.getElementById("coords").style.display ="none";
-			//parent.view.document.coords= 0;
+			//showCoords = 0;
+			parent.view.document.getElementById("coordsPane").style.display ="none";
+			parent.view.document.showCoords = 0;
 		}
-	
 	}
 
 

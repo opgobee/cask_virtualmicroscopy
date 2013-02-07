@@ -80,6 +80,7 @@ Display additional credit information:
 2. in the query or in the html page, set "credits=...path to credits.js..."
 */
 
+//alert("load main page");
 //defaults
 var tileSize = 256; 
 var center = 0; 
@@ -87,8 +88,8 @@ var res = 0.46;
 var resunits = "&micro;m";
 var slidePointer = 0; 
 var wheelmode = 0; 
-var showcoords = 0;
-var zoom = 2 //start zoom level
+var showCoords = 1;
+var zoom = 2; //start zoom level
 var hideThumb = false;
 var vX = null;
 var zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
@@ -185,7 +186,7 @@ logwin.ondblclick=resetlog;
 	if (queryArgs.path) {rawPath = queryArgs.path;} 
 	if (queryArgs.width) {rawWidth = queryArgs.width;} 
 	if (queryArgs.height) {rawHeight = queryArgs.height;} 
-	if (queryArgs.showcoords) {showcoords = queryArgs.showcoords;} 
+	//if (queryArgs.showcoords) {showCoords = queryArgs.showcoords;} 
 	if (queryArgs.res)	{res = queryArgs.res;}
 	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
 	if (queryArgs.labels) {labelsPath = queryArgs.labels;} 
@@ -423,9 +424,10 @@ function processMove(event)
 	{//ih("processmove ");
 	if (!event){ event = window.event;}
 	
-	if (showcoords) //displaying of mouse coords. This could be commented out in production to dimish load
+	//ih("showcoords="+showCoords + ",");
+	if (showCoords) //displaying of mouse coords. This could be commented out in production to dimish load
 		{var imgCoords= getImgCoords(cursorX,cursorY);
-		ref('coords').innerHTML= "x: " + imgCoords.x + " px, y: " + imgCoords.y + " px";
+		ref('coordsPane').innerHTML= "x: " + imgCoords.x + ", y: " + imgCoords.y ;
 		}
 	if (dragging) 
 		{innerStyle.left = event.clientX + dragOffsetLeft;
