@@ -17,7 +17,7 @@
 // FIX BUG/CHG replaced function getVar by function getQueryArgs because getVar could misrecognize args, eg. 'jslabels' was also found as 'labels' 
 // FIX ERR referencing to elements by id/name in global scope generated errors
 // ADD thumb2 visibly moves while dragged (originally only jumped to drag-end position)
-// ADD doubleclick zooms in, hold mouse down zooms out 
+// ADD doubleclick zooms in, hold mouse down zooms out (with a workaround for IE)
 // ADD grey background colour behind not yet loaded tiles
 // ADD prevent dragging or zooming outside viewport
 // ADD center map at window resize
@@ -116,6 +116,7 @@ var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hol
 var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoombuttons locks the start zoomcenter until mousemove or zoom on cursor
 var lockedZoomCursorX= null, lockedZoomCursorY= null; //
 var cursorX, cursorY; //continuously keeps track of cursorposition to enable scrolling with centerpoint cursorposition
+var downX=null,downY=null;//IE workaround for autozoomout
 
 //controls and thumbnail
 var controls0, controls1; //controls0 contains thumb and controls, controls1 contains zoom-buttons
@@ -351,44 +352,47 @@ function countTilesPerTier()
 	
 	
 function handleMouseDown(event)
-	{
+	{if(!event) {event=window.event;}
 	//ih("mouseDown ");
 	clearZoomOutTimer();
-	moveCounter=0; //IE workaround
+	downX=event.clientX;
+	downY=event.clientY;
+
 	zoomCenterOnCursor= true;
-	autoZoomOut();	
+	autoZoomOut();	//init autozoom, is cancelled by mousemove or mouseup
 	startMove(event); 	
 	stopAutoPan();	
+	//ih("isIE"+isIE+", downX="+downX+", downY="+downY+", autoZooming="+autoZooming)
 	}	
 
 function handleMouseUp(event)
 	{//ih("mouseUp<br>");
-	clearZoomOutTimer();
+	clearZoomOutTimer(); //cancel autozoomout
 	zoomCenterOnCursor= false;
 	stopMove(event);
 	}
 	
 function handleDblClick(event)
 	{//ih("dblclick ");
-	clearZoomOutTimer();
+	clearZoomOutTimer(); //cancel autozoomout
 	zoomCenterOnCursor= true;
 	ZoomIn();
 	}	
 
 
-var moveCounter=0; //IE workaround
-	
 function handleMouseMove(event)
 	{if(!event) {event=window.event;}
+	//ih("mouseMove, "+event.clientX+","+event.clientY+"; ");
 	
 	//keep track of cursorposition to enable cursorposition-centered zooming
 	cursorX=event.clientX;
 	cursorY=event.clientY;
 	
 	//ih(event.srcElement.id+"-> move ");
-	//IE workaround. IE for some reason fires extra mousemoves, which cancel the autozoomout. Workaround to let autoZoomout work well: cancel the incorrect mousemove event. Cancels first mousemove event, if IE and if 'autoZooming' (this is set when mouse is held down for some time) 
-	if(isIE && moveCounter==0 && autoZooming)	{moveCounter=1; return;} 
-	
+	//IE workaround. IE for some reason fires extra mousemoves, which cancel the autozoomout. Workaround to let autoZoomout work well: cancel the incorrect mousemove event if 'autoZooming' (this is set when mouse is held down) and if IE and cursor not moved
+	//ih("isIE"+isIE+", downX="+downX+", downY="+downY+", autoZooming="+autoZooming)
+	if(autoZooming && isIE && downX==cursorX && downY==cursorY)	{;return;} 
+
 	if(lockedZoomCenterX)
 		{//unlock if present cursorposition is further away than threshold from cursorpos at lock 
 		if( (Math.abs(cursorX - lockedZoomCursorX) > zoomCenterUnlockThreshold) || (Math.abs(cursorY - lockedZoomCursorY) > zoomCenterUnlockThreshold) )
@@ -649,6 +653,7 @@ function autoZoomOut()
 	//ih("autoZoomOut called, zoomOutTimer="+zoomOutTimer+"<br>");
 	if(!zoomOutTimer) //first call, delay before starting to zoomout
 		{clearZoomOutTimer();
+		autoZooming=true;
 		zoomOutTimer = setTimeout("autoZoomOut()",1000);
 		//ih(" 1ST time timer SET= "+zoomOutTimer+"  ");
 		return;

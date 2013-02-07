@@ -6,8 +6,8 @@ var slides={
 "hippocampus_humaan_normaal_he" : {"path":"../slides/hippocampus_humaan_normaal_he/","res":0.921,"width":27953,"height":19748,"info":"Hippocampus, human. Normal. HE. "},
 "hippocampus_humaan_ad_he1" : {"path":"../slides/hippocampus_humaan_ad_he1/","res":0.921,"width":24841,"height":17915,"info":"Hippocampus, human. Alzheimer's Disease. HE."},
 "hippocampus_humaan_ad_tau_protein" : {"path":"../slides/hippocampus_humaan_ad_tau_protein/","res":0.921,"width":24888,"height":17733,"info":"Hippocampus, human. Alzheimer's Disease. Tau Protein."},
-"kidney1" : {"path":"../slides/kidney1/","res":0.921,"width":11059,"height":17899,"info":"Kidney, human."}
-
+"kidney1" : {"path":"../slides/kidney1/","res":1.876,"width":11059,"height":17899,"info":"Kidney, human."},
+"kidney2" : {"path":"../slides/kidney2/","res":0.924,"width":26132,"height":37039,"info":"Kidney, human, large size."}
 };
 
 

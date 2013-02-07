@@ -87,7 +87,7 @@ var res = 0.46;
 var resunits = "&micro;m";
 var slidePointer = 0; 
 var wheelmode = 0; 
-var coords = 0;
+var showcoords = 0;
 var zoom = 2 //start zoom level
 var hideThumb = false;
 var vX = null;
@@ -185,7 +185,7 @@ logwin.ondblclick=resetlog;
 	if (queryArgs.path) {rawPath = queryArgs.path;} 
 	if (queryArgs.width) {rawWidth = queryArgs.width;} 
 	if (queryArgs.height) {rawHeight = queryArgs.height;} 
-	if (queryArgs.coords) {coords = queryArgs.coords;} 
+	if (queryArgs.showcoords) {showcoords = queryArgs.showcoords;} 
 	if (queryArgs.res)	{res = queryArgs.res;}
 	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
 	if (queryArgs.labels) {labelsPath = queryArgs.labels;} 
@@ -423,9 +423,9 @@ function processMove(event)
 	{//ih("processmove ");
 	if (!event){ event = window.event;}
 	
-	if (coords) //displaying of mouse coords. This could be commented out in production to dimish load
+	if (showcoords) //displaying of mouse coords. This could be commented out in production to dimish load
 		{var imgCoords= getImgCoords(cursorX,cursorY);
-		ref('coords').innerHTML= imgCoords.x + ", " + imgCoords.y;
+		ref('coords').innerHTML= "x: " + imgCoords.x + " px, y: " + imgCoords.y + " px";
 		}
 	if (dragging) 
 		{innerStyle.left = event.clientX + dragOffsetLeft;

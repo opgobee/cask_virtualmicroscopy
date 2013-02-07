@@ -23,7 +23,7 @@ var slideSetsMenus= {
 		{
 			"header":{showText:"Urogenital System",infoText:"",slides:""},
 			"sets":[
-				{showText:"Kidney",infoText:"",slides:"kidney1"},
+				{showText:"Kidney",infoText:"",slides:"kidney1,kidney2"},
 				{showText:"BB (DUMMIE)",infoText:"",slides:""},
 				{showText:"CC (DUMMIE)",infoText:"",slides:""}
 				]	

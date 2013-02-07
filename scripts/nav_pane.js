@@ -18,6 +18,7 @@ var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE wo
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
 var hasJquery = (typeof jQ != "undefined")? true : false; //because this same script file may also be used in simpler version without Jq
 var scrollDirection = 1; //determines zoomin/out direction of scroll 
+var showCoords = 0;
 var presentSlideInfo= null; //used for reloading
 var settingsCloseTimer;
 var slidesCont;
@@ -51,6 +52,9 @@ function setHandlers()
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
 	ref("settingsDiv").style.display="none";
 	ref("settingsForm")["scrollDir"][0].checked=true;
+	ref("settingsForm")["showCoords"][1].checked=true;
+	jQ(".showCoords").change(handleCoordsSetting);
+	
 	slidesCont = ref("slidesCont");
 	
 	if(isIE)
@@ -470,12 +474,17 @@ function loadVirtualSlide(slideInfo)
 				}
 			}	
 		if (scrollDirection=="-1") 	{URL+= "&scrolldirection=-1"; }
+		URL+= "&showcoords=" + showCoords;
 		parent.view.location= URL;
 		presentSlideInfo=slideInfo; //for reloading
 		}
 	}
 	
-
+function appendQuerySetting(URL,queryArg,value)
+	{
+	
+	
+	}
 
 //////////////////////////////////////////
 //
@@ -506,7 +515,24 @@ function setScrollDir()
 	} 
 
 	
-
+function handleCoordsSetting()
+	{
+	showCoordinates = readradio("settingsForm","showCoords");
+	
+	if(showCoordinates == 1  && parent.view)
+		{
+			showCoords = 1;	
+			parent.view.document.getElementById("coords").style.display ="block";
+			//parent.view.document.coords = 1;
+		}
+	else if(showCoordinates == 0  && parent.view)
+		{
+			showCoords = 0;
+			parent.view.document.getElementById("coords").style.display ="none";
+			//parent.view.document.coords= 0;
+		}
+	
+	}
 
 
 
