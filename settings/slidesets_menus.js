@@ -27,6 +27,10 @@ var slideSetsMenus= {
 				{showText:"BB (DUMMIE)",infoText:"",slides:""},
 				{showText:"CC (DUMMIE)",infoText:"",slides:""}
 				]	
+		},
+		{
+			"header":{showText:"ALL SLIDES",infoText:"",slides:"ALL"}
+		
 		}
 	],
 	"menuInstitutionsModules":

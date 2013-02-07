@@ -136,17 +136,23 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	for (var i=0;i<slideSetsMenuData.length;i++)
      	{
 		header = slideSetsMenuData[i]["header"];
-		list = slideSetsMenuData[i]["sets"];
+		sets = slideSetsMenuData[i]["sets"];
 		//create a header link entry
+		if(header)
+		{
 		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.showText + "</h3>";
+		}
+			if(sets)
+			{
 			str+="<div>";
-			for(var y=0;y<list.length;y++)
+			for(var y=0;y<sets.length;y++)
 				{
-				entry = list[y];
+				entry = sets[y];
 				//create an entry link entry
 				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.showText + "</div>";			
 				}
 			str+="</div>";
+			}
     	} //end for
 	str+= "</div>";	
 
@@ -282,9 +288,17 @@ function loadSlides()
 		for(var i=0;i<currentSlideSetSlideNames.length;i++)
 		{
 			slideName = currentSlideSetSlideNames[i];
+			
+			if(slideName == "ALL")
+			{
+				for(slideName in slides)
+				{
+					createSlide(slides[slideName]);
+				}
+			}
 			//alert("Testing Is slide  with name: '" + slides[i].name + "' amongst: "+ showNames);
 			//check if this slide's name is amongst the currentSlideSet-SlideNames
-			if(slides[slideName]) 
+			else if(slides[slideName]) 
 			{
 				//alert("Creating slide with name:"+slideName;
 				createSlide(slides[slideName]);
