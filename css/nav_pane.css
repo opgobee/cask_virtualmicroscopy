@@ -128,7 +128,7 @@ div#slidesContOverlay
 }
 
 /* slides container */
-div#slidesCont {position:absolute;left:0px;top:271px;width:220px;overflow:auto;}
+div#slidesCont {position:absolute;left:0px;top:282px;width:220px;overflow:auto;}
 
 /* slide */
 .cont {position:relative;left:0px;top:20px;width:198px;height:125px;z-index:1;list-style-type:none}

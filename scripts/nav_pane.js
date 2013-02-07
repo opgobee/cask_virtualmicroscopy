@@ -574,7 +574,7 @@ function winsize()
 	{ viewportWidth = 1300; viewportHeight = 1000; if( typeof( window.innerWidth ) == 'number' ) { viewportWidth = window.innerWidth; viewportHeight = window.innerHeight;} else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) { viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;} else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) { viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;}
 	
 	//set height of containerdiv
-	ref("slidesCont").style.height=	(viewportHeight - 120) + "px";
+	ref("slidesCont").style.height=	(viewportHeight - 282) + "px"; /*282 = height occupied by logo and openslidebox */
 	}
 
 function handleClick(e)
