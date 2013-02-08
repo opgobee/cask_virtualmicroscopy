@@ -340,13 +340,15 @@ function createSlide(slideInfo)
 	//l("loading into loadedSlides location:"+imgIndex);	
 	
 	var cont = document.createElement("li"); 
-	cont.setAttribute("class","cont");
-	cont.setAttribute("className","cont"); //IE
+	jQ(cont).attr("class","cont");
+	jQ(cont).attr("className","cont");
+	//cont.setAttribute("class","cont");
+	//cont.setAttribute("className","cont"); //IE8
 	
 	var slide = document.createElement("img"); 
 	slide.src = urlSlideImg;
 	slide.setAttribute("class","slide");
-	slide.setAttribute("className","slide"); //IE
+	slide.setAttribute("className","slide"); //IE8
 	cont.appendChild(slide);
 
 	var img = document.createElement("img");

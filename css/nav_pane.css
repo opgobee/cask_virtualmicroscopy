@@ -64,6 +64,7 @@ div#all {width:100%;height:100%;}
 
 /* top panel with logo and settings menu */
 img#logo {position:absolute;left:0px;top:0px;border:none;}
+a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px}
 img#wrench {position:absolute;left:180px;top:75px;cursor:pointer;}
 div#settingsDiv {display:none;position:absolute;left:0px;top:115px;width:220px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial;z-index:200;}
 .shiftUp{position:relative;top:-10px;}
@@ -102,7 +103,7 @@ div#SlideSetsMenuPane /* NOTE!! if change width, also change max. e.pageX [shoul
 	background: -webkit-linear-gradient(top, #646464,#c8c8c8); /* Chrome10+,Safari5.1+ */
 	background: -o-linear-gradient(top, #646464,#c8c8c8); /* Opera11.10+ */
 	background: -ms-linear-gradient(top, #646464,#c8c8c8); /* IE10+ */
-	/*filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#646464', endColorstr='#c8c8c8',GradientType=0 );  IE6-9 gave problems - text gone on IE7/8*/
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#646464', endColorstr='#c8c8c8',GradientType=0 );  /*IE6-9 gave problems - text gone on IE7/8*/
 	background: linear-gradient(top, #646464,#c8c8c8); /* W3C */
 }
 .slideSetsMenu .accordionEntry
@@ -115,13 +116,13 @@ div#SlideSetsMenuPane /* NOTE!! if change width, also change max. e.pageX [shoul
 	background: -webkit-linear-gradient(top, #c8c8c8,#f1f1f1); /* Chrome10+,Safari5.1+ */
 	background: -o-linear-gradient(top, #c8c8c8,#f1f1f1); /* Opera11.10+ */
 	background: -ms-linear-gradient(top, #c8c8c8,#f1f1f1); /* IE10+ */
-	/*filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c8c8c8', endColorstr='#f1f1f1',GradientType=0 );  IE6-9 gave problems - text gone on IE7/8*/
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c8c8c8', endColorstr='#f1f1f1',GradientType=0 );  /*IE6-9 gave problems - text gone on IE7/8*/
 	background: linear-gradient(top, #c8c8c8,#f1f1f1); /* W3C */
 }
 /*.slideSetsMenu .menuheader{background-image:url('../img/slidebox_side_220.png');width:220px;height:31px;padding-left:10px;}*/
 div#slidesContOverlay
 {
-	position:absolute;left:0px;top:282px;width:220px;height:100%;margin:0px;padding:0px;overflow:auto;z-index:1000;
+	position:absolute;left:0px;top:282px;width:220px;bottom:0px;margin:0px;padding:0px;overflow:auto;z-index:1000;
 	background-color:#202020;
 	opacity: 0.90;
 	filter: alpha(opacity=90);

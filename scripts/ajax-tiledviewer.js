@@ -1459,7 +1459,7 @@ function loadLabels(pathToFile)
 
 function readLabels() 
 	{ 
-	if (xhrLabels.readyState == 4 ) 
+	if (xhrLabels.readyState == 4  && xhrLabels.responseText) 
 		{oLabels = eval('('+xhrLabels.responseText+')');
 		loadedLabels=true;
 //ih("readLblfromXhr");			

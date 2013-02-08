@@ -1,0 +1,3 @@
+
+div#slidesCont {overflow-x:hidden;} /*IE workaround to remove scroll bars caused by IE added out of the blue offset of 16px on slidesCont li"*/
+div#slidesCont li {position:relative;left:-16px;}
