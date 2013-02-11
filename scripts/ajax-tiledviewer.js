@@ -2,6 +2,19 @@
 
 // Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
 
+/*
+ * In the URL-query you can pass the following parameters:
+ * 
+ * slide: 		name of the slide to load, slideInfo will be read from a file slides.js that must be present
+ * zoom: 		zoom level {values: 0-max zoomlevel for the image}
+ * x: 			x coordinate (horizontal fraction of image) will be centered {values: 0-1}
+ * y: 			y coordinate (vertical fraction of image) will be centered {values: 0-1}
+ * showcoords: 	determines whether panel will be shown that displays the image-coordinates where the cursor is {values: 0 or 1}
+ * wheelzoomindirection: determines what direction of rotation of the mousewheel causes zoom-in {values: "up" or "down"}
+ * 
+ * 
+ */
+
 // Keep modification list, and tests intact in full code, but may be removed in minified code
 // Modifications:
 // FIX BUG losing images or undefined image if dragging at low zoom levels to right or bottom (Sol: in getVisibleTiles) 
@@ -88,12 +101,13 @@ var res = 0.46;
 var resunits = "&micro;m";
 var slidePointer = 0; 
 var wheelmode = 0; 
-var showCoords = 1;
+var showCoordsPanel = 0; //default dont show coords panel
 var zoom = 2; //start zoom level
 var hideThumb = false;
-var vX = null;
+var vX = vY = null;
+var showLabel = null; //label that will be shown on the requested x, y spot 
 var zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
-var scrollDirection = 1; //determines zoomin/out direction of scroll
+var wheelZoomInDirection = -1; //determines zoomin/out direction of wheel -1 = wheeldown
 
 //image
 var path = null; //may be defined in html page (then overwrites the null value set here)
@@ -183,25 +197,41 @@ logwin.ondblclick=resetlog;
 		
 	//set or adapt globals with query information
 	if (queryArgs.start){ slidePointer = queryArgs.start;}
-	if (queryArgs.path) {rawPath = queryArgs.path;} 
-	if (queryArgs.width) {rawWidth = queryArgs.width;} 
-	if (queryArgs.height) {rawHeight = queryArgs.height;} 
-	//if (queryArgs.showcoords) {showCoords = queryArgs.showcoords;} 
-	if (queryArgs.res)	{res = queryArgs.res;}
+	if (queryArgs.slide) {slideName = queryArgs.slide;}
+	if (queryArgs.showcoords) {showCoordsPanel = queryArgs.showcoords;} 
 	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
-	if (queryArgs.labels) {labelsPath = queryArgs.labels;} 
-	if (queryArgs.jslabels) {jsLabelsPath = queryArgs.jslabels;} 
-	if (queryArgs.credits) {creditsPath = queryArgs.credits;} 	
 	if (queryArgs.JSON){ JSON = queryArgs.JSON;}	
-	if (queryArgs.vT){ zoom = queryArgs.vT;}
-	if (queryArgs.vX) { vX = queryArgs.vX;}
+	if (queryArgs.zoom){ zoom = queryArgs.zoom;}
+	if (queryArgs.x) { vX = queryArgs.x;}
+	if (queryArgs.y) { vY = queryArgs.y;}
+	if (queryArgs.label) { showLabel = queryArgs.label;}
 	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
-	if (queryArgs.scrolldirection && (queryArgs.scrolldirection == 1 || queryArgs.scrolldirection == -1) ) {scrollDirection = queryArgs.scrolldirection;}; 
+	if (queryArgs.wheelzoomindirection) {wheelZoomInDirection = (queryArgs.wheelzoomindirection == "up")? 1 : ((queryArgs.wheelzoomindirection == "down")? -1 : wheelZoomInDirection);}; 
+
+
+	if(!slideName)
+		{showNoSlideRequestedWarning();
+		return
+		}
+	if(typeof slides == "undefined"  || !slides[slideName])
+		{
+		showRequestedSlideNotPresentWarning();
+		return;
+		}
+	//load slideInfo of requested slide
+	//here the global var 'slides' is read!!
+	slideInfo = slides[slideName];
+	if (slideInfo.path) {rawPath = slideInfo.path;} 
+	if (slideInfo.width) {rawWidth = slideInfo.width;} 
+	if (slideInfo.height) {rawHeight = slideInfo.height;} 
+	if (slideInfo.res)	{res = slideInfo.res;}
+	if (slideInfo.labels) {labelsPath = slideInfo.labels;} 
+	if (slideInfo.jslabels) {jsLabelsPath = slideInfo.jslabels;}//ih('jsLabelsPath='+jsLabelsPath) 
+	if (slideInfo.credits) {creditsPath = slideInfo.credits;} 	
 
 	//check if path is provided
 	if(rawPath)	{imgPath=rawPath;}
 	else {showNoPathWarning(); return;}
-	
 	
 	//if dimensions not yet known, try to read from ImageProperties.xml file
 	if (!rawWidth && !loadedXML && !getJSON) //why getJSON check?
@@ -236,6 +266,8 @@ logwin.ondblclick=resetlog;
 	recheckTilesTimer=setInterval("checkTiles()", 5000); //because regularly 'loses' updating tiles eg at viewport scroll, resize 
 
 //ih("init0ready");
+	//shows or hides the coords panel
+	showHideCoordsPanel();
 	
 	//if width and height info available, do rest of init//note: if read from xhr, the xmlread function will call init()
 	if (rawDimensionsKnown()) {init();}
@@ -262,17 +294,30 @@ function init()
 //ih("init-winsize");
 	winsize();//do after onload for IE
 
-	//positions image
-	if (vX)
-		{//ih("init-vXCenter");
-		center=1; 
-		innerDiv.style.left= -vX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)) +viewportWidth/2+"px";
-		innerDiv.style.top= -vY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))+viewportHeight/2+"px";
+	/////////////////
+	//Position image
+	////////////////
+	
+	
+	//center on a requested x and y
+	if (vX && vY)
+		{//ih("init-vXCenter, vX="+vX);
+			center=1; 
+			centerOn(vX,vY);
+			//and show the requested label
+			if(showLabel)
+			{
+				createLabel("called", {"label": showLabel,  "x": vX, "y": vY});
+				resizeLabels();
+			}
 		}
+	//center on middle of image
 	else
 		{//ih("init-centerMap");	
 		centerMap();
 		}
+	
+	
 
 	//load JSON
 	if (JSON && !loadedJSON)
@@ -300,13 +345,20 @@ function init()
 	if (!hideThumb) 	{showThumb();}
 		
 //ih("init-updateDiverse");
-	resizeBgDiv(); checkTiles(); moveThumb2(); updateZoom();
+	resizeBgDiv(); 
+	checkTiles(); 
+	moveThumb2(); 
+	updateLengthBar();
 
 	if(hasSmallViewport()) {adaptDimensions();}
 	}
 
 
-
+function centerOn(xcoord,ycoord)
+{
+	innerDiv.style.left= -xcoord*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)) +viewportWidth/2+"px";
+	innerDiv.style.top= -ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))+viewportHeight/2+"px";
+}
 
 function getNrTiers()
 	{
@@ -424,10 +476,18 @@ function processMove(event)
 	{//ih("processmove ");
 	if (!event){ event = window.event;}
 	
-	//ih("showcoords="+showCoords + ",");
-	if (showCoords) //displaying of mouse coords. This could be commented out in production to dimish load
+	//ih("showCoordsPanel="+showCoordsPanel + ",");
+	if (showCoordsPanel == 1) //displaying of mouse coords. This could be commented out in production to dimish load
 		{var imgCoords= getImgCoords(cursorX,cursorY);
-		ref('coordsPane').innerHTML= "x: " + imgCoords.x + ", y: " + imgCoords.y ;
+		
+		coordX = imgCoords.x;
+		coordY = imgCoords.y;
+		if( coordX <= 0 || coordX >=1 || coordY <= 0 || coordY >=1)
+			{
+				coordX = coordY = "<span class='deemphasize'>Outside slide</span>";
+			}
+		
+		ref('coordsPane').innerHTML= "x: " + coordX + ", y: " + coordY ;
 		}
 	if (dragging) 
 		{innerStyle.left = event.clientX + dragOffsetLeft;
@@ -541,9 +601,10 @@ function ZoomIn()
 
 		resizeBgDiv();	
 		keepInViewport();
-		updateZoom();	
+		updateLengthBar();	
 		moveThumb2();
-		//lowZoomHideLabels();	
+		//lowZoomHideLabels();
+		resizeLabels();
 		}
 	
 	}
@@ -591,9 +652,10 @@ function ZoomOut()
 
 		resizeBgDiv(); 
 		keepInViewport(); 
-		updateZoom(); 
+		updateLengthBar(); 
 		moveThumb2();
 		//lowZoomHideLabels();
+		resizeLabels();
 	}
 
 
@@ -603,7 +665,7 @@ function lowZoomHideLabels()
 	else {imageLabels.style.display="block";}
 	}
 	
-function updateZoom() 
+function updateLengthBar() 
 	{//you want a bar between 50 and 125px long
 	var um50 = Math.pow(2,gTierCount-1-zoom)*res*50; // micrometers equiv. with 50 px
 	var um125 = um50 * 2.5; // micrometers equiv. with 100 px
@@ -734,7 +796,146 @@ function hideTips()
 	clearTimeout(tipTimer);
 	}
 
-///// GENERAL IMAGE PROCESSING //////
+
+////////////////////////////////////////////
+//
+// LABELS Functions
+//
+///////////////////////////////////////////
+
+/*
+ * loading of labels is quite patchy (on FF)
+ * if you use XHR and add something to the querystring nothing is loaded without error message
+ * if you use loadJs() the file is loaded and executed, but the variable jsLabels in it cannot be accessed, is undefined...
+ * if you use jQ.getScript() it gives a cross-domain error
+ * if you use jQ with cross-domain = true, then no error, but also no data
+ * if you try to load json (adapted so it doesn't contain var jslabels= {}, but only the {..}) , then nothing comes, no error
+ * In all cases nothing visible in firebug net panel..?
+ * Conclusion: the below function is the best up till now, working mostly, but easily broken. 
+ */
+function loadLabels(pathToFile)
+	{ 
+	
+	try
+		{//ih("loadLblwXhr-1");
+
+ 		//clear any old labels
+		var pinImage = ref("L0");  
+		//alert("labels="+typeof labels)
+		if (pinImage) 
+			{var divs = imageLabels.getElementsByTagName("div");
+			//alert("going to clear labels") 
+			while (divs.length > 0) imageLabels.removeChild(divs[0]);
+			} 
+
+		//load new labels	
+		xhrLabels = getHTTPObject();  //moved inside loadLabels function PG
+		//ih(xhrLabels);
+		//added if to prevent breaking if labels don't work, removed else, this made labels disappear at a next call of loadlabels
+		if(xhrLabels)			
+			{//alert("getting labels");
+			xhrLabels.open("GET", pathToFile , true);
+			xhrLabels.onreadystatechange = readLabels;
+			xhrLabels.send();
+			//ih("loadLblwXhr-2");
+			}
+		}	
+	 catch(e)
+		{return;
+		}	
+		
+	}
+
+function readLabels() 
+	{ //ih('xhrLabels.readyState=' + xhrLabels.readyState+ 'xhrLabels.responseText='+xhrLabels.responseText + '<br>');
+	if (xhrLabels.readyState == 4  && xhrLabels.responseText) 
+		{//alert(xhrLabels.responseText)
+		eval(xhrLabels.responseText);
+		
+		oLabels = jsLabels; //eval('('+xhrLabels.responseText+')');
+		
+		loadedLabels=true;
+//ih("readLblfromXhr");
+//debug(oLabels);
+		renderLabels();
+		}
+	}
+
+	
+function renderLabels() 
+	{//ih("renderLabels1");
+		if(!dimensionsKnown()) 
+			{clearTimeout(labelTimer);
+			labelTimer=setTimeout("renderLabels()", 500); 
+	//ih("dimensionsUnknown");
+			return;
+			}
+
+		//remove any old labels
+		var labelDivs = imageLabels.getElementsByTagName("div"); 
+		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
+	//ih("renderLabels2");
+	//debug(oLabels);
+	
+		for (label in oLabels)
+			{
+			var labelInfo = oLabels[label];
+			createLabel(label,labelInfo);		
+			}
+		
+	}
+
+
+/*
+ * Creates a label from the given object oLabel and appends the label into div imageLabels
+ * @param object labelInfo e.g. {"label": "Source", "popUpText": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
+ * 
+ */
+createLabel.index=0;
+function createLabel(labelName,labelInfo)
+{
+	debug(labelInfo);
+	var labelText = labelInfo.label;
+	var labelPopUpText = (labelInfo.popUpText != undefined)? labelInfo.popUpText : ""; 
+	var nX = labelInfo.x; 
+	var nY = labelInfo.y; 
+	if (labelInfo.href!=undefined)
+		{labelText='<a href="'+labelInfo.href+'" target="_blank">'+labelText+'</a>'; 
+		}
+	var pinImage = document.createElement("div"); 
+	pinImage.style.position = "absolute";
+	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
+	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
+	pinImage.style.left =(nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
+	pinImage.style.top =(nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
+	pinImage.style.width = 8*labelText.length + "px"; pinImage.style.height = "2px"; 
+	pinImage.style.zIndex = 1; 
+	pinImage.setAttribute("id", "L"+createLabel.index);
+	if(labelPopUpText != "")
+		{pinImage.setAttribute("title", labelPopUpText);
+		}
+	pinImage.setAttribute("class", "label"); 
+	pinImage.setAttribute("className", "label"); //IE
+	pinImage.innerHTML= labelText; 
+	//alert(pinImage);
+	imageLabels.appendChild(pinImage); 
+	
+	createLabel.index++;
+}
+
+function resizeLabels()
+{
+	var fontSize  = ((zoom/(gTierCount-1)) * 300)  + "%";
+	jQ(".label").css('fontSize',fontSize);	
+}
+
+
+////////////////////////////////////////////
+//
+// GENERAL IMAGE PROCESSING
+//
+///////////////////////////////////////////
+
 	
 function resizeBgDiv()
 	{
@@ -814,7 +1015,8 @@ function keepInViewport()
 /// LOADING TILES ////
 	
 function checkTiles() 
-	{ //ih("CHECKTILES() ";// called by: "+checkTiles.caller+"<br>");
+	{
+	//ih("CHECKTILES()");// called by: "+checkTiles.caller+"<br>");
 
 	if (!dimensionsKnown()) {return;}
 	
@@ -823,7 +1025,7 @@ function checkTiles()
 	for (i = 0; i < visibleTiles.length; i++)  //each entry is a tile, contains an array [x,y], number of tiles that would fit in the viewport
 		{ var tileArray = visibleTiles[i]; //for this tile
 
-		if (!center) {centerMap();}
+		if (!center) {centerMap();} //???
 		
 //ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"viewportWidth="+viewportWidth+"<br>");
 		pCol=tileArray[0]; 
@@ -1044,14 +1246,24 @@ function getElemPos(elemRef)
 	return pos;
 	}
 	
-	
-function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=0;}
+///////////////////////////////
+// wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
 
+function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=0;}
 
 function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" checked  onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=1;}
 
 
-
+//TOOLS ////
+/*
+ * shows or hides the little panel at the top of the page displaying the coords
+ * uses the global var showCoordsPanel (1= show, 0 = hide)
+ */
+function showHideCoordsPanel()
+	{
+	//alert("in main  showHideCoordsPanel, showCoordsPanel ="+ showCoordsPanel)
+	ref("coordsPane").style.display = (showCoordsPanel == 1)? "block" : "none";
+	}
 
 
 
@@ -1284,7 +1496,7 @@ placeArrows();
 //handles mousewheel
 function handle(delta) 
 	{ zoomCenterOnCursor= true;
-	delta = delta * scrollDirection; 
+	delta = delta * (-wheelZoomInDirection); 
 	if (delta < 0)
 		{if (wheelmode==0) { ZoomIn();}
 		else { slideNext();}
@@ -1412,7 +1624,8 @@ function loadJSON()
 
 function JSONread() { 
 	if (JSONrequest.readyState == 4) { 
-		JSONout = eval('('+JSONrequest.responseText+')'); 			  
+		JSONout = eval('('+JSONrequest.responseText+')');
+		alert(JSONout);
 		JSONnum=JSONout.slides.length; 
 		rawPath = JSONout.slides[slidePointer].path; 
 		rawWidth = JSONout.slides[slidePointer].width; 
@@ -1423,96 +1636,11 @@ function JSONread() {
 		}
 		loadedJSON=1; 
 		init0();
+		
 	}
 }
 
  
-
-function loadLabels(pathToFile)
-	{try
-		{//ih("loadLblwXhr-1");
-
- 		//clear any old labels
-		var pinImage = ref("L0");  
-		//alert("labels="+typeof labels)
-		if (pinImage) 
-			{var divs = imageLabels.getElementsByTagName("div");
-			//alert("going to clear labels") 
-			while (divs.length > 0) imageLabels.removeChild(divs[0]);
-			} 
-
-		//load new labels	
-		xhrLabels = getHTTPObject();  //moved inside loadLabels function PG
-		//added if to prevent breaking if labels don't work, removed else, this made labels disappear at a next call of loadlabels
-		if(xhrLabels)			
-			{//alert("getting labels")
-			xhrLabels.open("GET", pathToFile , true); 
-			xhrLabels.onreadystatechange = readLabels; 
-			xhrLabels.send(null);
-			//ih("loadLblwXhr-2");
-			}
-		}	
-	 catch(e)
-		{return;
-		}	
-	}
-
-function readLabels() 
-	{ 
-	if (xhrLabels.readyState == 4  && xhrLabels.responseText) 
-		{oLabels = eval('('+xhrLabels.responseText+')');
-		loadedLabels=true;
-//ih("readLblfromXhr");			
-		renderLabels();
-		}
-	}
-
-	
-function renderLabels() 
-	{//ih("renderLabels1");
-	if(!dimensionsKnown()) 
-		{clearTimeout(labelTimer);
-		labelTimer=setTimeout("renderLabels()", 500); 
-//ih("dimensionsUnknown");
-		return;
-		}
-	
-	//remove any old labels
-	var labelDivs = imageLabels.getElementsByTagName("div"); 
-	while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
-//ih("renderLabels2");
-
-	var nrLabels=oLabels.labels.length; 
-//ih("nrLabels="+nrLabels);
-	for (var $i = 0; $i < nrLabels; $i++)
-		{var thisLabel = oLabels.labels[$i];
-		var labelText = thisLabel.label; 
-		var labelLongText = thisLabel.name; 
-		var nX = thisLabel.x; 
-		var nY = thisLabel.y; 
-		if (thisLabel.url!=undefined)
-			{labelText='<a href="'+thisLabel.url+'" target="_blank">'+labelText+'</a>'; 
-			}
-		var pinImage = document.createElement("div"); 
-		pinImage.style.position = "absolute";
-		//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
-		//nY = nY - (0.006/(Math.pow(2,zoom-1)));
-		pinImage.style.left =(nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-		pinImage.style.top =(nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-		pinImage.style.width = 8*labelText.length + "px"; pinImage.style.height = "2px"; 
-		pinImage.style.zIndex = 1; 
-		pinImage.setAttribute("id", "L"+$i); 
-		pinImage.setAttribute("title", labelLongText); //used the name part
-		pinImage.setAttribute("class", "label"); 
-		pinImage.setAttribute("className", "label"); //IE
-		pinImage.innerHTML= labelText; 
-		imageLabels.appendChild(pinImage); 
-		}
-//ih("renderLabels3");
-	}
-
-
-
 
 /////////////////////////////////////////////////////////////////////
 //IFrame fallback
@@ -1673,6 +1801,7 @@ function readTextFromDOM(topElem)
 //reads labels from Js file
 function readLabelsFromJs()
 	{
+	
 	readLabelsFromJs.timer="";
 	readLabelsFromJs.counter=0;
 	if(window.jsLabels) //js file should state jsLabels= {...}
@@ -1694,7 +1823,8 @@ function readLabelsFromJs()
 		
 //creates a new script node and loads a js file in it //note: loading a raw json {..} in this way gives error, which cannot be prevented, so only use if not a raw JSON, e.g. safe js file is=    xxxx ={..}
 function loadJs(url)
-	{try
+	{
+	try
 		{var scr= document.createElement("script");
 		scr.setAttribute("type","text/javascript");
 		scr.setAttribute("src",url);
@@ -1766,7 +1896,17 @@ function showNoPathWarning()
 	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: location [URL-path] of image not provided. The location should be provided either in the URL-query or in the html page.";
 	ref("warning").style.display="block";	
 	}
-	
+
+function showNoSlideRequestedWarning()
+	{
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No slide requested. The slide should be requested by its name either in the URL-query or in the html page.";
+	ref("warning").style.display="block";	
+	}
+function showRequestedSlideNotPresentWarning()
+{
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No slide-info file (slides.js) is present or the requested slide is not present in the slide-info file.";
+	ref("warning").style.display="block";	
+}
 function showNoDimensionsWarning()
 	{if(!dimensionsKnown())
 		{ref("warning").innerHTML="Image cannot be displayed.<br />Reason: Width and Height of image not provided. The Width and Height should be provided either in the URL-query or in the html page."; 
@@ -1786,4 +1926,77 @@ function ih(txt)
 
 function resetlog() 
 	{logwin.innerHTML="";}
+
+/*
+ * creates alert with debuginfo
+ * @param one or more argumnets to be shown
+ */ 
+function debug(subjects)
+{
+	var str="";
+	
+	for(var i=0;i<arguments.length;i++)
+		{
+			var subject = arguments[i]; 	
+					
+			if(typeof subject == "object" && subject instanceof Array)
+			{	
+				str+= "[Array]\n";
+				if (subject.length == 0) {str+= "EMPTY"}
+				else
+					{
+					for(var i=1;i<subject.length;i++)
+						{
+							str+= i + " : " + subject[i] + "\n";
+						}
+					}	
+			}
+			else if(typeof subject == "object" )
+			{	
+				str+= "[Object]\n";
+				counter= 0;
+				for(prop in subject)
+				{
+					str+= prop + " : " + subject[prop]  + "\n";;
+					counter++;
+				}
+				if(counter==0){str+= "EMPTY"}
+				
+			}	
+			else if(typeof subject == "string")
+			{
+				{
+					str= "[string] " + subject;
+				}
+			}
+			else if(typeof subject == "number")
+			{
+				{
+					str= "[number] " + subject;
+				}
+			}
+			else if(typeof subject == "boolean")
+			{
+				{
+					str= "[boolean] " + subject? "TRUE" : "FALSE";
+				}
+			}
+			else if(typeof subject == "undefined")
+			{
+				{
+					str= "undefined";
+				}
+			}
+			else if(subject == null)
+			{
+				{
+					str= "NULL!";
+				}
+			}	
+			str+="\n";
+		}//end loop all arguments
+	alert(str);
+}
+
+
 	

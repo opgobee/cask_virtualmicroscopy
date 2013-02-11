@@ -10,11 +10,15 @@
 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
 <title>Virtual Microscopy powered by Brainmaps-CASK viewer</title>
 
-<!-- NOTE Styles in document instead of in a separate css appears to work slightly faster, gives a more immediate response experience-->
+
+<!-- STYLES /////////////////////////////-->
+
+<!-- NOTE Styles are included here instead of in a separate css, as this appears to work slightly faster during slide viewing, panning, zooming etc., gives a more immediate response experience-->
 <style>
 body {margin:0px;height:100%;overflow:hidden;}
 div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
-div#coordsPane{display:none;position:absolute;top:2px;width:180px;height:25px;margin-left:50%;margin-right:45%;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
+div#coordsPane{display:none;position:absolute;top:2px;width:200px;height:25px;margin-left:50%;margin-right:45%;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
+span.deemphasize {font-size: 80%; color:#a1a1a1}
 div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
@@ -33,7 +37,7 @@ div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:
 		div#innerDiv {position:absolute;top:0px;left:0px;z-index:0;}
 			div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;}
 			div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}
-			div.label {font-family:Arial,sans-serif;font-weight:bold;font-size:80%;color:black;cursor:pointer}
+			div.label {font-family:Arial,sans-serif;font-weight:bold;font-size:80%;color:black;text-shadow: 1px 1px 0px #ffffff;cursor:pointer;text-align:center;vertical-align:middle;clear: both;float:left}
 		div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
 
 div#controls0 {position:absolute;right:10px;top:10px;width:200px;height:200px;z-index:1;}
@@ -56,23 +60,31 @@ div#controls0 {position:absolute;right:10px;top:10px;width:200px;height:200px;z-
 .iconMobile  {position:absolute;left:0px;top:0px;width:26px;height:36px;cursor:pointer;z-index:100;}
 #mobileHint  {display:none;position:absolute;left:-180px;top:5px;width:165px;height:15px;padding:5px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef;}
 #test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
-
 </style>
+
 <!--[if IE]>
 <style type="text/css">
 div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "thumb2"*/
 </style>
 <![endif]-->
 
-<script src="../scripts/ajax-tiledviewer.js" type="text/javascript"></script>
-<script type="text/javascript">
-//EXAMPLE SHOWING HOW TO SET JAVASCRIPT VARIABLES FOR USE IN THE BRAIN MAPS API.  
-//UNCOMMENT THE LINE BELOW TO USE THESE VARIABLE VALUES OR ADD YOUR OWN VALUES.
-//path="http://brainmaps.org/HBP2/c.aethiops/AGM1/AGM1-highres/350/";height=78181;width=92160;
-//path="P-2/";height=16946;width=25347;//height=25581;width=12480;
 
-</script>
+<!-- SCRIPTS & SLIDES DATA /////////////////////////////-->
+
+<!-- libs -->
+<script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
+
+<!--  Viewer engine -->
+<script src="../scripts/ajax-tiledviewer.js" type="text/javascript"></script>
+
+<!-- slides info -->
+<script src="../slides/slides.js" type="text/javascript"></script>
+
 </head>
+ 
+ 
+<!-- HTML //////////////////////////////////////////-->
     
 <body onload="init0()">
 
@@ -112,8 +124,7 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 		</div> <!--eof credit -->
 		
 		
-	</div> <!--eof outerdiv -->
-		
+	</div> <!--eof outerdiv -->	
 </div> <!--eof outerdiv0 -->
 		
 <!-- to display mouseover coordinates-->		

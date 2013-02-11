@@ -1,70 +1,135 @@
+/*
+ * Navigation-pane scripts used together with the microscopy viewer
+ * Written 2013 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o--dot--p--dot--gobee--at--lumc--dot--nl
+ * See also: http://www.caskanatomy.info
+ * license: Creative Commons: BY NC SA
+ * Basically: You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+ * This notification should be kept intact, also in minified versions of the code. 
+ * 
+ * How it works:
+ * frameset full.html refers to nav frame nav.html with scripts nav_pane.js and main frame 'view' main.html with scripts ajax-tiledviewer.js
+ * If no slide is requested in the parent's URl (that is in the URL of the frameset, the URL the user sees), blank.html is loaded in the main frame
+ * If one of the slides in the slide selection menu (created here) is clicked, the parent will be reloaded with the slide request aded to the query: ?slide=..slidename...
+ * If a slide IS requested in the parent's URl (either because it was direcly externally called with that, or because the parent was reloaded with the slide request, then viewer file is called in the main frame, with the query (including the requested slide) appended to it
+ * So: basically 2 possible ways to show a slide:
+ * 1. the BMCviewer is called direct from the start with a slide request: '....pathtoBMCviewer.../full.html?slide=slideName' --> the nav panel is shown, but the requested slide is directly loaded in the main panel
+ * 2. the BMCviewer is called without a slide request: '....pathtoBMCviewer.../full.html'. 
+ * 		- the user clicks one of the slides in the slide selection menu
+ * 		- a reload of the parent is done with a slide request: '....pathtoBMCviewer.../full.html?slide=slideName'
+ * 		- step 1 is executed
+ *
+ */
+
 //Settings
-//var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
-//var slideSets; //global var 'slideSets' containing the list of slideSets. Is now defined and set in slides.js
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
+var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load opening
+var urlViewerFile = "../html/main.html";
+var urlSlideImg = "../img/slide.jpg";
+var urlSensorImg = "../img/emptyimage.gif";
+var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides
+
+//Settings that can be passed via URL query 
+defaultQuerySettings = Array(); 
+defaultQuerySettings["wheelzoomindirection"] = "down"; //user-option: zoomin/out direction of wheel, default wheeldown = zoomin
+defaultQuerySettings["showcoords"] = 0; //user-option: default hide coords panel
+
+//Variable declarations
+//var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
+//var slideSetsMenus; //global var 'slideSetsMenus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
 var currentSlideSetMenu = null;
 var loadedSlideSetMenuNames = Array(); //array with names of the slideSetsMenus that have been created and inserted in the slideSetsMenuPane
-var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load opening
-//var currentSlideSetName = null; 
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
 var loadedSlides = Array(); //array with the slides-objects that are loaded
-
-var viewerFile = "../html/main.html";
-var urlSlideImg = "../img/slide.jpg";
-var urlSensorImg = "../img/emptyimage.gif"
-var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides
+var querySettings = Array(); //assoc arary with name/value pairs settings that are communicated via the URL's query. These are read from the parent (=frameset)'s query. Args may be added in nav. If a slide is requested, the main window is loaded, the query is transferred to the URL of the main window
 var fitDone=[],fitAttempt=1;
 var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
-var hasJquery = (typeof jQ != "undefined")? true : false; //because this same script file may also be used in simpler version without Jq
-var scrollDirection = 1; //determines zoomin/out direction of scroll 
-var showCoords = 0;
-var presentSlideInfo= null; //used for reloading
 var settingsCloseTimer;
 var slidesCont;
 var logwin;
 var viewportWidth, viewportHeight;
-
-//var slideSetMenu = "collectionsAnatomicalRegions"; //default
 var slideSetsMenus = {};
 var slideSetsMenuData = Array();
-//var glb_pathtoroot ="";
 
-
-
+//////////////////////////////////////////
+//
+// 	Startup
+//
+////////////////////////////////////////////	
 
 
 function init()
 	{
+	//debugging
+	logwin=document.getElementById("log");
+	setDefaultQuerySettings();
+	//read query from URL of parent (the frameset)
+	parentQueryArgs= getQueryArgs("parent");
+	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
+	querySettings = merge_options(querySettings,parentQueryArgs);
+	//debug("read from parent:parentQueryArgs:", parentQueryArgs);
+	
 	winsize();//do after onload for IE
 	setHandlers();
-	logwin=document.getElementById("log");
+	//sets default options in the options menu
+	checkChosenOptions();
+	//creates the menus: Menus: menuAnatomicalRegions and menuInstitutionsModules, containing headers, containing entries (entry refers to a set of slides to be shown in the slide-selection panel [=that is: here])
 	createSlideSetsMenus();
+	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
-	loadSlides();	
+	//loads the slides in the slide selection menu
+	//loadSlides();
+	//if a slide is requested in the URL, load the requested slide in the main panel
+	//debug('querySettings[slide]??', querySettings["slide"])
+	if(querySettings["slide"] != "undefined")
+		{
+		//busy here
+		loadVirtualSlide(); //loads the slide that is requested in the querySettings : e.g. '...?slide=carotis'
+		}
 	}
-	
+
+function setDefaultQuerySettings()
+{
+	for(prop in defaultQuerySettings)
+	{
+		querySettings[prop] = defaultQuerySettings[prop];
+	}	
+}
 	
 function setHandlers()
 {
 	window.onresize=winsize; 
 	ref("all").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
-	ref("settingsDiv").style.display="none";
-	ref("settingsForm")["scrollDir"][0].checked=true;
-	ref("settingsForm")["showCoords"][1].checked=true;
-	jQ(".showCoords").change(handleCoordsSetting);
+
+	jQ(".wheelZoomDir").change(setWheelZoomDirection);
+	jQ(".showCoords").change(showHideCoordsPanel);
 	
 	slidesCont = ref("slidesCont");
-	
-	if(isIE)
-		{ref("optScrollUp").onclick= setScrollDir; //@todo: testen of dit weg kan. jQ vangt wrschl goed op
-		ref("optScrollDown").onclick= setScrollDir;
-		}
-	else
-		{jQ(".scrollDir").change= setScrollDir;
-		}
 }	
+
+/*
+ * In the options menus, checks the options according to the present settings
+ */
+function checkChosenOptions()
+{
+	if(querySettings["wheelzoomindirection"] == "up") 
+	{
+		jQ("#optWheelUp").attr('checked','checked'); 
+	} 
+	else if(querySettings["wheelzoomindirection"] == "down") 
+	{
+		jQ("#optWheelDown").attr('checked','checked'); 
+	} 
+	if(querySettings["showcoords"] == 0) 
+	{
+		jQ("#optHideCoords").attr('checked','checked'); 
+	} 
+	else if(querySettings["showcoords"] == 1) 
+	{
+		jQ("#optShowCoords").attr('checked','checked'); 
+	} 
+}
 
 //////////////////////////////////////////
 //
@@ -73,7 +138,7 @@ function setHandlers()
 ////////////////////////////////////////////	
 
 /*
- * From the datacontainer slideSetsMenus creates all slideSetsMenus and places them in the slideSetsMenuPane
+ * From the datacontainer slideSetsMenus creates all slideSetsMenus (presently: menuAnatomicalRegions and menuInstitutionsModules) and places them in the slideSetsMenuPane
  */
 function createSlideSetsMenus()
 {
@@ -87,12 +152,11 @@ function createSlideSetsMenus()
 	
 	//set show/hide behaviour of SlideSetsMenuPane
 	hideSlideSetsMenuPane() //initially hide SlideSetsMenuPane
-//	jQ("body").click(hideSlideSetsMenuPane); //hide directly at click outside SlideSetsMenuPane
 
 }
 
 /*
- * 
+ * calls html creation of slidesetmenu, appends it and attaches accordion behaviour
  * xx-3-2009 NEW
  * 20-5-2009 CHG removed SlideSetsMenuPaneSenser (mut 1 & 2) and set SlideSetsMenuPaneTab to react to mouseover instead of click (mut 3)
  * 15-2-2012 CHG made it to retry with a timeout if the file with the slideSetsMenuData has not yet loaded - first it simply exited
@@ -132,23 +196,25 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	var slideSetsMenuData = slideSetsMenus[slideSetMenuName];
 	var str="";
 	
+	//header level
 	str+= "<div id='" + slideSetMenuName + "' class='slideSetsMenu'>"; //1st level gets an id
 	for (var i=0;i<slideSetsMenuData.length;i++)
      	{
 		header = slideSetsMenuData[i]["header"];
 		sets = slideSetsMenuData[i]["sets"];
-		//create a header link entry
+		//create header
 		if(header)
 		{
 		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.showText + "</h3>";
 		}
+			//entries below header
 			if(sets)
 			{
 			str+="<div>";
 			for(var y=0;y<sets.length;y++)
 				{
 				entry = sets[y];
-				//create an entry link entry
+				//create an entry 
 				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.showText + "</div>";			
 				}
 			str+="</div>";
@@ -156,27 +222,6 @@ function createSlideSetsMenuHtml(slideSetMenuName)
     	} //end for
 	str+= "</div>";	
 
-/*	
-  str+= "<ul id='" + slideSetMenuName + "' class='slideSetsMenu greygradient'>"; //1st level gets an id
-	for (var i=0;i<slideSetsMenuData.length;i++)
-     	{
-		header = slideSetsMenuData[i]["header"];
-		list = slideSetsMenuData[i]["sets"];
-		//create a header link entry
-		str+="<li class=' liLevel0 greygradient' onclick='loadSlideSet(\""+header.slides+"\")'><a  class='accordionHeader'>"+ header.showText + "</a>";
-			str+="<ul>";
-			for(var y=0;y<list.length;y++)
-				{
-				entry = list[y];
-				//create an entry link entry
-				str+="<li class='liLevel1 greygradient' onclick='loadSlideSet(\""+entry.slides+"\")'>BLABLA"+ entry.showText +"<a  class='aLevel1'>"+ entry.showText + "</a></li>";			
-				}
-			str+="</ul>";
-		str+="</li>";	
-     	} //end for
-	str+="</ul>";
-*/
-	
 	return str;
 	}//end function	
 
@@ -193,16 +238,16 @@ function toggleSlideSetsMenuPane(slideSetMenuName)
 	if(jQ("#SlideSetsMenuPane").css("display")=="none" || (currentSlideSetMenu != slideSetMenuName)) //pane closed or wrong menu shown
 	{
 	//alert("Going to show menu "+ slideSetMenuName);
-	//clearTimeout(toSlideSetsMenuPane);
-	//	jQ("body").bind("mouseover",hideNavAtMouseOut);
-	hideAllSlideSetMenus();
-	showSlideSetsMenu(slideSetMenuName);
-	
-	currentSlideSetMenu = slideSetMenuName;
+		//clearTimeout(toSlideSetsMenuPane);
+		//	jQ("body").bind("mouseover",hideNavAtMouseOut);
+		hideAllSlideSetMenus();
+		showSlideSetsMenu(slideSetMenuName);
+		
+		currentSlideSetMenu = slideSetMenuName;
 	}
-else
+	else
 	{
-	hideSlideSetsMenuPane();
+		hideSlideSetsMenuPane();
 	}	
 }
 	
@@ -269,7 +314,8 @@ function loadSlideSet(stringSlideNames)
 
 
 /*
-* from the global var slides, loads all slides or a subset, as determined by the currentSlideSetName
+* Creates and shows a set of clickable slides (thumb projected on a slide image) in the slide selection panel (=this page)
+* @needs global var slides
 */
 function loadSlides()
 {
@@ -282,7 +328,7 @@ function loadSlides()
 	if(currentSlideSetSlideNames.length != 0) 
 	{
 			//debug showNames
-			showNames = currentSlideSetSlideNames.join();
+			//showNames = currentSlideSetSlideNames.join();
 				
 
 		for(var i=0;i<currentSlideSetSlideNames.length;i++)
@@ -291,17 +337,19 @@ function loadSlides()
 			
 			if(slideName == "ALL")
 			{
+				//load ALL available slides
 				for(slideName in slides)
-				{
-					createSlide(slides[slideName]);
+				{			
+					createSlide(slideName);
 				}
 			}
 			//alert("Testing Is slide  with name: '" + slides[i].name + "' amongst: "+ showNames);
 			//check if this slide's name is amongst the currentSlideSet-SlideNames
 			else if(slides[slideName]) 
 			{
+				//here the global var slides is read!!
 				//alert("Creating slide with name:"+slideName;
-				createSlide(slides[slideName]);
+				createSlide(slideName);
 			}			
 		}	
 	}
@@ -311,7 +359,7 @@ function loadSlides()
 	{
 		for(slideName in slides)
 		{
-			createSlide(slides[slideName]);		
+			createSlide(slideName);		
 		}	
 	}
 
@@ -328,12 +376,21 @@ function removeSlides()
 
 
 /*
-* Creates DOM elements for a slide, and appends it to div with id 'slidescont'
-* @param object slideInfo 
+* Creates a clickable slide (thumb projected on a slide image)
+* Technically: Creates DOM elements for a slide, and appends it to div with id 'slidescont'
+* @param string slideName
+* @needs globar var 'slides' with the slide-info
 *
 */
-function createSlide(slideInfo)
-	{ //l(slideInfo.info)
+function createSlide(slideName)
+	{ 
+	
+	//safety
+	if(typeof slides == "undefined" || ! slides[slideName])
+		{return;}
+	
+	//here the global var 'slides' is read!!
+	slideInfo = slides[slideName];
 	
 	var imgIndex = loadedSlides.length;
 	loadedSlides[imgIndex] = slideInfo; //store the loaded slide object
@@ -392,7 +449,9 @@ function createSlide(slideInfo)
 	ref(sensorId).onclick=loadIt;
 	
 	function loadIt()
-		{loadVirtualSlide(slideInfo);}
+		{setQuerySetting("slide",slideName);
+		reload(true);
+		}
 
 	} 
 
@@ -471,38 +530,100 @@ function checkFit()
 	fitAttempt++;	
 	}	
 
-/*
- * loads the clicked slide into the main panel
- * @param object slideInfo 
- */
-function loadVirtualSlide(slideInfo)
-	{var URL = viewerFile;
 
-	var count= 0;
-	if( slideInfo && slideInfo.path && slideInfo.path != "")
-		{for(var prop in slideInfo)
-			{//if not a property meant for nav, but a property meant for the main page
-			if(prop != "thumb" && prop != "thumbwidth" && prop != "thumbheight" && prop != "info") 
-				{if(count == 0) //first arg, prepend the query questionmark
-					{ URL+= "?" + prop + "=" + slideInfo[prop]; count=1;}
-				else  //next args, prepend ampersand
-					{ URL+= "&" + prop + "=" + slideInfo[prop]; }
-				}
-			}	
-		if (scrollDirection=="-1") 	{URL+= "&scrolldirection=-1"; }
-		//URL+= "&showcoords=" + showCoords;
+//////////////////////////////////////////////////////////////////////
+//
+// LOADING VIRTUAL SLIDE IN MAIN PANEL
+//
+/////////////////////////////////////////////////////////////////////
+
+/*
+ * reloads the parent (frameset) window with the present settings (slide requested, showCoords etc) of querySettings 
+ * Note: if there was not yet a slide requested in the query, it will add a slide request, if there was already a (previous) slide requested in the query, it will replace it.
+ * @param boolean clean TRUE if you want only the slide plus user preferences remaining an dth erest cleaned from querySettings
+ */
+function reload(clean)
+{
+	//read URL parts of parent (the frameset)
+	//gets the non-query part of the URL e.g. 'http://www.microscopy.org/viewer/full.html'
+	baseUrlPart = getBaseUrlPart("parent");
+	//gets the queryparts in an associative array/object
+	parentQueryArgs= getQueryArgs("parent");
+	//add or replace the requested properties according to how it is set in queryArgs
+	querySettings = merge_options(parentQueryArgs,querySettings);
+	if(clean)
+		{
+			cleanQuerySettings();
+		}
+	//re-create URL and reload
+	var URL = createAppendQuery(baseUrlPart,querySettings);
+	//alert("reloading parent with URL= '"+URL+"'");
+	parent.location = URL;	
+}
+
+/*
+ * loads the slide requested in the querySettings array into the main panel
+ * 
+ */
+function loadVirtualSlide()
+	{	
+	var slideName = querySettings["slide"];
+	if(!slideName)
+		{return;}
+	else if(slides[slideName])//@TODO maybe remove this check, is duplicate with check in the viewer itself
+		{
+		//creates URL aimed at the main window 
+		var URL = createAppendQuery(urlViewerFile,querySettings);
+		//alert("loading main window with URL= '"+URL+"'");
+		//load the URL with the sliderequest in the main (=view) window
 		parent.view.location= URL;
-		presentSlideInfo=slideInfo; //for reloading
+		}
+	else
+		{
+		alert("The requested slide: '"+ slideName + "' is not present in the repository.\nPlease check the name of the slide you requested.")
 		}
 	}
 	
-//@todo append showcoords and scrolldirection only once to URL . NOw its is appended many times
-
-function appendQuerySetting(URL,queryArg,value)
-	{
+/*
+ * creates the URL query from the array queryArgs and appends it to the passed basePartURL
+ * @param assoc array queryArgs with format: ["name"= "value"]
+ * return complete URL with query appended, eg. www.xyz.com?name1=value1&name2=value2 
+ * 
+ */
+function createAppendQuery(basePartURL,queryArgs)
+	{ 
+	var queryPart = "?";
+	var first= true;
 	
+	for(prop in queryArgs)
+		{
+		//skip default property settings
+		if(queryArgs[prop] == defaultQuerySettings[prop])
+		{
+			continue;
+		}
+		queryPart += (first)? "" : "&";
+		queryPart += prop + "=" + queryArgs[prop];
+		first= false;
+		}
 	
+	var URL = basePartURL + queryPart;
+	return URL;	
 	}
+
+/*
+ * cleans the query settings from all but a requested slide, and any set user preferences
+ */
+function cleanQuerySettings()
+{
+	for(prop in querySettings)
+	{
+		if(prop == "slide" || prop == "showcoords" || prop == "wheelzoomindirection") 
+			{continue;}
+		else 
+			{delete(querySettings[prop]);};
+	};
+}
 
 //////////////////////////////////////////
 //
@@ -511,48 +632,36 @@ function appendQuerySetting(URL,queryArg,value)
 ////////////////////////////////////////////	
 
 /*
+ * sets a property in the global associative array querySettings, which is used to load the virtual slide with the required settings 
+ */
+function setQuerySetting(name, value)
+{
+	querySettings[name]=value;
+}
+
+/*
  * sets the scroll direction to zoom in or out on scroll (up or down)
  */
-function setScrollDir()
+function setWheelZoomDirection()
 	{
-	alert("set scroll");
-	scrollDirection = readradio("settingsForm","scrollDir");
-	//alert(scrollDirection)
-	if(presentSlideInfo)
-		{loadVirtualSlide(presentSlideInfo);}
-	else //if page has been reloaded the slide in the view frame will have been reloaded, but nav frame doesn't have the presentSlideInfo
-		{try
-			{if(parent && parent.view && parent.view.location)
-				{var URL=parent.view.location;
-				URL=URL.toString();//is object originally
-				var x= URL.indexOf("blank.html")
-				if(URL.indexOf("blank.html")==-1) //if not the blank start page
-					{parent.view.location=URL + "&scrolldirection=" + scrollDirection;}
-				}
-			}
-		catch(e) {}			
-		}	
+
+	var wheelZoomInDirection = readradio("settingsForm","wheelZoomDir");
+	//ensure correct setting
+	wheelZoomInDirection = (wheelZoomInDirection == "up")? "up" : (wheelZoomInDirection == "down")? "down" : wheelZoomInDirection;
+	//store it for placing in the URL query
+	setQuerySetting("wheelzoomindirection", wheelZoomInDirection);
+	reload();
 	} 
 
 	
-function handleCoordsSetting()
+function showHideCoordsPanel()
 	{
-	showCoordinates = readradio("settingsForm","showCoords");
-	
-	
-	//alert(parent.view.document.getElementById("coordsPane").style.display);
-	if(showCoordinates == 1  && parent.view)
-		{
-			//showCoords = 1;	
-			parent.view.document.getElementById("coordsPane").style.display ="block";
-			parent.view.document.showCoords = 1;
-		}
-	else if(showCoordinates == 0  && parent.view)
-		{
-			//showCoords = 0;
-			parent.view.document.getElementById("coordsPane").style.display ="none";
-			parent.view.document.showCoords = 0;
-		}
+	var showCoordinates = readradio("settingsForm","showCoords"); //option 0= hide, option 1= show
+	//ensure correct setting
+	showCoordinates = (showCoordinates == 1)? 1 : (showCoordinates == 0)? 0 : showCoordinates;
+	//store it for placing it in the URL query
+	setQuerySetting("showcoords",showCoordinates);	
+	reload();
 	}
 
 
@@ -563,7 +672,70 @@ function handleCoordsSetting()
 // 	General support scripts
 //
 ////////////////////////////////////////////
-		
+
+//
+//
+/*
+ * gets location object!! (not string URL) from the requested window
+ * 
+ */
+function getLocationOfRequestedWindow(whichWindow)
+{
+	var whichWindow =(typeof whichWindow == "undefined")? "self" : whichWindow;
+	if(whichWindow == "undefined" || whichWindow == "self")
+	{
+		oLocation = location;
+	}
+	else if(whichWindow == "parent")
+	{
+		oLocation = parent.location
+	}	
+	else if(whichWindow == "main")
+	{
+		oLocation = parent.main.location;
+	}	
+	return oLocation;
+}
+
+/*
+ * Gets the part of the url that is NOT the query, that is: protocol + host + pathname (see JavaScript Definitive Guide, Flanagan 3rd ed. p.854),
+ * BaseUrl is not an official name, but used for ease here 
+ * 
+ */
+function getBaseUrlPart(whichWindow)
+{
+	oLocation =  getLocationOfRequestedWindow(whichWindow);
+	URL = oLocation.href;
+	BaseUrlPart = URL.split("?")[0];
+	return BaseUrlPart; 
+}
+
+/*
+ * gets variables from the query in the URL
+ * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
+ * @param string whichWindow "self", "parent" 
+ */
+function getQueryArgs(whichWindow)
+	{var URL,pos,argName,argValue,query;
+	var args = new Object();
+	
+	oLocation =  getLocationOfRequestedWindow(whichWindow);
+	query = oLocation.search.substring(1);
+	
+	var pairs = query.split("&"); //split query in arg/value pairs
+	
+	for(var i=0; i < pairs.length ; i++)
+  	{pos=pairs[i].indexOf("=");
+		if(pos == -1) {continue;}
+		argName = pairs[i].substring(0,pos); //get name
+		argValue = pairs[i].substring(pos+1); //get value
+		argValue = decodeURIComponent(argValue);
+		//alert("argName= "+argName+",argValue= "+argValue)
+		args[argName] = argValue;
+  	}		
+	return args	;
+	}	
+
 function ref(i) { return document.getElementById(i);}
 
 function exists(subject) //
@@ -605,8 +777,10 @@ function cancelClose()
 	}
 
 function showHideSettings()
-	{if ( ref("settingsDiv").style.display=="none") {showSettings()}
-	else { hideSettings()}
+	{//for some reason the prop 'display' from the linked .css file, even though in effect, doesn't seem to be read [also jQuery gives 'undefined'). Workaround: if it is empty "", also show.
+	if ( ref("settingsDiv").style.display == "none" || ref("settingsDiv").style.display == "") 
+		{showSettings();}
+	else { hideSettings();}
 	}
 
 function showSettings()
@@ -697,6 +871,19 @@ function inArray(str, arr)
 	return -1;
 }
 
+/*
+ * Performs a simple merge of two objects/associative arrays
+ * //http://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically, 
+ * jQuery has extend function but not neccessary here
+ */
+function merge_options(obj1,obj2) 
+{
+    var obj3 = {};
+    for (var attrname in obj1) { obj3[attrname] = obj1[attrname]; }
+    for (var attrname in obj2) { obj3[attrname] = obj2[attrname]; }
+    return obj3;
+}
+
 function empty(elementRef)
 {
 	//first remove handlers from the childNodes to prevent memory leaks
@@ -742,3 +929,76 @@ function l(msg)
 	{var msg2=msg+", <br>";
 	logwin.innerHTML+=msg2;
 	}
+
+/*
+ * creates alert with debuginfo
+ * @param one or more argumnets to be shown
+ */ 
+function debug(subjects)
+{
+	var str="";
+	
+	for(var i=0;i<arguments.length;i++)
+		{
+			var subject = arguments[i]; 	
+					
+			if(typeof subject == "object" && subject instanceof Array)
+			{	
+				str+= "[Array]\n";
+				if (subject.length == 0) {str+= "EMPTY"}
+				else
+					{
+					for(var i=1;i<subject.length;i++)
+						{
+							str+= i + " : " + subject[i] + "\n";
+						}
+					}	
+			}
+			else if(typeof subject == "object" )
+			{	
+				str+= "[Object]\n";
+				counter= 0;
+				for(prop in subject)
+				{
+					str+= prop + " : " + subject[prop]  + "\n";;
+					counter++;
+				}
+				if(counter==0){str+= "EMPTY"}
+				
+			}	
+			else if(typeof subject == "string")
+			{
+				{
+					str= "[string] " + subject;
+				}
+			}
+			else if(typeof subject == "number")
+			{
+				{
+					str= "[number] " + subject;
+				}
+			}
+			else if(typeof subject == "boolean")
+			{
+				{
+					str= "[boolean] " + subject? "TRUE" : "FALSE";
+				}
+			}
+			else if(typeof subject == "undefined")
+			{
+				{
+					str= "undefined";
+				}
+			}
+			else if(subject == null)
+			{
+				{
+					str= "NULL!";
+				}
+			}	
+			str+="\n";
+		}//end loop all arguments
+	alert(str);
+}
+
+
