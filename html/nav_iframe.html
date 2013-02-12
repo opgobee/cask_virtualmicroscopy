@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+
+<html style="height:100%;">
+<head>
+   
+	<title>Virtual Microscopy powered by Brainmaps-CASK viewer</title>
+
+<link rel="stylesheet" href="../css/nav_iframe.css" type="text/css" />
+
+<!-- libs -->
+<script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.0.custom.min.js"></script>
+
+<!-- nav scripts -->
+<script type="text/javascript" src="../scripts/nav_iframe.js"></script>
+
+<!-- content-->
+<script type="text/javascript" src="../slides/slidesets_menus.js"></script>
+<script type="text/javascript" src="../slides/slides.js"></script>
+
+<!--[if lte IE 7]>
+	<link rel="stylesheet" href="../css/ie7.css" type="text/css" />
+<![endif]-->
+<!--[if lte IE 8]>
+	<link rel="stylesheet" href="../css/ie8.css" type="text/css" />
+<![endif]-->
+<!--[if IE 9]>
+	<link rel="stylesheet" href="../css/ie9.css" type="text/css" />
+<![endif]-->
+
+</head>
+
+<body onload="init()" style="height:100%;" >
+<div id="container">
+	
+<div id="nav" class="column"> 
+<img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
+<a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
+<img id="wrench" src="../img/wrench_light.png" title="Settings" onclick="showHideSettings()">
+<img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
+<a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
+<a id="menutab2" class="menutab" onclick="toggleSlideSetsMenuPane('menuInstitutionsModules')">Institution/Module</a>
+
+
+<div id="slidesCont" onclick="handleClick()"></div> <!--eof slidesCont -->
+<div id="slidesContOverlay"></div>
+<div id="SlideSetsMenuPane"></div>
+
+
+<div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
+	<form id="settingsForm">
+		<hr />
+		Scroll-wheel<br />
+		<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="up" id="optWheelUp"><label  for="optWheelUp"><img src="../img/wheelup.gif"> <span class="shiftUp">Zoom In </span></label><br />
+		<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="down" id="optWheelDown"><label for="optWheelDown"><img src="../img/wheeldown.gif"> <span class="shiftUp">Zoom In </span></label>
+		<hr />
+		<input class="showCoords" type="radio" name="showCoords" value="0" id="optHideCoords"><label for="optHideCoords">Hide coordinates panel</label><br />
+		<input class="showCoords" type="radio" name="showCoords" value="1" id="optShowCoords"><label for="optShowCoords">Show coordinates panel</label>
+		<br />
+	</form> <!--end of radioform  -->			
+</div>
+
+<div id="log"></div>
+
+</div> <!--eof all -->
+
+<!-- iframe with virtual miccopy viewer-->
+<iframe id="viewerFrame" name="viewerFrame" src="blank.html" frameborder="0" marginheight="0" marginwidth="0" scrolling="no" class="column"></iframe>
+
+
+</div> <!-- eof container-->
+</body>
+</html>
