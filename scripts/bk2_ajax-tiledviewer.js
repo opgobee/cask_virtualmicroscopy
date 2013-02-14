@@ -1,7 +1,5 @@
 //Written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.   You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
 
-// @TODO: cleanup loadJSON, letloadXML use jquery. clean up jslabels instead of labels and all JSON, jsLsbels etc globals
-
 // Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
 
 /*
@@ -107,8 +105,7 @@ var showCoordsPanel = 0; //default dont show coords panel
 var zoom = 2; //start zoom level
 var hideThumb = false;
 var vX = vY = null;
-var showLabel = null; //label that will be shown on the requested x, y spot
-var focusLabel = focusLabelId = null; //labelText and id of label that will be shown automatically on its own location
+var showLabel = null; //label that will be shown on the requested x, y spot 
 var zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
 var wheelZoomInDirection = -1; //determines zoomin/out direction of wheel -1 = wheeldown
 
@@ -120,9 +117,9 @@ var height = null, width = null; //may be defined in html page (then overwrites 
 var rawWidth = null, rawHeight = null; //as read from html page, query or xhr, but may be string
 var imgWidthMaxZoom = null, imgHeightMaxZoom= null; //parsed to integer, width/height of max size image
 var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[zoom]
-var loadedXML=0; //, getJSON=0, loadedJSON=0, JSON= null, JSONnum, JSONout; //used in xhr loading of XML and JSON files
-var labelsPath=null, oLabels, labelTimer;//oLabels= object containing the read labels
-//var jsLabelsPath=null; //if given, contains path to a js which is not a *raw* JSON (used on IE6-non ActiveX to load labels)
+var loadedXML=0, getJSON=0, loadedJSON=0, JSON= null, JSONnum, JSONout; //used in xhr loading of XML and JSON files
+var labelsPath=null, loadedLabels = false, oLabels, labelTimer;//oLabels= object containing the read labels
+var jsLabelsPath=null; //if given, contains path to a js which is not a *raw* JSON (used on IE6-non ActiveX to load labels)
 var creditsPath=null; //path to .js file with additional credits to display
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
@@ -203,12 +200,11 @@ logwin.ondblclick=resetlog;
 	if (queryArgs.slide) {slideName = queryArgs.slide;}
 	if (queryArgs.showcoords) {showCoordsPanel = queryArgs.showcoords;} 
 	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
-//	if (queryArgs.JSON){ JSON = queryArgs.JSON;}	
+	if (queryArgs.JSON){ JSON = queryArgs.JSON;}	
 	if (queryArgs.zoom){ zoom = Number(queryArgs.zoom);}
-	if (queryArgs.x) { vX = Number(queryArgs.x);}
-	if (queryArgs.y) { vY = Number(queryArgs.y);}
+	if (queryArgs.x) { vX = queryArgs.x;}
+	if (queryArgs.y) { vY = queryArgs.y;}
 	if (queryArgs.label) { showLabel = queryArgs.label;}
-	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
 	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
 	if (queryArgs.wheelzoomindirection) {wheelZoomInDirection = (queryArgs.wheelzoomindirection == "up")? 1 : ((queryArgs.wheelzoomindirection == "down")? -1 : wheelZoomInDirection);}; 
 
@@ -230,6 +226,7 @@ logwin.ondblclick=resetlog;
 	if (slideInfo.height) {rawHeight = slideInfo.height;} 
 	if (slideInfo.res)	{res = slideInfo.res;}
 	if (slideInfo.labels) {labelsPath = slideInfo.labels;} 
+	if (slideInfo.jslabels) {jsLabelsPath = slideInfo.jslabels;}//ih('jsLabelsPath='+jsLabelsPath) 
 	if (slideInfo.credits) {creditsPath = slideInfo.credits;} 	
 
 	//check if path is provided
@@ -237,9 +234,9 @@ logwin.ondblclick=resetlog;
 	else {showNoPathWarning(); return;}
 	
 	//if dimensions not yet known, try to read from ImageProperties.xml file
-	if (!rawWidth && !loadedXML ) 
+	if (!rawWidth && !loadedXML && !getJSON) //why getJSON check?
 		{//ih("init0-loadXML");
-		 loadXMLfile();//Note: doesn't work yet
+		 loadXMLfile();
 	 	} 
 
 	//load credits file and show additional credits
@@ -252,11 +249,14 @@ logwin.ondblclick=resetlog;
 		catch(e)
 			{return;}	
 		}
+	//test
+	//loadJs("P-2/labels.js")
+
 		 
 	//Set event handlers
 	outerDiv.onmousedown = handleMouseDown; outerDiv.onmousemove = handleMouseMove; outerDiv.onmouseup = handleMouseUp; outerDiv.ondblclick= handleDblClick; 
 	//outerDiv.ontouchstart  = handleMouseDown; outerDiv.ontouchmove = handleMouseMove; outerDiv.ontouchup = handleMouseUp; //weird behaviour for now 
-	outerDiv.ondragstart = function() { return false;};
+	outerDiv.ondragstart = function() { return false;}
 
 	window.onresize=winsize; //moved to here to prevent error on Chrome	
 	
@@ -320,25 +320,25 @@ function init()
 	
 
 	//load JSON
-/*	if (JSON && !loadedJSON)
+	if (JSON && !loadedJSON)
 		{ getJSON=1; 
 		loadJSON(); 
 		ref("Nav").style.display="block"; 
 		ref('wheelMode').style.display="block";
 		}
-*/	
+	
 	//load labels
-	if (labelsPath) 
+	if (labelsPath && !loadedLabels) 
 		{//ih("init0-loadLbl");
 		loadLabels(labelsPath);
 		} 
 
 	//load jslabels (indicates that the labels file is not a *raw*  JSON, hence is also safe to load via script-insert, if needed.
-/*	if (jsLabelsPath && !loadedLabels) 
+	if (jsLabelsPath && !loadedLabels) 
 		{//ih("init0-loadJsLbl");
 		loadLabels(jsLabelsPath);
 		} 
-*/	
+	
 
 
 //ih("init-showThumb");
@@ -557,12 +557,11 @@ function btZoomOut()
 	}
 
 function ZoomIn() 
-{ //ih("in zoomin, zoom="+zoom);
+	{ ih("in zoomin, zoom="+zoom);
 	//ih(", gTierCount-1="+(gTierCount-1)+"<br>");
 	
 	if (zoom!=gTierCount-1)
-	{
-		var mTop = stripPx(innerDiv.style.top); 
+		{var mTop = stripPx(innerDiv.style.top); 
 		var mLeft = stripPx(innerDiv.style.left); 
 
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
@@ -585,66 +584,60 @@ function ZoomIn()
 //ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		innerDiv.style.left = 2 * mLeft - zoomCenterX;
 		innerDiv.style.top = 2 * mTop - zoomCenterY;
-	
+	ih("0a. zoom='"+zoom+"'<br>")	
 //ih("innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
 		zoom=zoom+1; 
-		
+	ih("0b. zoom='"+zoom+"'<br>")		
 		var imgs = imageTiles.getElementsByTagName("img"); 
 		while (imgs.length > 0) imageTiles.removeChild(imgs[0]); 
 		checkTiles();
-		
+		ih("0c. zoom='"+zoom+"'<br>")	
 		var divs = imageLabels.getElementsByTagName("div"); 
 		for (var $i = 0; $i <divs.length; $i++) //new placement of the labels
-		{ 
-			var Ltemp="L"+$i; 
-			if(ref(Ltemp)) 
-			{
-				ref(Ltemp).style.top= parseInt(2*stripPx(ref(Ltemp).style.top)); 
-				ref(Ltemp).style.left= parseInt(2*stripPx(ref(Ltemp).style.left));
-			}
-		}
+			{ var Ltemp="L"+$i; ref(Ltemp).style.top=2*stripPx(ref(Ltemp).style.top); ref(Ltemp).style.left=2*stripPx(ref(Ltemp).style.left);}
 			
 		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
-
+ih("1. zoom='"+zoom+"'<br>")
 		resizeBgDiv();	
+ih("2. zoom='"+zoom+"'<br>")
 		keepInViewport();
+ih("3. zoom='"+zoom+"'<br>")
 		updateLengthBar();	
+ih("4. zoom='"+zoom+"'<br>")
 		moveThumb2();
+ih("5. zoom='"+zoom+"'<br>")
 		//lowZoomHideLabels();
 		resizeLabels();
-	}
+ih("6. zoom='"+zoom+"'<br>")
+		}
 	
-}
+	}
 
 
 function ZoomOut() 
-{ 
+	{ 
 	if (zoom!=0)
-	{
-		var mTop = stripPx(innerDiv.style.top); 
+		{var mTop = stripPx(innerDiv.style.top); 
 		var mLeft = stripPx(innerDiv.style.left); 
 	
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
-		{
-			zoomCenterX = lockedZoomCenterX;
+			{zoomCenterX = lockedZoomCenterX;
 			zoomCenterY = lockedZoomCenterY;
-		}
-		else if(zoomCenterOnCursor && cursorOverImage()) // zooming with scrollbutton or mouseclick> center on mouse-position
-		{
-			zoomCenterX = cursorX;
+			}
+		else if(zoomCenterOnCursor && cursorOverImage()) //zooming with scrollbutton or mouseclick> center on mouse-position
+			{zoomCenterX = cursorX;
 			zoomCenterY = cursorY;
-		}
-		else // zooming with +/- keys or zoom-buttons> center on center of visible part of image
-		{
-			var visImgCenter=getVisibleImgCenter();
+			}
+		else //zooming with +/- keys or zoom-buttons> center on center of visible part of image
+			{var visImgCenter=getVisibleImgCenter();
 			lockedZoomCenterX = zoomCenterX = visImgCenter.x;
 			lockedZoomCenterY = zoomCenterY = visImgCenter.y;
 			lockedZoomCursorX = cursorX;
 			lockedZoomCursorY = cursorY;
-		}
+			}
 
-// ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
+//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		innerDiv.style.left = 0.5 * mLeft + 0.5 * zoomCenterX; 
 		innerDiv.style.top = 0.5 * mTop + 0.5 * zoomCenterY; 
 		
@@ -656,25 +649,19 @@ function ZoomOut()
 		
 		var divs = imageLabels.getElementsByTagName("div"); 
 		for (var $i = 0; $i <divs.length; $i++)
-		{ 
-			var Ltemp="L"+$i;
-			if(ref(Ltemp)) 
-			{
-			ref(Ltemp).style.top = parseInt(.5*stripPx(ref(Ltemp).style.top)); 
-			ref(Ltemp).style.left = parseInt(.5*stripPx(ref(Ltemp).style.left));
-			}
+			{ var Ltemp="L"+$i; ref(Ltemp).style.top=.5*stripPx(ref(Ltemp).style.top); ref(Ltemp).style.left=.5*stripPx(ref(Ltemp).style.left);}
 		}
-		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
-		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
+		
+		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
+		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
 
 		resizeBgDiv(); 
 		keepInViewport(); 
 		updateLengthBar(); 
 		moveThumb2();
-		// lowZoomHideLabels();
+		//lowZoomHideLabels();
 		resizeLabels();
 	}
-}
 
 
 //hide labels at low zoom, because then the labels appear to be offset, probably due to Zoomify inaccuracies at high size reductions (=low zoom)
@@ -684,7 +671,11 @@ function lowZoomHideLabels()
 	}
 	
 function updateLengthBar() 
-	{//you want a bar between 50 and 125px long
+	{
+	ih("ul1")
+	ih("gTierCount='"+gTierCount +"', zoom='"+zoom +"'<br>")
+	
+	//you want a bar between 50 and 125px long
 	var um50 = Math.pow(2,gTierCount-1-zoom)*res*50; // micrometers equiv. with 50 px
 	var um125 = um50 * 2.5; // micrometers equiv. with 100 px
 	
@@ -705,7 +696,7 @@ function updateLengthBar()
 			}
 		pow10 *= 10;
 		}
-	
+	ih("ul2")	
 	//get width of bar
 	var barPx = Math.round( barUm  * 50 / um50) - 6; //6 = 2 * white parts of vert. bars are each 3 px wide
 
@@ -716,14 +707,19 @@ function updateLengthBar()
 	ref("bar_mid").style.width = barPx +"px";
 	ref("bar_right").style.left = (barMidPos + barPx) +"px";
 
+	ih("ul3")
 	//set resunits to um, mm or cm.
 	if 		(pow10  < 1000) 	{resunits= "&micro;m";}
 	else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
 	else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
 
+	ih("ul4")
+	
 	// display bar-length
 	var txt= barUm + "  " + resunits + "<br />zoom level: " + zoom + "/" + (gTierCount-1);
+	if (JSONnum) { text += "<br>slide #: " + (slidePointer+1) + "/" + JSONnum ;}
 	ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
+	ih("ul5")
 
 	}
 
@@ -813,6 +809,138 @@ function hideTips()
 	clearTimeout(tipTimer);
 	}
 
+
+////////////////////////////////////////////
+//
+// LABELS Functions
+//
+///////////////////////////////////////////
+
+/*
+ * loading of labels is quite patchy (on FF)
+ * if you use XHR and add something to the querystring nothing is loaded without error message
+ * if you use loadJs() the file is loaded and executed, but the variable jsLabels in it cannot be accessed, is undefined...
+ * if you use jQ.getScript() it gives a cross-domain error
+ * if you use jQ with cross-domain = true, then no error, but also no data
+ * if you try to load json (adapted so it doesn't contain var jslabels= {}, but only the {..}) , then nothing comes, no error
+ * In all cases nothing visible in firebug net panel..?
+ * Conclusion: the below function is the best up till now, working mostly, but easily broken. 
+ */
+function loadLabels(pathToFile)
+	{ 
+	
+	try
+		{//ih("loadLblwXhr-1");
+
+ 		//clear any old labels
+		var pinImage = ref("L0");  
+		//alert("labels="+typeof labels)
+		if (pinImage) 
+			{var divs = imageLabels.getElementsByTagName("div");
+			//alert("going to clear labels") 
+			while (divs.length > 0) imageLabels.removeChild(divs[0]);
+			} 
+
+		//load new labels	
+		xhrLabels = getHTTPObject();  //moved inside loadLabels function PG
+		//ih(xhrLabels);
+		//added if to prevent breaking if labels don't work, removed else, this made labels disappear at a next call of loadlabels
+		if(xhrLabels)			
+			{//alert("getting labels");
+			xhrLabels.open("GET", pathToFile , true);
+			xhrLabels.onreadystatechange = readLabels;
+			xhrLabels.send();
+			//ih("loadLblwXhr-2");
+			}
+		}	
+	 catch(e)
+		{return;
+		}	
+		
+	}
+
+function readLabels() 
+	{ //ih('xhrLabels.readyState=' + xhrLabels.readyState+ 'xhrLabels.responseText='+xhrLabels.responseText + '<br>');
+	if (xhrLabels.readyState == 4  && xhrLabels.responseText) 
+		{//alert(xhrLabels.responseText)
+		eval(xhrLabels.responseText);
+		
+		oLabels = jsLabels; //eval('('+xhrLabels.responseText+')');
+		
+		loadedLabels=true;
+//ih("readLblfromXhr");
+//debug(oLabels);
+		renderLabels();
+		}
+	}
+
+	
+function renderLabels() 
+	{//ih("renderLabels1");
+		if(!dimensionsKnown()) 
+			{clearTimeout(labelTimer);
+			labelTimer=setTimeout("renderLabels()", 500); 
+	//ih("dimensionsUnknown");
+			return;
+			}
+
+		//remove any old labels
+		var labelDivs = imageLabels.getElementsByTagName("div"); 
+		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
+	//ih("renderLabels2");
+	//debug(oLabels);
+	
+		for (label in oLabels)
+			{
+			var labelInfo = oLabels[label];
+			createLabel(label,labelInfo);		
+			}
+		
+	}
+
+
+/*
+ * Creates a label from the given object oLabel and appends the label into div imageLabels
+ * @param object labelInfo e.g. {"label": "Source", "popUpText": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
+ * 
+ */
+createLabel.index=0;
+function createLabel(labelName,labelInfo)
+{
+	//debug(labelInfo);
+	var labelText = labelInfo.label;
+	var labelPopUpText = (labelInfo.popUpText != undefined)? labelInfo.popUpText : ""; 
+	var nX = labelInfo.x; 
+	var nY = labelInfo.y; 
+	if (labelInfo.href!=undefined)
+		{labelText='<a href="'+labelInfo.href+'" target="_blank">'+labelText+'</a>'; 
+		}
+	var pinImage = document.createElement("div"); 
+	pinImage.style.position = "absolute";
+	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
+	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
+	pinImage.style.left =(nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
+	pinImage.style.top =(nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
+	pinImage.style.width = 8*labelText.length + "px"; pinImage.style.height = "2px"; 
+	pinImage.style.zIndex = 1; 
+	pinImage.setAttribute("id", "L"+createLabel.index);
+	if(labelPopUpText != "")
+		{pinImage.setAttribute("title", labelPopUpText);
+		}
+	pinImage.setAttribute("class", "label"); 
+	pinImage.setAttribute("className", "label"); //IE
+	pinImage.innerHTML= labelText; 
+	//alert(pinImage);
+	imageLabels.appendChild(pinImage); 
+	
+	createLabel.index++;
+}
+
+function resizeLabels()
+{
+	var fontSize  = ((zoom/(gTierCount-1)) * 300)  + "%";
+	jQ(".label").css('fontSize',fontSize);	
+}
 
 
 ////////////////////////////////////////////
@@ -928,7 +1056,7 @@ function checkTiles()
 
 		if (pCol<gTileCountWidth[zoom] && pRow<gTileCountHeight[zoom])
 			{var tileName = "TileGroup" + _tileGroupNum + "/" + zoom + "-" + pCol + "-" + pRow + ".jpg";
-//ih("TILENAME CREATED</br>");
+//ih("TILENAME CREATED</br>:"+tileName);
 			}
 
 		visibleTilesMap[tileName] = true; 
@@ -937,7 +1065,7 @@ function checkTiles()
 		if (!img) 
 			{ img = document.createElement("img"); 
 			img.src = imgPath + tileName; 
-//ih("GETTING IMAGE: "+tileName+"</br>");
+ih("GETTING IMAGE: "+tileName+"</br>");
 			img.style.position = "absolute"; 
 			img.style.left = (tileArray[0] * tileSize) + "px"; 
 			img.style.top = (tileArray[1] * tileSize) + "px"; 
@@ -1415,175 +1543,309 @@ if(navigator.appName!= "Mozilla"){document.onkeyup=capturekey}
 else{document.addEventListener("keypress",capturekey,true);}
 
 
-////////////////////////////////////////////
-//
-// LABELS Functions
-//
-///////////////////////////////////////////
 
 
-function loadLabels(pathToFile)
-{ 
-	
-	try
-	{// ih("loadLblwXhr-1");
+/////////////////////////////////////////////////////////////////////////////////////////////
+// AJAX stuff
 
-		// First try jQuery.getScript
-		// works from server, not local
-		jQ.getScript(pathToFile, checkLabelsLoaded);
-				
-		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, so fallback to own method loadJs
-		// works, on Chrome, FF, IE, Saf, both local and on server
-		if(window.location.protocol == "file:")
-		{
-			loadJs(pathToFile, checkLabelsLoaded);
+function getHTTPObject() 
+	{ var xhr = null; 
+	try 
+		{xhr=new ActiveXObject("Msxml2.XMLHTTP");} 
+	catch (e1)
+		{ try {xhr= new ActiveXObject("Microsoft.XMLHTTP");} 
+		catch (e2)
+			{ xhr=null;}
 		}
+	//if(xhr) {ih("oMsXhr")};
+	
+	try //XMLHttpRequest gives error on IE6 with ActiveX disabled (e.g. secure hospital environment)
+		{if (!xhr)
+			{if (typeof XMLHttpRequest != "undefined")
+				{xhr=new XMLHttpRequest();
+	//ih("oStXhr")
+				}
+			else 
+				{//IFrame fallback for IE				
+				xhr= new XMLHttpRequestI();
+	//ih("oI");	
+				}
+			}			
+		}
+	catch (e3)
+		{return;}		
+	return xhr;
+	}
 
-		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
-		checkLabelsLoaded.pathToFile = pathToFile;
-	}	
-	 catch(e)
-	{
-		return;
-	}			
+
+
+function loadXMLfile()
+	{try
+		{
+		//ih("loadXMLwXhr-1");
+		request = getHTTPObject(); 
+		request.onreadystatechange = xmlread; 
+		request.open("GET", imgPath + "ImageProperties.xml", true); 
+		request.send(null);
+		//ih("loadXMLwXhr-2");
+		}
+	catch(e)
+		{return;}	
+	}
+
+
+function xmlread() 
+	{if (request.readyState == 4) 
+		{try //to prevent errors on IE when running from file without server
+			{
+//ih("xmlread");
+			//alert(3)
+			var xmlDoc = request.responseXML.documentElement;
+			//alert(4)
+			//alert("xmlDoc="+xmlDoc)
+			rawWidth = parseFloat(xmlDoc.getAttribute("WIDTH")); 
+			//alert(rawWidth)
+			rawHeight = parseFloat(xmlDoc.getAttribute("HEIGHT"));
+			//alert(xmlDoc.getAttribute("WIDTH")+", rawWidth="+rawWidth)
+//ih("hasReadWHfromXhr");
+			loadedXML=1;
+			init();
+			}
+		catch(e)
+			{ //ih("xmlread ERROR:"+e.description);
+			//IFrame fallback for IE if run locally without server, (Chrome will also fallback here, but not work because Chrome regards it as security risk
+			var xhr = new XMLHttpRequestI()
+			xhr.open("GET", imgPath + "ImageProperties.xml", true); 
+			xhr.send(null);
+//ih("IaftFailWHreadX");
+			setTimeout("showNoDimensionsWarning()",2000);//timeout allows fallbacks to load to prevent msg from showing up
+			//alert("fallback2")
+			return;
+			}
+		}
+	}
+
+
+function loadJSON()
+	{ JSONrequest = getHTTPObject(); 
+	JSONrequest.onreadystatechange = JSONread; 
+	JSONrequest.open("GET", JSON, true); 
+	JSONrequest.send(null);
+	//ih("loadJSONwXhr");
+	}
+
+
+function JSONread() { 
+	if (JSONrequest.readyState == 4) { 
+		JSONout = eval('('+JSONrequest.responseText+')');
+		alert(JSONout);
+		JSONnum=JSONout.slides.length; 
+		rawPath = JSONout.slides[slidePointer].path; 
+		rawWidth = JSONout.slides[slidePointer].width; 
+		rawHeight = JSONout.slides[slidePointer].height; 
+		if (JSONout.slides[slidePointer].labelspath!=undefined){ 		
+			labelsPath=JSONout.slides[slidePointer].labelspath; 
+			loadLabels();
+		}
+		loadedJSON=1; 
+		init0();
+		
+	}
 }
 
+ 
 
-		
+/////////////////////////////////////////////////////////////////////
+//IFrame fallback
+//Source: TinyAjax, http://www.metz.se/tinyajax/
 /*
- * creates a new script node and loads a js file in it 
- * works on Chrome, FF, IE, Saf, both local and on server
- * Note: loading a raw json {..} in this way gives error, which cannot be prevented, so only use if not a raw JSON, e.g. safe js file is=  var xxxx ={..}
- *
- */
-function loadJs(url,callback)
+coded by Kae - http://verens.com/
+use this code as you wish, but retain this notice
+
+MK retained notice but renamed to XMLHttpRequestI
+PG adapted to specific situation
+*/
+
+var kXHR_instances=0;
+var kXHR_objs=[];
+var kXHR_timer=0;
+
+
+XMLHttpRequestI = function() {
+	var i=0;
+	var url='';
+	var responseText='';
+	this.onreadystatechange=function(){
+		return false;
+	};
+	
+	this.open=function(method,url){
+		this.i= ++kXHR_instances; // id number of this request
+		this.method=method;
+		this.url=url;
+		
+		//Note!! Not generic. Only in ajax-tiledviewer which may load xml or labels.js
+		var len=url.length //to read from eof string, instead of slice method which appeared not to work in ie6 in virtualbox
+		var ext4=url.substring(len-4,len);
+		var ext3=url.substring(len-3,len);
+		this.loadXML = (ext4==".xml")? true : false; //loading ImageProperties.xml
+		this.loadJs = (ext3==".js")? true : false; //loading labels.js
+		
+		if(this.loadXML)
+			{/*Create container-div and insert Iframe
+			Necessary to insert iframe with innerHTML instead of DOM methods because attribute 'name' is read only with DOM methods. 'name' is necessary as target for form for POST. Container div is necessary to put innerHTML in. innerHTML directly in document would overwrite whole document.
+			*/
+			var contDiv = document.createElement('div');
+			contDiv.setAttribute("id","container_"+this.i);
+			contDiv=document.body.appendChild(contDiv);
+	        var iFrameId="kXHR_iframe_"+this.i;
+			var iFrameHTML= "<iframe name='"+iFrameId+"'  id='"+iFrameId+"' style='display:none'></iframe>"
+	        contDiv.innerHTML = iFrameHTML;
+			}		
+		else if	(this.loadJs && jsLabelsPath && jsLabelsPath == url ) //presence of 'jsLabelsPath' signals non-raw JSON in labels.js
+			{loadJs(jsLabelsPath);	
+			}
+	//alert("created iframe")
+	};
+	
+	this.send=function(postData)
+		{
+		if(this.loadXML)
+			{//alert(8)
+			var el=document.getElementById('kXHR_iframe_'+this.i);	
+			if(typeof el != "undefined")	
+				{//load the xml file in the iframe
+				//alert(9)
+				el.src=this.url;
+				kXHR_objs[this.i]=this;
+				innerDiv.style.display="none";
+				kXHR_timer = setTimeout('readXmlInIframe('+this.i+')',200);//weird that this works here without closure?
+				}
+			}
+		else if(this.loadJs  && jsLabelsPath )
+			{readLabelsFromJs();
+			}	
+		}
+	
+	return true;
+};
+
+
+function readXmlInIframe(inst)
+	{
+	//alert("in readXmlInIframe "+inst)
+	var el=document.getElementById('kXHR_iframe_'+inst);
+	var cont=document.getElementById("container_"+inst);	
+	
+	clearTimeout(kXHR_timer);
+	
+	try //if run locally, the call to document inside IFrame generates security error in Chrome
+		{//if iframe existant and completely loaded and document in it 
+		if ( !(el == null  || typeof el == "undefined")  && el.readyState=='complete' && window.frames['kXHR_iframe_'+inst] && window.frames['kXHR_iframe_'+inst].document  && window.frames['kXHR_iframe_'+inst].document.body) 
+			{//alert("reading iframe data")
+			//get content from Iframe
+			var topElem=window.frames['kXHR_iframe_'+inst].document.body;
+			//convert content to string of text (content is XML page rendered by IE into a HTML page)
+			var txt=readTextFromDOM(topElem);
+			//alert(txt)
+			//get width and height values
+			if(txt.length>0)
+				{txt= txt.toLowerCase();
+				var mtch= txt.match(/width\s*\=\s*"(\d+)"/); //read width from string
+				rawWidth= parseInt(mtch[1]); //global
+				mtch= txt.match(/height\s*\=\s*"(\d+)"/); //read height from string
+				rawHeight= parseInt(mtch[1]); //global
+	//ih("WHfromI");
+				signalUseIFrameFallBack();
+				//now got width and height, turn off warning msg
+				hideWarnings();
+				//update image
+				loadedXML=1;
+				init();
+				}
+			restore();	
+			}
+		 else
+			{//To prevent endless looping on Chrome locally which does have IFrame, but apparently has no readyState property
+			if ( !(el == null  || typeof el == "undefined")  && (typeof el.readyState == "undefined") )
+				{restore();
+				return;
+				}
+			//retry
+			kXHR_timer = setTimeout('readXmlInIframe('+inst+')',200);
+			}					
+		} //end if iframe is existant, loaded, etc	
+	catch (e)
+		{//alert(e)
+		restore();
+		return;
+		}
+	
+	function restore()
+		{//restore visibility
+		innerDiv.style.display="block";			
+		//remove the container and Iframe
+		cont.parentNode.removeChild(cont);
+		}
+	}
+
+	
+//iterates nodes in DOM and concatenates all text nodes in it	
+//source: JavaScript, Definitive Guide, Flanagan 5th ed. p319
+function readTextFromDOM(topElem)
+	{
+	var strings = [];
+	getStrings(topElem, strings);
+	return strings.join("");
+	
+	function getStrings(n,strings)
+		{
+		if (n.nodeType == 3) /* Textnode*/
+			{strings.push(n.data);}
+		else if	(n.nodeType == 1) /* Elementnode*/
+			{for(var m = n.firstChild; m!=null; m=m.nextSibling)
+				{getStrings(m, strings);
+				}
+			}
+		}
+	}
+	
+	
+//reads labels from Js file
+function readLabelsFromJs()
+	{
+	
+	readLabelsFromJs.timer="";
+	readLabelsFromJs.counter=0;
+	if(window.jsLabels) //js file should state jsLabels= {...}
+		{//ih("lblFromJs");
+		oLabels = jsLabels;
+		renderLabels();
+		signalUseLoadJsFallBack();
+		}
+	else
+		{if ( readLabelsFromJs.counter < 10 ) //max 10 attempts
+			{clearTimeout(readLabelsFromJs.timer);
+			readLabelsFromJs.counter++;
+			var delay= readLabelsFromJs.counter * 200; //each attempt longer delay for retry
+			readLabelsFromJs.timer = setTimeout("readLabelsFromJs()",delay);
+			}
+		}	
+	}
+	
+		
+//creates a new script node and loads a js file in it //note: loading a raw json {..} in this way gives error, which cannot be prevented, so only use if not a raw JSON, e.g. safe js file is=    xxxx ={..}
+function loadJs(url)
 	{
 	try
-		{
-		var scrip= document.createElement("script");
-		scrip.setAttribute("type","text/javascript");
-		scrip.setAttribute("src",url);
-		scrip.onload= scrip.onreadystatechange = callback; //onreadystatechange is for IE, see http://stackoverflow.com/questions/4845762/onload-handler-for-script-tag-in-internet-explorer @TODO: add cleanup for memory leak of IE see this stackoverflow
-		return scrIn=document.body.appendChild(scrip);
+		{var scr= document.createElement("script");
+		scr.setAttribute("type","text/javascript");
+		scr.setAttribute("src",url);
+		return scrIn=document.body.appendChild(scr);
 		}
 	catch(e)
 		{return;}	
 	} 	
-
-
-var labelsLoaded= false;
-//checks that that the labels/.js file are loaded 
-function checkLabelsLoaded()
-	{
-	//isLoaded= (window.labels)? "loaded":"NOTloaded";
-	//ih(isLoaded);
-	if(window.labels && !labelsLoaded) //js file should state labels= {...}//Note: labelsLoaded check is essential to let it work on IE when running from file
-		{labelsLoaded = true; //Note: this line as very first is essential to let it work on IE from file
-		//ih("lblFromJs");
-		oLabels = labels;
-		renderLabels();	
-		}
-	else
-		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
-			{clearTimeout(checkLabelsLoaded.timer);
-			checkLabelsLoaded.counter++;
-			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
-			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
-			
-			//also attempt the loadJs method
-			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
-			}
-		}	
-	}
-checkLabelsLoaded.counter=0;
-checkLabelsLoaded.timer="";
-checkLabelsLoaded.pathToFile=""; 
-
-	
-function renderLabels() 
-	{//ih("renderLabels1");
-		if(!dimensionsKnown()) 
-			{clearTimeout(labelTimer);
-			labelTimer=setTimeout("renderLabels()", 500); 
-	//ih("dimensionsUnknown");
-			return;
-			}
-
-		//remove any old labels
-		var labelDivs = imageLabels.getElementsByTagName("div"); 
-		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
-	//ih("renderLabels2");
-	//debug(oLabels);
-	
-		for (label in oLabels)
-			{
-			var labelInfo = oLabels[label];
-			createLabel(label,labelInfo);		
-			}
-		//possibly focus on a specific label
-		focusOnLabel();
-	}
-
-function focusOnLabel()
-{
-	if(focusLabel)
-	{
-		//alert("focussing on "+focusLabel)
-		var x = oLabels[focusLabel].x
-		var y = oLabels[focusLabel].y;
-		centerOn(x,y);
-		//alert("centered on x="+x+", y="+y)
-	}
-}
-
-/*
- * Creates a label from the given object oLabel and appends the label into div imageLabels
- * @param object labelInfo e.g. {"label": "Source", "popUpText": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
- * 
- */
-createLabel.index=0;
-function createLabel(labelName,labelInfo)
-{
-	//debug(labelInfo);
-	var labelText = labelInfo.label;
-	var labelPopUpText = (labelInfo.popUpText != undefined)? labelInfo.popUpText : ""; 
-	var nX = labelInfo.x; 
-	var nY = labelInfo.y; 
-	if (labelInfo.href!=undefined)
-		{labelText='<a href="'+labelInfo.href+'" target="_blank">'+labelText+'</a>'; 
-		}
-	
-	
-	var pinImage = document.createElement("div"); 
-	pinImage.style.position = "absolute";
-	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
-	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
-	pinImage.style.left =(nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-	pinImage.style.top =(nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-	//pinImage.style.width = 8*labelText.length + "px"; //doesn't seem neccessary and is also not yet scaled at resizelabels, so better skip it
-	//pinImage.style.height = "2px"; 
-	pinImage.style.zIndex = 1; 
-	pinImage.setAttribute("id", "L"+createLabel.index);
-	if(labelPopUpText != "")
-		{pinImage.setAttribute("title", labelPopUpText);
-		}
-	pinImage.setAttribute("class", "label"); 
-	pinImage.setAttribute("className", "label"); //IE
-	pinImage.innerHTML= labelText; 
-	imageLabels.appendChild(pinImage);
-
-	createLabel.index++;
-	
-}
-
-
-
-function resizeLabels()
-{
-	var fontSize  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
-	jQ(".label").css('fontSize',fontSize);	
-}
-
 
 //adds additional credits into credit div
 function displayCredits()
@@ -1606,50 +1868,7 @@ function displayCredits()
 			}
 		}	
 	}
-
-////////////////////////////////////////////
-//
-//	FALLBACK xml imageproperties loading
-//
-///////////////////////////////////////////
-
-function loadXMLfile()
-{try
-	{	
-	//alert(imgPath + "ImageProperties.xml");
-	jQ.get(imgPath + "ImageProperties.xml", xmlread);
-	}
-catch(e)
-	{return;}	
-}
-
-
-function xmlread(data) 
-{
-	try
-	{ 
 	
-		return;
-		
-/*		alert(data);	//data= [object XMLDocument]
-		var xmlDoc = jQ.parseXML(data); //this doesn't work yet!!!
-		alert(xmlDoc); //xmlDoc = null
-		var $xml = jQ( xmlDoc );
-
-		rawWidth = parseFloat(data.getAttribute("WIDTH"));
-		//rawHeight = $xml.find("IMAGE_PROPERTIES").attr("HEIGHT");
-	
-		//ih("hasReadWHfromXhr");
-		//loadedXML=1;
-		//init();
-*/		
-	}
-	catch(e)
-	{ 
-	}
-
-}
-
 			
 //// GENERAL SUPPORT FUNCTIONS ////
 

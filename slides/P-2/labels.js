@@ -1,5 +1,5 @@
 
-var jsLabels = {
+var labels = {
 	"source" :	{"label": "Source", "popUpText": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"},
 	"plaque" :	{"label": "Plaque", "popUpText": "Atheromatous plaque, almost completely occluding vascular lumen", "x": "0.418", "y": "0.29"},
 	"med" :	{"label": "Med", "popUpText": "Media", "x": "0.539", "y": "0.367"},
@@ -12,3 +12,4 @@ var jsLabels = {
 	"adv" :	{"label": "Adv", "popUpText": "Adventitia", "x": "0.772", "y": "0.806"},
 	"lum" :	{"label": "Lum", "popUpText": "Lumen of vessel", "x": "0.501", "y": "0.76"}	
 };
+

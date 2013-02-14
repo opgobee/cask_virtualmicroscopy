@@ -66,7 +66,6 @@ div#nav {width:220px;}
 /* The iFrame with the viewer  */
 #viewerFrame {height:100%;width:100%;background-color:#FFFFFF;}
 
-
 /* top panel with logo and settings menu */
 img#logo {position:absolute;left:0px;top:0px;border:none;}
 a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px}
