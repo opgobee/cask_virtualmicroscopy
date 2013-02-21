@@ -70,7 +70,7 @@ div#nav {width:220px;}
 img#logo {position:absolute;left:0px;top:0px;border:none;}
 a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px}
 img#wrench {position:absolute;left:180px;top:75px;cursor:pointer;}
-div#settingsDiv {display:none;position:absolute;left:0px;top:115px;width:220px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial;z-index:200;}
+div#settingsDiv {display:none;position:absolute;left:0px;top:112px;width:212px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial;z-index:200;}
 .shiftUp{position:relative;top:-10px;}
 
 /* open slidebox with menutabs overlays*/

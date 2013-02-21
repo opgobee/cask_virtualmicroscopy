@@ -1,6 +1,6 @@
 //Written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.   You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
 
-// @TODO: cleanup loadJSON, letloadXML use jquery. clean up jslabels instead of labels and all JSON, jsLsbels etc globals
+// @TODO: letloadXML use jquery. 
 
 // Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
 
@@ -102,8 +102,8 @@ var center = 0;
 var res = 0.46; 
 var resunits = "&micro;m";
 var slidePointer = 0; 
-var wheelmode = 0; 
-var showCoordsPanel = 0; //default dont show coords panel
+var wheelmode = 0; //0 = wheel zooms, 1 = wheel goes to next/prev image (for stacks of images (not yet implemented)
+var showCoordsPanel = false; //default dont show coords panel
 var zoom = 2; //start zoom level
 var hideThumb = false;
 var vX = vY = null;
@@ -122,7 +122,6 @@ var imgWidthMaxZoom = null, imgHeightMaxZoom= null; //parsed to integer, width/h
 var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[zoom]
 var loadedXML=0; //, getJSON=0, loadedJSON=0, JSON= null, JSONnum, JSONout; //used in xhr loading of XML and JSON files
 var labelsPath=null, oLabels, labelTimer;//oLabels= object containing the read labels
-//var jsLabelsPath=null; //if given, contains path to a js which is not a *raw* JSON (used on IE6-non ActiveX to load labels)
 var creditsPath=null; //path to .js file with additional credits to display
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
@@ -163,18 +162,92 @@ var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
 
 
-
-
+//////////////////////////////////////////////////////////////////////
+//
+// INIT
+//
+/////////////////////////////////////////////////////////////////////
 
 
 //do all stuff that can be done as soon as document has loaded
-function init0() 
-	{
-logwin=document.getElementById("log"); 
-logwin.ondblclick=resetlog;
+function init() 
+{
+	//set global references to DOM elements 
+	setGlobalReferences();
+	//Reads data from different inputs and sets globals from these data
+	readDataToGlobals();
+	//Set event handlers
+	setHandlers();
+	
+	if (isMobile) {setMobileOn();}
+	//if (isiPad) {trackOrientation();}	
 
-	//ih("init0");
-	//create global references to DOM elements 
+	recheckTilesTimer=setInterval("checkTiles()", 5000); //because regularly 'loses' updating tiles eg at viewport scroll, resize 
+	
+	//load credits file and show additional credits
+	loadAndShowCredits();
+
+	//shows or hides the coords panel
+	showHideCoordsPanel();
+
+	//shows url at top
+	showUrl();
+	
+	//ih("init0ready");
+	//if width and height info available, do rest of init//note: if read from xhr, the xmlread function will call showInitialView()
+	if (rawDimensionsKnown()) 
+	{
+		showInitialView();
+	}
+	
+}//eof init0()
+
+
+/*
+ * Reads data from different inputs and sets globals from these data
+ */
+function readDataToGlobals()
+{
+	//set or adapt globals based on variables defined in html page
+	readSettingsInHtmlFileToGlobals();
+	//set or adapt globals with query information
+	readQueryToGlobals();
+
+	//checks 1
+	if(!slideName)
+		{
+		showNoSlideRequestedWarning();
+		return;
+		}
+	if(typeof slides == "undefined"  || !slides[slideName])
+		{
+		showRequestedSlideNotPresentWarning();
+		return;
+		}
+	
+	//load slideInfo of requested slide
+	readSlideInfoToGlobals();
+
+	//checks 2
+	//check if path is provided
+	if(rawPath)	
+	{
+		imgPath=rawPath;
+	}
+	else {showNoPathWarning(); return;}
+	
+	//if dimensions not yet known, try to read from ImageProperties.xml file
+	if (!rawWidth && !loadedXML ) 
+		{//ih("init0-loadXML");
+		 loadXMLfile();//Note: doesn't work yet
+	 	} 
+}
+
+/*
+ * sets global references to some DOM elements for easy addressing
+ */
+function setGlobalReferences()
+{
 	innerDiv = document.getElementById("innerDiv"); 
 	innerStyle= innerDiv.style; //keep ref to speed up
 	imageTiles = document.getElementById("imageTiles"); 
@@ -187,42 +260,48 @@ logwin.ondblclick=resetlog;
 	controls0=ref('controls0');
  	controls1=ref('controls1');
 	tips=ref('tips');
-	//local references to DOM elements
-	var outerDiv = document.getElementById("outerDiv"); 
-	
-	//get variables defined in html page
+	logwin=document.getElementById("log"); 
+	logwin.ondblclick=resetlog;
+
+}
+
+/*
+ * sets globals based on settings hard set in the html page; more or less is backward compatibility
+ * 
+ */
+function readSettingsInHtmlFileToGlobals()
+{
 	rawPath = path;
 	rawWidth = width;
 	rawHeight = height;
+}
 
+/*
+ * sets a number of globals from data in the URL query
+ */
+function readQueryToGlobals()
+{
 	//get variables from query in URL
 	var queryArgs= getQueryArgs();
-		
-	//set or adapt globals with query information
+	
 	if (queryArgs.start){ slidePointer = queryArgs.start;}
 	if (queryArgs.slide) {slideName = queryArgs.slide;}
-	if (queryArgs.showcoords) {showCoordsPanel = queryArgs.showcoords;} 
+	if (queryArgs.showcoords) {showCoordsPanel = (queryArgs.showcoords == 1)? true : false;} 
 	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
-//	if (queryArgs.JSON){ JSON = queryArgs.JSON;}	
 	if (queryArgs.zoom){ zoom = Number(queryArgs.zoom);}
 	if (queryArgs.x) { vX = Number(queryArgs.x);}
 	if (queryArgs.y) { vY = Number(queryArgs.y);}
 	if (queryArgs.label) { showLabel = queryArgs.label;}
 	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
 	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
-	if (queryArgs.wheelzoomindirection) {wheelZoomInDirection = (queryArgs.wheelzoomindirection == "up")? 1 : ((queryArgs.wheelzoomindirection == "down")? -1 : wheelZoomInDirection);}; 
+	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
+}
 
-
-	if(!slideName)
-		{showNoSlideRequestedWarning();
-		return
-		}
-	if(typeof slides == "undefined"  || !slides[slideName])
-		{
-		showRequestedSlideNotPresentWarning();
-		return;
-		}
-	//load slideInfo of requested slide
+/*
+ * sets globals about the slide based on the slideInfo read from the global 'slides' 
+ */
+function readSlideInfoToGlobals()
+{
 	//here the global var 'slides' is read!!
 	slideInfo = slides[slideName];
 	if (slideInfo.path) {rawPath = slideInfo.path;} 
@@ -232,51 +311,44 @@ logwin.ondblclick=resetlog;
 	if (slideInfo.labels) {labelsPath = slideInfo.labels;} 
 	if (slideInfo.credits) {creditsPath = slideInfo.credits;} 	
 
-	//check if path is provided
-	if(rawPath)	{imgPath=rawPath;}
-	else {showNoPathWarning(); return;}
-	
-	//if dimensions not yet known, try to read from ImageProperties.xml file
-	if (!rawWidth && !loadedXML ) 
-		{//ih("init0-loadXML");
-		 loadXMLfile();//Note: doesn't work yet
-	 	} 
+}
 
-	//load credits file and show additional credits
-	if(creditsPath)
-		{
-		try
-			{loadJs(creditsPath);
-			displayCredits();
-			}
-		catch(e)
-			{return;}	
-		}
-		 
-	//Set event handlers
+/*
+ * Attaches event handlers
+ * 
+ */
+function setHandlers()
+{
+	var outerDiv = document.getElementById("outerDiv"); 
+
 	outerDiv.onmousedown = handleMouseDown; outerDiv.onmousemove = handleMouseMove; outerDiv.onmouseup = handleMouseUp; outerDiv.ondblclick= handleDblClick; 
 	//outerDiv.ontouchstart  = handleMouseDown; outerDiv.ontouchmove = handleMouseMove; outerDiv.ontouchup = handleMouseUp; //weird behaviour for now 
 	outerDiv.ondragstart = function() { return false;};
 
 	window.onresize=winsize; //moved to here to prevent error on Chrome	
-	
-	if (isMobile) {setMobileOn();}
-	//if (isiPad) {trackOrientation();}	
+}
 
-	recheckTilesTimer=setInterval("checkTiles()", 5000); //because regularly 'loses' updating tiles eg at viewport scroll, resize 
-
-//ih("init0ready");
-	//shows or hides the coords panel
-	showHideCoordsPanel();
-	
-	//if width and height info available, do rest of init//note: if read from xhr, the xmlread function will call init()
-	if (rawDimensionsKnown()) {init();}
-	
-	}//eof init()
-
+/*
+ * loads and displays credit information
+ */
+function loadAndShowCredits()
+{
+	if(creditsPath)
+	{
+		try
+		{
+			loadJs(creditsPath);
+			displayCredits();
+		}
+		catch(e)
+		{
+			return;
+		}	
+	}	 	
+}
 
 //do calculations and rendering for which width and height are needed	
-function init() 
+function showInitialView() 
 	{//ih("init");
 
 	//set global information 
@@ -298,8 +370,8 @@ function init()
 	//Position image
 	////////////////
 	
-	
 	//center on a requested x and y
+	//Note: the zoom level is handled by setting the correct position in centerOn() or centerMap() and next by loading the correct images by checkTiles()
 	if (vX && vY)
 		{//ih("init-vXCenter, vX="+vX);
 			center=1; 
@@ -317,35 +389,20 @@ function init()
 		centerMap();
 		}
 	
-	
-
-	//load JSON
-/*	if (JSON && !loadedJSON)
-		{ getJSON=1; 
-		loadJSON(); 
-		ref("Nav").style.display="block"; 
-		ref('wheelMode').style.display="block";
-		}
-*/	
+		
 	//load labels
 	if (labelsPath) 
 		{//ih("init0-loadLbl");
 		loadLabels(labelsPath);
 		} 
 
-	//load jslabels (indicates that the labels file is not a *raw*  JSON, hence is also safe to load via script-insert, if needed.
-/*	if (jsLabelsPath && !loadedLabels) 
-		{//ih("init0-loadJsLbl");
-		loadLabels(jsLabelsPath);
-		} 
-*/	
-
 
 //ih("init-showThumb");
 	if (!hideThumb) 	{showThumb();}
 		
 //ih("init-updateDiverse");
-	resizeBgDiv(); 
+	//resizeBackgroundDiv(); 
+	//loads the tiles
 	checkTiles(); 
 	moveThumb2(); 
 	updateLengthBar();
@@ -354,55 +411,112 @@ function init()
 	}
 
 
-function centerOn(xcoord,ycoord)
+//////////////////////////////////////////////////////////////////////
+//
+// HANDLE INPUT AND USER EVENTS
+//
+/////////////////////////////////////////////////////////////////////
+
+//gets variables from the query in the URL
+//src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
+function getQueryArgs()
 {
-	innerDiv.style.left= -xcoord*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)) +viewportWidth/2+"px";
-	innerDiv.style.top= -ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))+viewportHeight/2+"px";
-}
-
-function getNrTiers()
+	var pos,argName,argValue;
+	var args = new Object();
+	var query = location.search.substring(1);
+	var pairs = query.split("&"); //split query in arg/value pairs
+	
+	for(var i=0; i < pairs.length ; i++)
 	{
-	var tempWidth = imgWidthMaxZoom; var tempHeight = imgHeightMaxZoom;  var divider=2; var gTierCount = 1; 
-	
-	while (tempWidth>tileSize || tempHeight>tileSize)
-		{ tempWidth = Math.floor(imgWidthMaxZoom/divider);
-		tempHeight = Math.floor(imgHeightMaxZoom/divider); 
-		divider*=2; 
-		if(tempWidth%2) tempWidth++; 
-		if(tempHeight%2) tempHeight++; 
-		gTierCount++; //this loop determines nr of zoom levels of picture (tier)
-		}
-	
-	return gTierCount;
-	}	
-	
-//determines x and y number of tiles at all available tiers, e.g. gTileCountWidth[3]= nr tiles across width at zoom level 3
-function countTilesPerTier()
-	{
-	var gTierWidth = new Array(); var gTierHeight = new Array(); //double with global declaration: only for clarity  
-	
-	var tempWidth = imgWidthMaxZoom; var tempHeight = imgHeightMaxZoom; var divider=2; 
+		pos=pairs[i].indexOf("=");
+		if(pos == -1) {continue;}
+		argName = pairs[i].substring(0,pos); //get name
+		argValue = pairs[i].substring(pos+1); //get value
+		argValue = decodeURIComponent(argValue);
+		//alert("argName= "+argName+",argValue= "+argValue)
+		args[argName] = argValue;
+	}		
+	return args	;
+}	
 
-	for (var j=gTierCount-1; j>=0; j--) 
-		{ gTileCountWidth[j] = Math.floor(tempWidth/tileSize); //couldn't this one and tempwidth one be replaced by ceil and no modulo addition?
-		if (tempWidth%tileSize){ gTileCountWidth[j]++;}
-		gTileCountHeight[j] = Math.floor(tempHeight/tileSize); 
-		if (tempHeight%tileSize){ gTileCountHeight[j]++;}
-		
-		gTierWidth[j] = tempWidth; //store mapsizes at each tier
-		gTierHeight[j] = tempHeight; //store mapsizes at each tier
-		
-		//ih("j="+j+", gTierWidth[j]="+gTierWidth[j]+", typeof gTierWidth[j]="+typeof gTierWidth[j]+"<br>");
-		tempWidth = Math.floor(imgWidthMaxZoom/divider); 
-		tempHeight = Math.floor(imgHeightMaxZoom/divider); 
-		divider*=2; 
-		if(tempWidth%2) tempWidth++; 
-		if(tempHeight%2) tempHeight++;
-		}
-	//let the function return gTierWidth and gTierHeight instead of setting globals hidden in function
-	return {"gTierWidth":gTierWidth,"gTierHeight":gTierHeight}; 
+//handles window resize
+function winsize()
+{
+	viewportWidth = 1300; 
+	viewportHeight = 1000;
+	
+	if( typeof( window.innerWidth ) == 'number' ) 
+	{ 
+		viewportWidth = window.innerWidth; 
+		viewportHeight = window.innerHeight;
+	} 
+	else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) 
+	{ 
+		viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;
+	} 
+	else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) 
+	{ 
+		viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;
 	}
 	
+	moveThumb2();
+	centerMap();
+	placeArrows();
+//if(logwin) {ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");}
+}
+
+//handles mousewheel
+function handle(delta) 
+{ 
+	zoomCenterOnCursor= true;
+	delta = delta * (-wheelZoomInDirection); 
+	if (delta < 0)
+	{
+		if (wheelmode==0) 
+		{ 
+			ZoomIn();
+		}
+		else 
+		{ 
+			slideNext();
+		}
+	}
+	else
+	{ 
+		if (wheelmode==0) 
+		{ 
+			ZoomOut();
+		}
+		else 
+		{ 
+			slidePrev();
+		}
+	}
+	zoomCenterOnCursor= false;	
+}
+
+function wheel(event){ var delta = 0; if (!event){ event = window.event;}
+if (event.wheelDelta) { delta = event.wheelDelta/120;} else if (event.detail) { delta = -event.detail/3;}
+if (delta){ handle(delta);}
+if (event.preventDefault){ event.preventDefault();}
+event.returnValue = false;}
+if (window.addEventListener){ window.addEventListener('DOMMouseScroll', wheel, false);}
+window.onmousewheel = document.onmousewheel = wheel; 
+
+
+//handles keyboard input
+function capturekey(e)
+{ var k= (typeof event!='undefined')? window.event.keyCode : e.keyCode; 
+//ih("k="+k+"<br>");
+if ( k == 187 || k== 107 || k== 61) {zoomCenterOnCursor= true; ZoomIn(); zoomCenterOnCursor= false;}
+else if( k == 189 || k== 109) {zoomCenterOnCursor= true; ZoomOut(); zoomCenterOnCursor= false;}
+else if( k == 39 || k== 40 || k== 34){ slideNext();}
+else if( k == 37 || k== 38 || k== 33){ slidePrev();}
+}
+
+if(navigator.appName!= "Mozilla"){document.onkeyup=capturekey}
+else{document.addEventListener("keypress",capturekey,true);}
+
 	
 function handleMouseDown(event)
 	{if(!event) {event=window.event;}
@@ -457,7 +571,11 @@ function handleMouseMove(event)
 	}
 	
 		
-///// DRAGGING /////
+//////////////////////////////////////////////////////////////////////
+//
+// DRAGGING
+//
+/////////////////////////////////////////////////////////////////////
 		
 function startMove(event) 
 	{ 
@@ -473,13 +591,13 @@ function startMove(event)
 
 
 function processMove(event) 
-	{//ih("processmove ");
+{//ih("processmove ");
 	if (!event){ event = window.event;}
 	
-	//ih("showCoordsPanel="+showCoordsPanel + ",");
-	if (showCoordsPanel == 1) //displaying of mouse coords. This could be commented out in production to dimish load
-		{var imgCoords= getImgCoords(cursorX,cursorY);
-		
+	//display current mouse coordinates in coordinates panel
+	if (showCoordsPanel)  
+	{
+		var imgCoords= getImgCoords(cursorX,cursorY);	
 		coordX = imgCoords.x;
 		coordY = imgCoords.y;
 		if( coordX <= 0 || coordX >=1 || coordY <= 0 || coordY >=1)
@@ -488,15 +606,17 @@ function processMove(event)
 			}
 		
 		ref('coordsPane').innerHTML= "x: " + coordX + ", y: " + coordY ;
-		}
+	}
+	//move the image
 	if (dragging) 
-		{innerStyle.left = event.clientX + dragOffsetLeft;
+	{
+		innerStyle.left = event.clientX + dragOffsetLeft;
 		innerStyle.top = event.clientY + dragOffsetTop; 
 		checkTiles();
 		moveThumb2();
-		}
-	
 	}
+	
+}
 
 function stopMove() 
 	{dragging = false; 
@@ -528,8 +648,8 @@ function getVisibleImgCenter()
 	imgCenter.x= Math.round( visLeft + (visRight - visLeft)/2 );
 	imgCenter.y= Math.round( visTop + (visBottom - visTop)/2 );
 	
-//	ih("visLeft="+visLeft+",visRight="+visRight+", imgCenter.x="+imgCenter.x+"visTop="+visTop+",visBottom="+visBottom+", imgCenter.y="+imgCenter.y)
-//	ih("imgCenter.x="+imgCenter.x+", imgCenter.y="+imgCenter.y+"<br>")	 
+	ih("visLeft="+visLeft+",visRight="+visRight+", imgCenter.x="+imgCenter.x+"visTop="+visTop+",visBottom="+visBottom+", imgCenter.y="+imgCenter.y)
+	ih("imgCenter.x="+imgCenter.x+", imgCenter.y="+imgCenter.y+"<br>")	 
 //	imgCenter.x = Math.round( stripPx(innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-zoom) ) );
 //	imgCenter.y = Math.round( stripPx(innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-zoom) ) );
 	return imgCenter;
@@ -543,8 +663,14 @@ function cursorOverImage()
 
 	return (mLeft <= cursorX && cursorX <= mRight && mTop <= cursorY && cursorY <= mBottom)? true : false;	
 	}	
-	
-//// ZOOMING /////
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// ZOOMING
+//
+/////////////////////////////////////////////////////////////////////
+
 //handles click on zoombuttons
 function btZoomIn()
 	{zoomCenterOnCursor= false; 
@@ -607,14 +733,13 @@ function ZoomIn()
 		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
 
-		resizeBgDiv();	
+		resizeBackgroundDiv();	
 		keepInViewport();
 		updateLengthBar();	
 		moveThumb2();
 		//lowZoomHideLabels();
 		resizeLabels();
-	}
-	
+	}	
 }
 
 
@@ -667,7 +792,7 @@ function ZoomOut()
 		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
 
-		resizeBgDiv(); 
+		resizeBackgroundDiv(); 
 		keepInViewport(); 
 		updateLengthBar(); 
 		moveThumb2();
@@ -683,51 +808,6 @@ function lowZoomHideLabels()
 	else {imageLabels.style.display="block";}
 	}
 	
-function updateLengthBar() 
-	{//you want a bar between 50 and 125px long
-	var um50 = Math.pow(2,gTierCount-1-zoom)*res*50; // micrometers equiv. with 50 px
-	var um125 = um50 * 2.5; // micrometers equiv. with 100 px
-	
-	var step=[1,2,5];
-	var pow10 = 1;
-	var found= false;
-	var barUm; //amount of micrometers of bar
-	
-	//get round amount of micrometers that correlates with a bar between 50 and 125 px
-	loop: 
-	while (!found)
-		{for(var i=0; i < 3; i++)
-			{barUm = step[i] * pow10; //makes steps: 1,2,5,10,20,50,100,200,500,1000, etc.
-			if( um50 <= barUm && barUm <= um125)
-				{found= true;
-				break loop;
-				}
-			}
-		pow10 *= 10;
-		}
-	
-	//get width of bar
-	var barPx = Math.round( barUm  * 50 / um50) - 6; //6 = 2 * white parts of vert. bars are each 3 px wide
-
-	//calculate and set positions of bar-images
-	var barMidPos =  100 - Math.round (barPx/2); //barContainer = 200 px, middle = 100
-	ref("bar_left").style.left = (barMidPos - 3) +"px";
-	ref("bar_mid").style.left = barMidPos +"px";
-	ref("bar_mid").style.width = barPx +"px";
-	ref("bar_right").style.left = (barMidPos + barPx) +"px";
-
-	//set resunits to um, mm or cm.
-	if 		(pow10  < 1000) 	{resunits= "&micro;m";}
-	else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
-	else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
-
-	// display bar-length
-	var txt= barUm + "  " + resunits + "<br />zoom level: " + zoom + "/" + (gTierCount-1);
-	ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
-
-	}
-
-
 
 function autoZoomOut()
 	{
@@ -760,7 +840,6 @@ function clearZoomOutTimer()
 	//ih("timer cancelled ");
 	}	
 
-	
 	
 function showZoomInTips()	
 	{if(!mobile)
@@ -817,22 +896,70 @@ function hideTips()
 
 ////////////////////////////////////////////
 //
-// GENERAL IMAGE PROCESSING
+// HANDLING THE SLIDE
 //
 ///////////////////////////////////////////
 
-	
-function resizeBgDiv()
+function getNrTiers()
 	{
-	bgDiv.style.width = imgWidthPresentZoom + "px";
-	bgDiv.style.height = imgHeightPresentZoom + "px";	
+	var tempWidth = imgWidthMaxZoom; var tempHeight = imgHeightMaxZoom;  var divider=2; var gTierCount = 1; 
+	
+	while (tempWidth>tileSize || tempHeight>tileSize)
+		{ tempWidth = Math.floor(imgWidthMaxZoom/divider);
+		tempHeight = Math.floor(imgHeightMaxZoom/divider); 
+		divider*=2; 
+		if(tempWidth%2) tempWidth++; 
+		if(tempHeight%2) tempHeight++; 
+		gTierCount++; //this loop determines nr of zoom levels of picture (tier)
+		}
+	
+	return gTierCount;
+	}	
+	
+//determines x and y number of tiles at all available tiers, e.g. gTileCountWidth[3]= nr tiles across width at zoom level 3
+function countTilesPerTier()
+	{
+	var gTierWidth = new Array(); var gTierHeight = new Array(); //double with global declaration: only for clarity  
+	
+	var tempWidth = imgWidthMaxZoom; var tempHeight = imgHeightMaxZoom; var divider=2; 
+
+	for (var j=gTierCount-1; j>=0; j--) 
+		{ gTileCountWidth[j] = Math.floor(tempWidth/tileSize); //couldn't this one and tempwidth one be replaced by ceil and no modulo addition?
+		if (tempWidth%tileSize){ gTileCountWidth[j]++;}
+		gTileCountHeight[j] = Math.floor(tempHeight/tileSize); 
+		if (tempHeight%tileSize){ gTileCountHeight[j]++;}
+		
+		gTierWidth[j] = tempWidth; //store mapsizes at each tier
+		gTierHeight[j] = tempHeight; //store mapsizes at each tier
+		
+		//ih("j="+j+", gTierWidth[j]="+gTierWidth[j]+", typeof gTierWidth[j]="+typeof gTierWidth[j]+"<br>");
+		tempWidth = Math.floor(imgWidthMaxZoom/divider); 
+		tempHeight = Math.floor(imgHeightMaxZoom/divider); 
+		divider*=2; 
+		if(tempWidth%2) tempWidth++; 
+		if(tempHeight%2) tempHeight++;
+		}
+	//let the function return gTierWidth and gTierHeight instead of setting globals hidden in function
+	return {"gTierWidth":gTierWidth,"gTierHeight":gTierHeight}; 
 	}
+	
+/*
+ * Sets the innerDiv that contains the image, so that the passed x and y coords are in the center of the viewPort
+ * @param number xcoord ; fraction of the image's width  = number between 0 and 1
+ * @param number ycoord ; fraction of the image's height = number between 0 and 1
+ */
+function centerOn(xcoord,ycoord)
+{
+	innerDiv.style.left= ( viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)) )  + "px";
+	innerDiv.style.top = ( viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)) )  + "px";
+}
 
 function centerMap()
 	{//ih("in centerMap1");
 	if(dimensionsKnown())
-		{innerDiv.style.left = (viewportWidth/2 - imgWidthPresentZoom/2 )+"px"; 
-		innerDiv.style.top = (viewportHeight/2 - imgHeightPresentZoom/2 )+"px"; 
+		{
+		innerDiv.style.left = ( viewportWidth /2 - imgWidthPresentZoom /2 ) + "px"; 
+		innerDiv.style.top  = ( viewportHeight/2 - imgHeightPresentZoom/2 ) + "px"; 
 		center=1;
 		//ih("in centerMap2");
 		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", innerDiv="+innerDiv+", innerDiv.style="+innerDiv.style+", innerDiv.style.left="+innerDiv.style.left)
@@ -896,8 +1023,22 @@ function keepInViewport()
 		}
 	}
 
-	
-/// LOADING TILES ////
+/*
+ * resizes the background div
+ * not used at present
+ */
+function resizeBackgroundDiv()
+{
+	bgDiv.style.width = imgWidthPresentZoom + "px";
+	bgDiv.style.height = imgHeightPresentZoom + "px";	
+}
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// LOADING TILES
+//
+/////////////////////////////////////////////////////////////////////
 	
 function checkTiles() 
 	{
@@ -984,9 +1125,11 @@ function getVisibleTiles()
 	
 	
 	
-	
-
-//// THUMB ////
+//////////////////////////////////////////////////////////////////////
+//
+// THUMB
+//
+/////////////////////////////////////////////////////////////////////
 	
 function showThumb()
 	{//alert("in showThumb: imgWidthMaxZoom="+imgWidthMaxZoom+", imgHeightMaxZoom="+imgHeightMaxZoom)
@@ -1100,59 +1243,134 @@ function moveThumb2()
 	}
 
 	
-function getElemPos(elemRef)
-	{var pos={};
-	
-	if(window.getComputedStyle)
-		{var compStyle= getComputedStyle(elemRef,"");
-		pos.left= stripPx(compStyle.getPropertyValue("left"));
-		pos.right= stripPx(compStyle.getPropertyValue("right"));
-		pos.top= stripPx(compStyle.getPropertyValue("top"));
-		pos.bottom= stripPx(compStyle.getPropertyValue("bottom"));
-		pos.width= stripPx(compStyle.getPropertyValue("width"));
-		pos.height= stripPx(compStyle.getPropertyValue("height"));		
+
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// SIZE INDICATOR BAR
+//
+/////////////////////////////////////////////////////////////////////
+
+
+function updateLengthBar() 
+{//you want a bar between 50 and 125px long
+var um50 = Math.pow(2,gTierCount-1-zoom)*res*50; // micrometers equiv. with 50 px
+var um125 = um50 * 2.5; // micrometers equiv. with 100 px
+
+var step=[1,2,5];
+var pow10 = 1;
+var found= false;
+var barUm; //amount of micrometers of bar
+
+//get round amount of micrometers that correlates with a bar between 50 and 125 px
+loop: 
+while (!found)
+	{for(var i=0; i < 3; i++)
+		{barUm = step[i] * pow10; //makes steps: 1,2,5,10,20,50,100,200,500,1000, etc.
+		if( um50 <= barUm && barUm <= um125)
+			{found= true;
+			break loop;
+			}
 		}
-	else if (elemRef.currentStyle)
-		{//var currStyle=elemRef.currentStyle;
-		pos.left= stripPx(elemRef.currentStyle.left);
-		pos.right= stripPx(elemRef.currentStyle.right);
-		pos.top= stripPx(elemRef.currentStyle.top);
-		pos.bottom= stripPx(elemRef.currentStyle.bottom);
-		pos.width= stripPx(elemRef.currentStyle.width);
-		pos.height= stripPx(elemRef.currentStyle.height);		
-		}	
-
-	//IE and Chrome only return 'auto'	--> parseFloat==> NaN
-	pos.left = (isNaN(pos.left)) ? viewportWidth - pos.right - pos.width : pos.left;
-	pos.top = (isNaN(pos.top)) ? viewportHeight - pos.bottom - pos.height : pos.top;
-	
-	//ih("Elem="+elemRef.id+", pos.left="+pos.left+", pos.right="+pos.right+", typeof pos.right="+typeof pos.right+", pos.top="+pos.top+", pos.bottom="+pos.bottom+", pos.width="+pos.width+", typeof pos.width="+typeof pos.width+", pos.height="+pos.height+"viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>"); 
-
-	return pos;
+	pow10 *= 10;
 	}
-	
-///////////////////////////////
-// wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
 
+//get width of bar
+var barPx = Math.round( barUm  * 50 / um50) - 6; //6 = 2 * white parts of vert. bars are each 3 px wide
+
+//calculate and set positions of bar-images
+var barMidPos =  100 - Math.round (barPx/2); //barContainer = 200 px, middle = 100
+ref("bar_left").style.left = (barMidPos - 3) +"px";
+ref("bar_mid").style.left = barMidPos +"px";
+ref("bar_mid").style.width = barPx +"px";
+ref("bar_right").style.left = (barMidPos + barPx) +"px";
+
+//set resunits to um, mm or cm.
+if 		(pow10  < 1000) 	{resunits= "&micro;m";}
+else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
+else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
+
+// display bar-length
+var txt= barUm + "  " + resunits + "<br />zoom level: " + zoom + "/" + (gTierCount-1);
+ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
+
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// TOOLS AND ADDONS
+//
+/////////////////////////////////////////////////////////////////////
+
+/*
+ * sets the global wheelZoomInDirection
+ * @param string zoomInDirection: "up" : zoom in at wheel up; "down" " zoom in at wheel down
+ */
+function setWheelZoomInDirection(zoomInDirection)
+{
+	wheelZoomInDirection = (zoomInDirection == "up")? 1 : ((zoomInDirection == "down")? -1 : wheelZoomInDirection);
+}
+
+
+/*
+ * shows or hides the little panel at the top of the page displaying the coords
+ * @param boolean showOrHide : true = show, false = hide
+ * if not given, it uses the global var showCoordsPanel 
+ */
+function showHideCoordsPanel(showOrHide)
+{
+	//if a setting is passed, set the global 'showCoordsPanel' that determines the showing to this value  
+	if(typeof showOrHide == "boolean")
+		{
+			showCoordsPanel = showOrHide;
+		}
+	//alert("in main  showHideCoordsPanel, showCoordsPanel ="+ showCoordsPanel)
+	ref("coordsPane").style.display = (showCoordsPanel)? "block" : "none";
+}
+
+function showUrl()
+{
+	var url;
+	
+	if(window.parent)
+		{
+			url= window.parent.getBaseUrlPart();
+		}
+	else
+	{
+		url= getBaseUrlPart();
+	}
+	url+= "?";
+	url+= "slide=" + slideName;
+	url+= "&zoom=" + zoom;
+	var imgCenter = getVisibleImgCenter();
+	url+= "&x=" + imgCenter.x;
+	url+= "&y=" + imgCenter.y;
+	
+	var urlInfo = "<span class='urlInfoBarLeader'>Direct URL to this view :</span> " + url; 
+	jQ("#urlBar").show();
+	jQ("#urlBar").html(urlInfo);
+}
+
+/*
+ * wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
+ */
 function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=0;}
 
 function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" checked  onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=1;}
 
 
-//TOOLS ////
-/*
- * shows or hides the little panel at the top of the page displaying the coords
- * uses the global var showCoordsPanel (1= show, 0 = hide)
- */
-function showHideCoordsPanel()
-	{
-	//alert("in main  showHideCoordsPanel, showCoordsPanel ="+ showCoordsPanel)
-	ref("coordsPane").style.display = (showCoordsPanel == 1)? "block" : "none";
-	}
+//////////////////////////////////////////////////////////////////////
+//
+//  MOBILE FUNCTIONS
+//
+/////////////////////////////////////////////////////////////////////
 
 
-
-/// MOBILE FUNCTIONS /////
 function hasSmallViewport()	
 	{return (viewportWidth+viewportHeight <= 790)? true :false;
 	}
@@ -1174,9 +1392,10 @@ function setMobileOn()
 	ref("iconMobile").style.display="none";
 	adaptDimensions();
 	showArrows();
-	controls0.style.right=""; //left positioning to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
+	controls0.style.right=""; //left positioning thumb to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
 	controls0.style.left="0px";
 	controls0.style.top="0px";
+	ref("barCont").style.left= "100px";//move the bar aside of the thumb that has now come to the left
 	//ref('test').style.display="block";
 	}
 	
@@ -1188,6 +1407,7 @@ function setMobileOff()
 	controls0.style.left="";
 	controls0.style.top="10px";
 	controls0.style.right="10px";
+	ref("barCont").style.left= "0px";
 	//ref('test').style.display="none";
 	ref("log").style.display="none";
 	logwin.innerHTML="";
@@ -1333,86 +1553,8 @@ function panMap(dir)
 	}		
 
 
-//// FUNCTIONS FOR STACKS OF IMAGES /////////////////////////////////////////////
-
-function slideNext(){ if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
-rawPath = JSONout.slides[slidePointer].path; rawWidth = JSONout.slides[slidePointer].width; rawHeight = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
-init0(); refreshTiles(); checkTiles();moveThumb2()}
-
-
-function slidePrev(){ if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
-rawPath = JSONout.slides[slidePointer].path; rawWidth = JSONout.slides[slidePointer].width; rawHeight = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
-init0(); refreshTiles(); checkTiles();moveThumb2()}
-
 
 	
-
-
-//// HANDLE INPUT AND SOME USER EVENTS ///////////////////////////////////////
-//gets variables from the query in the URL
-//src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
-function getQueryArgs()
-	{var pos,argName,argValue;
-	
-	var args = new Object();
-	var query = location.search.substring(1);
-	var pairs = query.split("&"); //split query in arg/value pairs
-	
-	for(var i=0; i < pairs.length ; i++)
-    	{pos=pairs[i].indexOf("=");
-		if(pos == -1) {continue;}
-		argName = pairs[i].substring(0,pos); //get name
-		argValue = pairs[i].substring(pos+1); //get value
-		argValue = decodeURIComponent(argValue);
-		//alert("argName= "+argName+",argValue= "+argValue)
-		args[argName] = argValue;
-    	}		
-	return args	;
-	}	
-
-//handles window resize
-function winsize(){ viewportWidth = 1300; viewportHeight = 1000; if( typeof( window.innerWidth ) == 'number' ) { viewportWidth = window.innerWidth; viewportHeight = window.innerHeight;} else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) { viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;} else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) { viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;}
-moveThumb2();
-centerMap();
-placeArrows();
-//if(logwin) {ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");}
-}
-
-//handles mousewheel
-function handle(delta) 
-	{ zoomCenterOnCursor= true;
-	delta = delta * (-wheelZoomInDirection); 
-	if (delta < 0)
-		{if (wheelmode==0) { ZoomIn();}
-		else { slideNext();}
-		}
-	else{ if (wheelmode==0) { ZoomOut();}
-		else { slidePrev();}
-		}
-	zoomCenterOnCursor= false;	
-	}
-
-function wheel(event){ var delta = 0; if (!event){ event = window.event;}
-if (event.wheelDelta) { delta = event.wheelDelta/120;} else if (event.detail) { delta = -event.detail/3;}
-if (delta){ handle(delta);}
-if (event.preventDefault){ event.preventDefault();}
-event.returnValue = false;}
-if (window.addEventListener){ window.addEventListener('DOMMouseScroll', wheel, false);}
-window.onmousewheel = document.onmousewheel = wheel; 
-
-
-//handles keyboard input
-function capturekey(e)
-	{ var k= (typeof event!='undefined')? window.event.keyCode : e.keyCode; 
-	//ih("k="+k+"<br>");
-	if ( k == 187 || k== 107 || k== 61) {zoomCenterOnCursor= true; ZoomIn(); zoomCenterOnCursor= false;}
-	else if( k == 189 || k== 109) {zoomCenterOnCursor= true; ZoomOut(); zoomCenterOnCursor= false;}
-	else if( k == 39 || k== 40 || k== 34){ slideNext();}
-	else if( k == 37 || k== 38 || k== 33){ slidePrev();}
-	}
-
-if(navigator.appName!= "Mozilla"){document.onkeyup=capturekey}
-else{document.addEventListener("keypress",capturekey,true);}
 
 
 ////////////////////////////////////////////
@@ -1450,25 +1592,7 @@ function loadLabels(pathToFile)
 
 
 		
-/*
- * creates a new script node and loads a js file in it 
- * works on Chrome, FF, IE, Saf, both local and on server
- * Note: loading a raw json {..} in this way gives error, which cannot be prevented, so only use if not a raw JSON, e.g. safe js file is=  var xxxx ={..}
- *
- */
-function loadJs(url,callback)
-	{
-	try
-		{
-		var scrip= document.createElement("script");
-		scrip.setAttribute("type","text/javascript");
-		scrip.setAttribute("src",url);
-		scrip.onload= scrip.onreadystatechange = callback; //onreadystatechange is for IE, see http://stackoverflow.com/questions/4845762/onload-handler-for-script-tag-in-internet-explorer @TODO: add cleanup for memory leak of IE see this stackoverflow
-		return scrIn=document.body.appendChild(scrip);
-		}
-	catch(e)
-		{return;}	
-	} 	
+
 
 
 var labelsLoaded= false;
@@ -1607,12 +1731,125 @@ function displayCredits()
 		}	
 	}
 
+
+//////////////////////////////////////////////////////////////////////
+//
+// FUNCTIONS FOR STACKS OF IMAGES (under development)
+//
+/////////////////////////////////////////////////////////////////////
+
+function slideNext(){ if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
+rawPath = JSONout.slides[slidePointer].path; rawWidth = JSONout.slides[slidePointer].width; rawHeight = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
+init0(); refreshTiles(); checkTiles();moveThumb2()}
+
+
+function slidePrev(){ if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
+rawPath = JSONout.slides[slidePointer].path; rawWidth = JSONout.slides[slidePointer].width; rawHeight = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
+init0(); refreshTiles(); checkTiles();moveThumb2()}
+
+
 ////////////////////////////////////////////
 //
-//	FALLBACK xml imageproperties loading
+//	GENERAL SUPPORT FUNCTIONS
 //
 ///////////////////////////////////////////
 
+function ref(i) { return document.getElementById(i);}
+
+function getElemPos(elemRef)
+{var pos={};
+
+if(window.getComputedStyle)
+	{var compStyle= getComputedStyle(elemRef,"");
+	pos.left= stripPx(compStyle.getPropertyValue("left"));
+	pos.right= stripPx(compStyle.getPropertyValue("right"));
+	pos.top= stripPx(compStyle.getPropertyValue("top"));
+	pos.bottom= stripPx(compStyle.getPropertyValue("bottom"));
+	pos.width= stripPx(compStyle.getPropertyValue("width"));
+	pos.height= stripPx(compStyle.getPropertyValue("height"));		
+	}
+else if (elemRef.currentStyle)
+	{//var currStyle=elemRef.currentStyle;
+	pos.left= stripPx(elemRef.currentStyle.left);
+	pos.right= stripPx(elemRef.currentStyle.right);
+	pos.top= stripPx(elemRef.currentStyle.top);
+	pos.bottom= stripPx(elemRef.currentStyle.bottom);
+	pos.width= stripPx(elemRef.currentStyle.width);
+	pos.height= stripPx(elemRef.currentStyle.height);		
+	}	
+
+//IE and Chrome only return 'auto'	--> parseFloat==> NaN
+pos.left = (isNaN(pos.left)) ? viewportWidth - pos.right - pos.width : pos.left;
+pos.top = (isNaN(pos.top)) ? viewportHeight - pos.bottom - pos.height : pos.top;
+
+//ih("Elem="+elemRef.id+", pos.left="+pos.left+", pos.right="+pos.right+", typeof pos.right="+typeof pos.right+", pos.top="+pos.top+", pos.bottom="+pos.bottom+", pos.width="+pos.width+", typeof pos.width="+typeof pos.width+", pos.height="+pos.height+"viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>"); 
+
+return pos;
+}
+
+function stripPx(value) { if (value == ""){ return 0;}
+
+return parseFloat(value.substring(0, value.length - 2));}
+
+
+function refreshTiles() { var imgs = imageTiles.getElementsByTagName("img"); while (imgs.length > 0) imageTiles.removeChild(imgs[0]);}
+
+//gives IE version nr source: DHTML D.Goodman 3rd ed p 669
+function readIEVersion()
+	{var ua = navigator.userAgent;
+	var IEOffset = ua.indexOf("MSIE ");
+	return parseFloat(ua.substring(IEOffset + 5, ua.indexOf(";", IEOffset)));
+	}
+	
+function rawDimensionsKnown()
+	{return ( rawWidth==null || rawHeight==null )? false : true;
+	}	
+	
+function dimensionsKnown()
+	{return ( imgWidthMaxZoom==null || imgHeightMaxZoom==null || isNaN(imgWidthMaxZoom) || isNaN(imgHeightMaxZoom) )? false : true;
+	}	
+
+/*
+ * Gets the part of the url that is NOT the query, that is: protocol + host + pathname (see JavaScript Definitive Guide, Flanagan 3rd ed. p.854),
+ * BaseUrl is not an official name, but used for ease here 
+ * 
+ */
+function getBaseUrlPart()
+{
+	var url = location.href;
+	var baseUrlPart = url.split("?")[0];
+	return baseUrlPart; 
+}
+
+////////////////////////////////////////////
+//
+//	FILE LOADING
+//
+///////////////////////////////////////////
+	
+/*
+ * creates a new script node and loads a js file in it 
+ * works on Chrome, FF, IE, Saf, both local and on server
+ * Note: loading a raw json {..} in this way gives error, which cannot be prevented, so only use if not a raw JSON, e.g. safe js file is=  var xxxx ={..}
+ *
+ */
+function loadJs(url,callback)
+	{
+	try
+		{
+		var scrip= document.createElement("script");
+		scrip.setAttribute("type","text/javascript");
+		scrip.setAttribute("src",url);
+		scrip.onload= scrip.onreadystatechange = callback; //onreadystatechange is for IE, see http://stackoverflow.com/questions/4845762/onload-handler-for-script-tag-in-internet-explorer @TODO: add cleanup for memory leak of IE see this stackoverflow
+		return scrIn=document.body.appendChild(scrip);
+		}
+	catch(e)
+		{return;}	
+	} 	
+
+/*
+ * FALLBACK xml imageproperties loading
+ */
 function loadXMLfile()
 {try
 	{	
@@ -1641,7 +1878,7 @@ function xmlread(data)
 	
 		//ih("hasReadWHfromXhr");
 		//loadedXML=1;
-		//init();
+		//showInitialView();
 */		
 	}
 	catch(e)
@@ -1650,33 +1887,15 @@ function xmlread(data)
 
 }
 
-			
-//// GENERAL SUPPORT FUNCTIONS ////
 
-function stripPx(value) { if (value == ""){ return 0;}
-return parseFloat(value.substring(0, value.length - 2));}
 
-function ref(i) { return document.getElementById(i);}
 
-function refreshTiles() { var imgs = imageTiles.getElementsByTagName("img"); while (imgs.length > 0) imageTiles.removeChild(imgs[0]);}
+//////////////////////////////////////////////////////////////////////
+//
+// DEBUGGING, INFORMATIVE MESSAGES, WARNINGS
+//
+/////////////////////////////////////////////////////////////////////
 
-//gives IE version nr source: DHTML D.Goodman 3rd ed p 669
-function readIEVersion()
-	{var ua = navigator.userAgent;
-	var IEOffset = ua.indexOf("MSIE ");
-	return parseFloat(ua.substring(IEOffset + 5, ua.indexOf(";", IEOffset)));
-	}
-	
-function rawDimensionsKnown()
-	{return ( rawWidth==null || rawHeight==null )? false : true;
-	}	
-	
-function dimensionsKnown()
-	{return ( imgWidthMaxZoom==null || imgHeightMaxZoom==null || isNaN(imgWidthMaxZoom) || isNaN(imgHeightMaxZoom) )? false : true;
-	}	
-	
-	
-/// INFORMATIVE MESSAGES, WARNINGS
 function signalUseIFrameFallBack()
 	{if(ref("signalI"))	{ref("signalI").style.display= "block";}
 	}
@@ -1713,7 +1932,7 @@ function hideWarnings()
 	ref("warning").style.display="none";
 	}	
 
-//////debugging  ///////////////////////////
+//////debugging functions  ///////////////////////////
 
 function ih(txt)
 	{logwin.innerHTML+= txt + " ";}	

@@ -103,7 +103,7 @@ function setHandlers()
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
 
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
-	jQ(".showCoords").change(showHideCoordsPanel);
+	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	
 	slidesCont = ref("slidesCont");
 }	
@@ -448,9 +448,11 @@ function createSlide(slideName)
 		
 	ref(sensorId).onclick=loadIt;
 	
+	//closure
 	function loadIt()
 		{setQuerySetting("slide",slideName);
-		reload(true);
+		cleanQuerySettings();
+		loadVirtualSlide();
 		}
 
 	} 
@@ -556,7 +558,8 @@ function reload(clean)
 			cleanQuerySettings();
 		}
 	//re-create URL and reload
-	var URL = createAppendQuery(baseUrlPart,querySettings);
+	var query = createQuery(querySettings);
+	var URL = baseUrlPart + query;
 	//alert("reloading  with URL= '"+URL+"'");
 	window.location = URL;	
 }
@@ -573,7 +576,8 @@ function loadVirtualSlide()
 	else if(slides[slideName])//@TODO maybe remove this check, is duplicate with check in the viewer itself
 		{
 		//creates URL aimed at the main window 
-		var URL = createAppendQuery(urlViewerFile,querySettings);
+		var query = createQuery(querySettings);
+		var URL = urlViewerFile + query;	
 		//alert("loading viewerFrame with URL= '"+URL+"'");
 		//load the URL with the sliderequest in the main (=view) window
 		window.viewerFrame.location= URL;
@@ -585,14 +589,14 @@ function loadVirtualSlide()
 	}
 	
 /*
- * creates the URL query from the array queryArgs and appends it to the passed basePartURL
+ * creates the URL query from the array queryArgs 
  * @param assoc array queryArgs with format: ["name"= "value"]
- * return complete URL with query appended, eg. www.xyz.com?name1=value1&name2=value2 
+ * return  query e.g. "?name1=value1&name2=value2" 
  * 
  */
-function createAppendQuery(basePartURL,queryArgs)
-	{ 
-	var queryPart = "?";
+function createQuery(queryArgs)
+{ 
+	var query = "?";
 	var first= true;
 	
 	for(prop in queryArgs)
@@ -602,14 +606,13 @@ function createAppendQuery(basePartURL,queryArgs)
 		{
 			continue;
 		}
-		queryPart += (first)? "" : "&";
-		queryPart += prop + "=" + queryArgs[prop];
+		query += (first)? "" : "&";
+		query += prop + "=" + queryArgs[prop];
 		first= false;
 		}
 	
-	var URL = basePartURL + queryPart;
-	return URL;	
-	}
+	return query;	
+}
 
 /*
  * cleans the query settings from all but a requested slide, and any set user preferences
@@ -643,26 +646,35 @@ function setQuerySetting(name, value)
  * sets the scroll direction to zoom in or out on scroll (up or down)
  */
 function setWheelZoomDirection()
-	{
+{
 
 	var wheelZoomInDirection = readradio("settingsForm","wheelZoomDir");
 	//ensure correct setting
 	wheelZoomInDirection = (wheelZoomInDirection == "up")? "up" : (wheelZoomInDirection == "down")? "down" : wheelZoomInDirection;
 	//store it for placing in the URL query
 	setQuerySetting("wheelzoomindirection", wheelZoomInDirection);
-	reload();
-	} 
+	//effectuate it: push it to viewerframe
+	if(window.viewerFrame)
+	{
+		window.viewerFrame.setWheelZoomInDirection(wheelZoomInDirection);
+	}
+} 
 
 	
 function showHideCoordsPanel()
 	{
-	var showCoordinates = readradio("settingsForm","showCoords"); //option 0= hide, option 1= show
-	//ensure correct setting
-	showCoordinates = (showCoordinates == 1)? 1 : (showCoordinates == 0)? 0 : showCoordinates;
+	//read checkbox
+	var showCoordinates = (ref("checkBoxShowCoords").checked)? true : false;
 	//store it for placing it in the URL query
-	setQuerySetting("showcoords",showCoordinates);	
-	reload();
+	var queryShowCoordinates = (showCoordinates)? 1 : 0 ;
+	setQuerySetting("showcoords",queryShowCoordinates);		
+	//effectuate it: push it to viewerframe
+	if(window.viewerFrame)
+		{
+			window.viewerFrame.showHideCoordsPanel(showCoordinates);
+		}	
 	}
+
 
 
 
@@ -702,12 +714,12 @@ function getLocationOfRequestedWindow(whichWindow)
  * BaseUrl is not an official name, but used for ease here 
  * 
  */
-function getBaseUrlPart(whichWindow)
+function getBaseUrlPart()
 {
 	//oLocation =  getLocationOfRequestedWindow(whichWindow);
-	URL = location.href;
-	BaseUrlPart = URL.split("?")[0];
-	return BaseUrlPart; 
+	var url = location.href;
+	var baseUrlPart = url.split("?")[0];
+	return baseUrlPart; 
 }
 
 /*

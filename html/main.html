@@ -16,14 +16,16 @@
 <!-- NOTE Styles are included here instead of in a separate css, as this appears to work slightly faster during slide viewing, panning, zooming etc., gives a more immediate response experience-->
 <style>
 body {margin:0px;height:100%;overflow:hidden;}
-div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
 div#coordsPane{display:none;position:absolute;top:2px;width:200px;height:25px;margin-left:50%;margin-right:45%;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
+div#urlBar{display:none;position:absolute;top:0px;width:100%;height:15px;padding:3px;z-index:10;border: solid #808080 2px; background-color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#808080}
+.urlInfoBarLeader {font-weight:bold;}
 span.deemphasize {font-size: 80%; color:#a1a1a1}
 div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
 span#signalj {display:none;}
-div#barCont {position:absolute;left:0px;top:15px;width:200px;height:20px; z-index:100;}
+div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-index:100;}
 .bar {position:absolute;top:0px;}
 #bar_mid {top:7px;height:6px;}
 #theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:15px;font-family:Arial, sans-serif;color:white;}
@@ -40,7 +42,7 @@ div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:
 			div.label {font-family:Arial,sans-serif;font-weight:bold;font-size:80%;color:black;text-shadow: 1px 1px 0px #ffffff;cursor:pointer;text-align:center;vertical-align:middle;clear: both;float:left}
 		div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
 
-div#controls0 {position:absolute;right:10px;top:10px;width:200px;height:200px;z-index:1;}
+div#controls0 {position:absolute;right:10px;top:25px;width:200px;height:200px;z-index:1;}
 	div#Thumb0 {display:block;position:absolute;left:0px;right:0px;top:0px;text-align:center;width:200px;height:150px;overflow:hidden;}
 		div#Thumb {display:none;position:absolute;right:0px;top:0px;border:1px solid blue;overflow:hidden;}
 	div#Thumb2 {display:none;position:absolute;border:1px solid #29ffde;overflow:hidden;} /*cyan: #29ffde*/
@@ -91,7 +93,7 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
  
 <!-- HTML //////////////////////////////////////////-->
     
-<body onload="init0()">
+<body onload="init()">
 
 <div id="test" onclick="testMobile()"></div>
 <div id="log"></div>
@@ -131,6 +133,9 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 		
 	</div> <!--eof outerdiv -->	
 </div> <!--eof outerdiv0 -->
+		
+<!-- to display URL -->
+<div id="urlBar"></div>
 		
 <!-- to display mouseover coordinates-->		
 <div id="coordsPane"></div>
