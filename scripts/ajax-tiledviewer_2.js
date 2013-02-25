@@ -480,13 +480,11 @@ function winsize()
 	} 
 	else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) 
 	{ 
-		viewportWidth = document.documentElement.clientWidth; 
-		viewportHeight = document.documentElement.clientHeight;
+		viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;
 	} 
 	else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) 
 	{ 
-		viewportWidth = document.body.clientWidth; 
-		viewportHeight = document.body.clientHeight;
+		viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;
 	}
 	
 	moveThumb2();
@@ -655,36 +653,31 @@ function stopMove()
 	}
 	
 /*
- * expresses a certain point of the screen (e.g. the location of the cursor) as a position on the image, expressed between 0,0 (top-left corner) and 1,1 (bottom-right corner). Independent of zoom level.
+ * gets a position on the image expressed between 0,0 (top-left corner) and 1,1 (bottom-right corner). Independent of zoom level.
  * @param number cursorX (in pixels)
  * @param number cursorY (in pixels)
- * return object with keys x and y holding the coords (in fractions of the image)
+ * 
  */
 function getImgCoords(cursorX,cursorY)	
 	{var imgCoords={};
-	imgCoords.x = Math.round(((cursorX - stripPx(innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000;
-	imgCoords.y = Math.round(((cursorY - stripPx(innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
+	imgCoords.x = Math.round(((cursorX - stripPx(innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*1000))/1000;
+	imgCoords.y = Math.round(((cursorY - stripPx(innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*1000))/1000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
 	
-
-/*
- * gets center of the visible part of the image (expressed in pixels of the image). Used as zoomcenter at +/- or buttonclick zooming
- * 
- */
+//gets center of the visible part of the image. Used as zoomcenter at +/- or buttonclick zooming
 function getVisibleImgCenter()	
 	{var imgCenter={};
 
-	//positions of the innerDiv that holds the tiles
 	var imgLeft = stripPx(innerStyle.left); 
 	var imgTop = stripPx(innerStyle.top);
-	var imgRight = imgLeft + imgWidthPresentZoom;
-	var imgBottom = imgTop + imgHeightPresentZoom;
+	var mRight = imgLeft + imgWidthPresentZoom;
+	var mBottom = imgTop + imgHeightPresentZoom;
 	//visible part of image
 	var visLeft  = (imgLeft < 0)? 0 : imgLeft;
-	var visRight = (imgRight > viewportWidth)? viewportWidth : imgRight;
+	var visRight = (mRight > viewportWidth)? viewportWidth : mRight;
 	var visTop	 = (imgTop < 0)? 0 : imgTop;
-	var visBottom= (imgBottom > viewportHeight)? viewportHeight : imgBottom; 
+	var visBottom= (mBottom > viewportHeight)? viewportHeight : mBottom; 
 
 	imgCenter.x= Math.round( visLeft + (visRight - visLeft)/2 );
 	imgCenter.y= Math.round( visTop + (visBottom - visTop)/2 );
@@ -699,10 +692,10 @@ function getVisibleImgCenter()
 function cursorOverImage()
 	{var imgLeft = stripPx(innerStyle.left); 
 	var imgTop = stripPx(innerStyle.top);
-	var imgRight = imgLeft + imgWidthPresentZoom;
-	var imgBottom = imgTop + imgHeightPresentZoom;
+	var mRight = imgLeft + imgWidthPresentZoom;
+	var mBottom = imgTop + imgHeightPresentZoom;
 
-	return (imgLeft <= cursorX && cursorX <= imgRight && imgTop <= cursorY && cursorY <= imgBottom)? true : false;	
+	return (imgLeft <= cursorX && cursorX <= mRight && imgTop <= cursorY && cursorY <= mBottom)? true : false;	
 	}	
 
 
@@ -997,19 +990,19 @@ function centerOn(xcoord,ycoord)
 }
 
 function centerMap()
-{//ih("in centerMap1");
+	{//ih("in centerMap1");
 	if(dimensionsKnown())
-	{
+		{
 		innerDiv.style.left = ( viewportWidth /2 - imgWidthPresentZoom /2 ) + "px"; 
 		innerDiv.style.top  = ( viewportHeight/2 - imgHeightPresentZoom/2 ) + "px"; 
 		//center=1;
 		//ih("in centerMap2");
 		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", innerDiv="+innerDiv+", innerDiv.style="+innerDiv.style+", innerDiv.style.left="+innerDiv.style.left)
-	}	
+		}	
 	else 
-	{//ih("dimensionsUnknown");
-	}	
-}
+		{//ih("dimensionsUnknown");
+		}	
+	}
 		
 function keepInViewport()
 	{//safety factor, keep minimally this amount of pixesl of image in view
@@ -1017,8 +1010,8 @@ function keepInViewport()
 
 	var imgLeft = stripPx(innerStyle.left); 
 	var imgTop = stripPx(innerStyle.top);
-	var imgRight = imgLeft + imgWidthPresentZoom;
-	var imgBottom = imgTop + imgHeightPresentZoom;
+	var mRight = imgLeft + imgWidthPresentZoom;
+	var mBottom = imgTop + imgHeightPresentZoom;
 
 	var limitLeft = minPixelsInView; //keep minimally 10 px of image within viewport
 	var limitTop = minPixelsInView;
@@ -1027,9 +1020,9 @@ function keepInViewport()
 
 	var corrected = false;
 
-	if (imgRight < limitLeft) {innerStyle.left = limitLeft - imgWidthPresentZoom; corrected = true;}
+	if (mRight < limitLeft) {innerStyle.left = limitLeft - imgWidthPresentZoom; corrected = true;}
 	if (imgLeft > limitRight) {innerStyle.left = limitRight; corrected = true;}
-	if (imgBottom < limitTop) {innerStyle.top = limitTop - imgHeightPresentZoom; corrected = true;}
+	if (mBottom < limitTop) {innerStyle.top = limitTop - imgHeightPresentZoom; corrected = true;}
 	if (imgTop > limitBottom) {innerStyle.top = limitBottom; corrected = true;}
 	
 /*	
@@ -1394,8 +1387,7 @@ function getPresentViewSettings()
 	var o ={}; //container
 	o["slideName"] = slideName;
 	o["zoom"] = zoom;
-	//get the position on the image at the center of the viewport 
-	var center = getImgCoords(viewportWidth/2,viewportHeight/2);
+	var center = getVisibleImgCenter();
 	o["cX"] = center.x;
 	o["cY"] = center.y;
 	

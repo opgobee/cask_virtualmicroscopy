@@ -37,6 +37,7 @@
 <div id="nav" class="column"> 
 <img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
 <a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
+<img id="link" src="../img/link.png" title="Get link to present view" onclick="showUrl()">
 <img id="wrench" src="../img/wrench_light.png" title="Settings" onclick="showHideSettings()">
 <img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
 <a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
@@ -64,8 +65,17 @@
 
 </div> <!--eof all -->
 
-<!-- iframe with virtual miccopy viewer-->
+<!-- iframe with virtual microscopy viewer-->
 <iframe id="viewerFrame" name="viewerFrame" src="blank.html" frameborder="0" marginheight="0" marginwidth="0" scrolling="no" ></iframe>
+
+<!-- to display URL -->
+<div id="urlBar" >
+	
+	<span class='urlInfoBarLeader'>Direct URL to this view :</span><br />
+	<textarea id="urlString"></textarea>		
+	<img id="closeUrlBar" src="../img/close.png" title="Close" onclick="closeUrlBar()">
+	
+</div>
 
 
 </div> <!-- eof container-->

@@ -15,21 +15,32 @@
 
 <!-- NOTE Styles are included here instead of in a separate css, as this appears to work slightly faster during slide viewing, panning, zooming etc., gives a more immediate response experience-->
 <style>
-body {margin:0px;height:100%;overflow:hidden;}
+body {margin:0px;width:100%;height:100%;overflow:hidden;}
 div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
-div#coordsPane{display:none;position:absolute;top:2px;width:200px;height:25px;margin-left:50%;margin-right:45%;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
-div#urlBar{display:none;position:absolute;top:0px;width:100%;height:15px;padding:3px;z-index:10;border: solid #808080 2px; background-color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#808080}
-.urlInfoBarLeader {font-weight:bold;}
+div#centeringContainer {position:absolute;width:100%;text-align:center;z-index:10;} /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
+div#namePanel{
+	display:inline-block;top:0px;min-width:100px;height:15px;margin:auto;padding:3px 15px;z-index:10;
+	border: solid #808080 2px; background-color:#FFFFFF;
+	-webkit-border-bottom-right-radius:5px 8px;-moz-border-radius-bottomright:5px 8px;border-bottom-right-radius:5px 8px;
+	-webkit-border-bottom-left-radius:5px 8px;-moz-border-radius-bottomleft:5px 8px;border-bottom-left-radius:5px 8px;
+	text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#808080
+	}
+div#coordsPane{display:inline-block;top:1px;width:200px;height:25px;margin:auto;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
+
 span.deemphasize {font-size: 80%; color:#a1a1a1}
 div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
 span#signalj {display:none;}
+
+/*length bar*/
 div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-index:100;}
-.bar {position:absolute;top:0px;}
-#bar_mid {top:7px;height:6px;}
-#theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:15px;font-family:Arial, sans-serif;color:white;}
-#theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:15px;font-family:Arial, sans-serif;color:black;}
+.bar {position:absolute;top:0px;background-color:blue;}
+.verticalLine {width:2px;height:12px;}
+.horizontalLine {top:5px;height:2px;}
+
+#theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;}
+#theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:white;}
 
 div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:0px solid black;overflow:hidden;}
 	div#outerDiv {position:absolute;height:100%;width:100%;border:1px solid black;overflow:hidden;}
@@ -74,6 +85,9 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 <![endif]-->
 
 
+
+
+
 <!-- SCRIPTS & SLIDES DATA /////////////////////////////-->
 
 <!-- libs -->
@@ -91,6 +105,8 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 </head>
  
  
+ 
+ 
 <!-- HTML //////////////////////////////////////////-->
     
 <body onload="init()">
@@ -101,10 +117,18 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 <div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
 
 <div id="barCont">
-	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
+<!--	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
 	<img id="bar_right" src="../img/bar_vert.gif" class="bar" />
-	<img id="bar_mid" src="../img/bar_mid.gif" class="bar" />
+	<img id="bar_mid" src="../img/bar_mid.gif" class="bar" /> -->
+
+	<div id="bar_left"  class="bar verticalLine" ></div>
+	<div id="bar_mid" class="bar horizontalLine"></div>
+	<div id="bar_right" class="bar verticalLine"></div>
+	
+
 	<div id="theScale2"></div><div id="theScale1"></div> 
+	
+	
 </div> 
 	
 <div id="outerDiv0">
@@ -134,11 +158,14 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 	</div> <!--eof outerdiv -->	
 </div> <!--eof outerdiv0 -->
 		
-<!-- to display URL -->
-<div id="urlBar"></div>
+
+<div id="centeringContainer">
+	<!-- to display name of slide -->
+	<div id="namePanel"></div>
+	<!-- to display mouseover coordinates-->		
+	<div id="coordsPane"></div>
+</div>
 		
-<!-- to display mouseover coordinates-->		
-<div id="coordsPane"></div>
 
 <div id="controls0">
 	<div id="Thumb0">

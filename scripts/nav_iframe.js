@@ -20,6 +20,7 @@
  *
  */
 
+    
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
 var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load opening
@@ -28,20 +29,30 @@ var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
 var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides
 
-//Settings that can be passed via URL query 
-defaultQuerySettings = Array(); 
-defaultQuerySettings["wheelzoomindirection"] = "down"; //user-option: zoomin/out direction of wheel, default wheeldown = zoomin
-defaultQuerySettings["showcoords"] = 0; //user-option: default hide coords panel
-
+//Local Settings in nav  
+settings = {}; 
+settings["slideName"] = null; //slideName (the code-slidename)
+settings["wheelZoomInDirection"] = "down"; //user-option: zoomin/out direction of wheel, default wheeldown = zoomin
+settings["showCoordinatesPanel"] = false; //user-option: default hide coords panel
+settings["zoom"] = null;
+settings["cX"] = null; //the x coordinate (fraction of image) to center on
+settings["cY"] = null; //the y coordinate (fraction of image) to center on
+settings["label"] = null; // a single label to be set on the center x,y location
 //Variable declarations
-//var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
-//var slideSetsMenus; //global var 'slideSetsMenus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
+
+/*
+ * Expected global vars in loaded files:
+ * 
+ * var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
+ * var slideSetsMenus; //global var 'slideSetsMenus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
+ */
+
 var currentSlideSetMenu = null;
 var loadedSlideSetMenuNames = Array(); //array with names of the slideSetsMenus that have been created and inserted in the slideSetsMenuPane
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
-var loadedSlides = Array(); //array with the slides-objects that are loaded
-var querySettings = Array(); //assoc arary with name/value pairs settings that are communicated via the URL's query. These are read from the parent (=frameset)'s query. Args may be added in nav. If a slide is requested, the main window is loaded, the query is transferred to the URL of the main window
-var fitDone=[],fitAttempt=1;
+var loadedSlides = {}; //assoc array with the slideData-objects that are loaded, with key= slideName
+var querySettings = Array(); //assoc arary with name/value pairs settings that are communicated via the URL's query.  If a slide is requested, the viewer iframe is loaded, the query is transferred to the URL of the viewer iframe
+var fitDone= {},fitAttempt=1; //fitDone= assoc array slideName = true/false indicating whether the thumb-fitting has (already) succeeded
 var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
 var settingsCloseTimer;
@@ -62,12 +73,9 @@ function init()
 	{
 	//debugging
 	logwin=document.getElementById("log");
-	setDefaultQuerySettings();
-	//read query from URL of parent (the frameset)
-	queryArgs= getQueryArgs();
-	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
-	querySettings = merge_options(querySettings,queryArgs);
-	//debug("read from parent:parentQueryArgs:", parentQueryArgs);
+	
+	//reads data from different inputs (at present only yet from the URL)
+	readDataToSettings();
 	
 	winsize();//do after onload for IE
 	setHandlers();
@@ -77,31 +85,70 @@ function init()
 	createSlideSetsMenus();
 	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
-	//loads the slides in the slide selection menu
-	//loadSlides();
 	//if a slide is requested in the URL, load the requested slide in the main panel
-	//debug('querySettings[slide]??', querySettings["slide"])
-	if(querySettings["slide"] != "undefined")
+	if(settings["slideName"] != null) //loads the slide that is requested in the query : e.g. '...?slide=carotis'
 		{
-		//busy here
-		loadVirtualSlide(); //loads the slide that is requested in the querySettings : e.g. '...?slide=carotis'
+		loadVirtualSlide(settings["slideName"]); 
 		}
 	}
 
-function setDefaultQuerySettings()
+/*
+ * Reads data from different inputs and sets settings from these data
+ */
+function readDataToSettings()
 {
-	for(prop in defaultQuerySettings)
+	//set or adapt globals with query information
+	readQueryToSettings();
+	//possible other data sources here
+	//Note: slides data remain in var 'slides' and are read from there
+}
+
+/*
+ * reads query and stores the data in settings
+ */
+function readQueryToSettings()
+{
+	//read query from URL of parent (the frameset)
+	//get variables from query in URL
+	var queryArgs= getQueryArgs();
+	
+	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
+	if (queryArgs.showcoords) 			{ settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false; } 
+	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
+//	if (queryArgs.resunits) 			{ resunits = queryArgs.resunits; } 
+	if (queryArgs.zoom)					{ settings["zoom"] = Number(queryArgs.zoom); }
+	if (queryArgs.x) 					{ settings["cX"] = Number(queryArgs.x); }
+	if (queryArgs.y) 					{ settings["cY"]  = Number(queryArgs.y); }
+	if (queryArgs.label) 				{ settings["label"] = queryArgs.label;}
+//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
+//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
+
+	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
+	//querySettings = merge_options(querySettings,queryArgs);
+
+}
+
+
+
+function setWheelZoomInDirection(zoomInDirection)
+{
+	switch(zoomInDirection)
 	{
-		querySettings[prop] = defaultQuerySettings[prop];
+	case "up":
+		settings["wheelZoomInDirection"] = "up";
+		break;
+	case "down":
+	default:
+		settings["wheelZoomInDirection"] = "down";
+		break;
 	}	
 }
-	
+
 function setHandlers()
 {
 	window.onresize=winsize; 
 	ref("nav").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
-
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	
@@ -113,22 +160,16 @@ function setHandlers()
  */
 function checkChosenOptions()
 {
-	if(querySettings["wheelzoomindirection"] == "up") 
+	if(settings["wheelZoomInDirection"] == "up") 
 	{
 		jQ("#optWheelUp").attr('checked','checked'); 
 	} 
-	else if(querySettings["wheelzoomindirection"] == "down") 
+	else if(settings["wheelZoomInDirection"] == "down") 
 	{
 		jQ("#optWheelDown").attr('checked','checked'); 
 	} 
-	if(querySettings["showcoords"] == 0) 
-	{
-		jQ("#optHideCoords").attr('checked','checked'); 
-	} 
-	else if(querySettings["showcoords"] == 1) 
-	{
-		jQ("#optShowCoords").attr('checked','checked'); 
-	} 
+	ref("checkBoxShowCoords").checked = (settings["showCoordinatesPanel"])? true :false;
+
 }
 
 //////////////////////////////////////////
@@ -370,7 +411,7 @@ function loadSlides()
 //removes all loaded slides
 function removeSlides()
 {
-	loadedSlides = Array(); //empty the memory
+	loadedSlides = {}; //empty the memory
 	empty(slidesCont);	//empty the DOM
 }
 
@@ -390,17 +431,12 @@ function createSlide(slideName)
 		{return;}
 	
 	//here the global var 'slides' is read!!
-	slideInfo = slides[slideName];
-	
-	var imgIndex = loadedSlides.length;
-	loadedSlides[imgIndex] = slideInfo; //store the loaded slide object
-	//l("loading into loadedSlides location:"+imgIndex);	
+	slideData = slides[slideName];	
+	loadedSlides[slideName] = slideData; //store the loaded slide object
 	
 	var cont = document.createElement("li"); 
 	jQ(cont).attr("class","cont");
-	jQ(cont).attr("className","cont");
-	//cont.setAttribute("class","cont");
-	//cont.setAttribute("className","cont"); //IE8
+	jQ(cont).attr("className","cont"); //IE8
 	
 	var slide = document.createElement("img"); 
 	slide.src = urlSlideImg;
@@ -410,16 +446,16 @@ function createSlide(slideName)
 
 	var img = document.createElement("img");
 	//either a specific provided thumb is used (e.g. if slide is vertical and you want thumb horizontal) or the 0-0-0.jpg image
-	var ext= (typeof slideInfo.thumb!="undefined")? slideInfo.thumb : "TileGroup0/0-0-0.jpg";
-	img.src = slideInfo.path + ext; 	
-	var imgId= "slide"+imgIndex;	
+	var ext= (typeof slideData.thumb!="undefined")? slideData.thumb : "TileGroup0/0-0-0.jpg";
+	img.src = slideData.path + ext; 	
+	var imgId= "thumb_" + slideName;	
 	img.setAttribute("id", imgId); 
 	img.setAttribute("class","img"); 
 	img.setAttribute("className","img"); //IE
 	cont.appendChild(img);
 	//l("created:"+imgId)
 	
-	var caption=slideInfo.info;
+	var caption=slideData.info;
 	var captionNode= document.createTextNode(caption);
 	var div= document.createElement("div"); 
 	div.appendChild(captionNode);
@@ -436,7 +472,7 @@ function createSlide(slideName)
 
 	var sensor = document.createElement("img"); 
 	sensor.src = urlSensorImg; 
-	var sensorId= "sensor"+imgIndex;	
+	var sensorId= "sensor_"+slideName;	
 	sensor.setAttribute("id", sensorId); 
 	sensor.setAttribute("class","sensor");
 	sensor.setAttribute("className","sensor"); //IE
@@ -444,17 +480,16 @@ function createSlide(slideName)
 
 	slidesCont.appendChild(cont);
 
-	fitToSlide(imgId,imgIndex);	
+	fitThumbToSlide(slideName);	
 		
 	ref(sensorId).onclick=loadIt;
 	
 	//closure
 	function loadIt()
-		{setQuerySetting("slide",slideName);
-		cleanQuerySettings();
-		loadVirtualSlide();
+		{//setQuerySetting("slide",slideName);
+		//cleanQuerySettings(); //reset zoom and location on slide to default starting situation
+		loadVirtualSlide(slideName);
 		}
-
 	} 
 
 /*
@@ -462,25 +497,25 @@ function createSlide(slideName)
  * 
  * //cant this be simpler done using the length and width props if there is no thumb?
  */
-function fitToSlide(imgId,imgIndex)
+function fitThumbToSlide(slideName)
 	{
 		
 	//l("fitting "+imgId)
-	var imgRef=ref(imgId);
+	var thumbImgId = "thumb_" + slideName;
+	var thumbRef=ref(thumbImgId);
 	var imgRatio;
 	
 	//try to get dimensions of this image
 	//first try to try to read from slides.js
-	//
 	
-	if(loadedSlides[imgIndex].thumbwidth && loadedSlides[imgIndex].thumbheight)
-		{imgRatio = loadedSlides[imgIndex].thumbwidth / loadedSlides[imgIndex].thumbheight;
+	if(loadedSlides[slideName].thumbwidth && loadedSlides[slideName].thumbheight)
+		{imgRatio = loadedSlides[slideName].thumbwidth / loadedSlides[slideName].thumbheight;
 		}
 	//l("1 "+imgId+", imgRatio="+imgRatio)	
 	if(!imgRatio)
 		{//try to read the image sizes 'life' from the loaded image
 		//Opera incorrectly seems to reads some built-in default image with imageratio 1,77727
-		try	{dim = getElemDim(imgRef);
+		try	{dim = getElemDim(thumbRef);
 			imgRatio = dim.width / dim.height;
 			}
 		catch(e){;}
@@ -490,34 +525,33 @@ function fitToSlide(imgId,imgIndex)
 	//l("2 "+imgId+", imgRatio="+imgRatio)
 	
 	if(imgRatio>spaceRatio)
-		{imgRef.style.width = "120px";
+		{thumbRef.style.width = "120px";
 		if(imgRatio)
 			{var scaledHeight = 120 / imgRatio;
-			imgRef.style.height = scaledHeight + "px"; //needed for IE
-			imgRef.style.top= (Math.round((52 - scaledHeight)/2 + 10)) + "px";
+			thumbRef.style.height = scaledHeight + "px"; //needed for IE
+			thumbRef.style.top= (Math.round((52 - scaledHeight)/2 + 10)) + "px";
 			}
 		}
 	else
-		{imgRef.style.height = "52px";
+		{thumbRef.style.height = "52px";
 		if(imgRatio)
 			{var scaledWidth = 52 * imgRatio;
-			imgRef.style.width = scaledWidth + "px";  //needed for IE
-			imgRef.style.left = (Math.round((120 - scaledWidth)/2 + 15)) + "px";
+			thumbRef.style.width = scaledWidth + "px";  //needed for IE
+//			thumbRef.style.left = (Math.round((120 - scaledWidth)/2 + 15)) + "px";
 			}
 		}
 	
 	//succesful? show anyhow at attempt2
 	if(imgRatio || fitAttempt>=2)
-		{fitDone[imgIndex]= true;
-		ref(imgId).style.display="block";
+		{fitDone[slideName]= true;
+		thumbRef.style.display="block";
 		//l("shown "+imgId);
 		}
 	else	
-		{fitDone[imgIndex] = false;
-		ref(imgId).style.display="none";
-				//l("hidden "+imgId);
+		{fitDone[slideName] = false;
+		thumbRef.style.display="none";
+		//l("hidden "+imgId);
 		}
-
 	}	
  
 /*
@@ -525,9 +559,9 @@ function fitToSlide(imgId,imgIndex)
  */
 function checkFit()
  	{//l("checkFit attempt "+fitAttempt)
-	for(var i=0;i<loadedSlides.length;i++)
-		{if(!fitDone[i])
-			{fitToSlide("slide"+i,i);}
+	for( slideName in loadedSlides)
+		{if(!fitDone[slideName])
+			{fitThumbToSlide(slideName);}
 		}	
 	fitAttempt++;	
 	}	
@@ -543,7 +577,9 @@ function checkFit()
  * reloads the with the present settings (slide requested, showCoords etc) of querySettings 
  * Note: if there was not yet a slide requested in the query, it will add a slide request, if there was already a (previous) slide requested in the query, it will replace it.
  * @param boolean clean TRUE if you want only the slide plus user preferences remaining and the rest cleaned from querySettings
+ * @deprecated not used anymore
  */
+/*
 function reload(clean)
 {
 	//read URL parts of parent (the frameset)
@@ -563,20 +599,20 @@ function reload(clean)
 	//alert("reloading  with URL= '"+URL+"'");
 	window.location = URL;	
 }
+*/
 
 /*
- * loads the slide requested in the querySettings array into the main panel
+ * loads the slide requested in the settings into the main panel
  * 
  */
-function loadVirtualSlide()
+function loadVirtualSlide(slideName)
 	{	
-	var slideName = querySettings["slide"];
-	if(!slideName)
-		{return;}
-	else if(slides[slideName])//@TODO maybe remove this check, is duplicate with check in the viewer itself
+	//alert("loadVirtualSlide of" + slideName);
+	if(slides[slideName])
 		{
+		settings["slideName"] = slideName;
 		//creates URL aimed at the main window 
-		var query = createQuery(querySettings);
+		var query = createQuery(settings);
 		var URL = urlViewerFile + query;	
 		//alert("loading viewerFrame with URL= '"+URL+"'");
 		//load the URL with the sliderequest in the main (=view) window
@@ -584,48 +620,62 @@ function loadVirtualSlide()
 		}
 	else
 		{
-		alert("The requested slide: '"+ slideName + "' is not present in the repository.\nPlease check the name of the slide you requested.")
+		alert("The requested slide: '"+ slideName + "' is not present in the repository.\nPlease check the name of the slide you requested.");
 		}
 	}
 	
 /*
- * creates the URL query from the array queryArgs 
- * @param assoc array queryArgs with format: ["name"= "value"]
+ * creates the URL query from the settings
+ * @param object params with format: ["name"= "value"] 
  * return  query e.g. "?name1=value1&name2=value2" 
  * 
  */
-function createQuery(queryArgs)
+function createQuery(params)
 { 
-	var query = "?";
-	var first= true;
+	if(!isSet(params))
+	{
+		return "";	
+	}
+	var qSlide = 		(isSet(params["slideName"]))? 				"slide=" + params["slideName"] : "";
+	var QShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
+	var QZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
+	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
+	var cX =			(isSet(params["cX"]))? 						"&x=" + params["cX"] : "";
+	var cY =			(isSet(params["cY"]))? 						"&y=" + params["cY"] : "";
+	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
+
+//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
+//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
 	
-	for(prop in queryArgs)
-		{
-		//skip default property settings
-		if(queryArgs[prop] == defaultQuerySettings[prop])
-		{
-			continue;
-		}
-		query += (first)? "" : "&";
-		query += prop + "=" + queryArgs[prop];
-		first= false;
-		}
-	
-	return query;	
+	var query = "?" + qSlide + qZoom + cX + cY + qLabel + QZoomInDir + QShowCoords;
+	//alert(query)
+	return query ;	
 }
 
 /*
- * cleans the query settings from all but a requested slide, and any set user preferences
+ * cleans the query settings from all but the requested slide
  */
+/*
 function cleanQuerySettings()
 {
 	for(prop in querySettings)
 	{
-		if(prop == "slide" || prop == "showcoords" || prop == "wheelzoomindirection") 
+		if(prop == "slide") 
 			{continue;}
 		else 
 			{delete(querySettings[prop]);};
 	};
+}
+*/
+
+/*
+ * this function is called by the document in veiwerframe when that is loaded
+ * from this function you can call things that should be done after the slide is loaded
+ * for now that is: applying any settings to the slide that are not passed via the url 
+ */
+function slideIsLoaded()
+{
+	applySettings();
 }
 
 //////////////////////////////////////////
@@ -637,9 +687,18 @@ function cleanQuerySettings()
 /*
  * sets a property in the global associative array querySettings, which is used to load the virtual slide with the required settings 
  */
-function setQuerySetting(name, value)
+/*function setQuerySetting(name, value)
 {
 	querySettings[name]=value;
+}
+*/
+
+/*
+ * sets a property in the local associative array 'settings' 
+ */
+function setLocalSetting(name, value)
+{
+	settings[name]=value;
 }
 
 /*
@@ -652,9 +711,9 @@ function setWheelZoomDirection()
 	//ensure correct setting
 	wheelZoomInDirection = (wheelZoomInDirection == "up")? "up" : (wheelZoomInDirection == "down")? "down" : wheelZoomInDirection;
 	//store it for placing in the URL query
-	setQuerySetting("wheelzoomindirection", wheelZoomInDirection);
+	setLocalSetting("wheelZoomInDirection", wheelZoomInDirection);
 	//effectuate it: push it to viewerframe
-	if(window.viewerFrame)
+	if(window.viewerFrame.setWheelZoomInDirection)
 	{
 		window.viewerFrame.setWheelZoomInDirection(wheelZoomInDirection);
 	}
@@ -662,22 +721,69 @@ function setWheelZoomDirection()
 
 	
 function showHideCoordsPanel()
-	{
+{
 	//read checkbox
-	var showCoordinates = (ref("checkBoxShowCoords").checked)? true : false;
-	//store it for placing it in the URL query
-	var queryShowCoordinates = (showCoordinates)? 1 : 0 ;
-	setQuerySetting("showcoords",queryShowCoordinates);		
+	var bShowCoordinates = (ref("checkBoxShowCoords").checked)? true : false;
+	//store it
+	setLocalSetting("showCoordinatesPanel",bShowCoordinates);		
 	//effectuate it: push it to viewerframe
-	if(window.viewerFrame)
+	if(window.viewerFrame.showHideCoordinatesPanel)
 		{
-			window.viewerFrame.showHideCoordsPanel(showCoordinates);
+			window.viewerFrame.showHideCoordinatesPanel(bShowCoordinates);
 		}	
+}
+
+/*
+ * applies the presently set settings in the viewerframe
+ */
+function applySettings()
+{
+	if(window.viewerFrame.setWheelZoomInDirection)
+	{	
+		window.viewerFrame.setWheelZoomInDirection(settings["wheelZoomInDirection"]);
+		//l("in wheelzoomdirection<br>");
 	}
+	
+	if(window.viewerFrame.showHideCoordinatesPanel)
+	{	
+		window.viewerFrame.showHideCoordinatesPanel(settings["showCoordinatesPanel"]);
+		//l("in showhidecoords set to <br>"+ settings["showCoordinatesPanel"]);
+	}	
+}
 
 
+/*
+ * Gets/creates URL link to present view
+ * 
+ */
+function getUrl()
+{
+	var baseUrl = getBaseUrlPart();
+	
+//NOte; busy here: you want to get it from viewerframe settings instead of from the url
+	//debug(getQueryArgs("viewerFrame"));
+	var presentViewSettings = (window.viewerFrame.getPresentViewSettings)? window.viewerFrame.getPresentViewSettings() : {};
+	//debug("presentViewSettings",presentViewSettings);
+	var combinedSettings = merge_options(settings,presentViewSettings);
+	//debug("combinedSettings",combinedSettings);
+	var query = createQuery(combinedSettings);
+
+	//var imgCenter = getVisibleImgCenter();
+//	url+= "&x=" + imgCenter.x;
+//	url+= "&y=" + imgCenter.y;
+	return baseUrl+query;
+
+}
 
 
+function showUrl()
+{
+
+	url = getUrl();
+	var urlInfo = "<span class='urlInfoBarLeader'>Direct URL to this view :</span> ";
+	jQ("#urlBar").show();
+	jQ("#urlString").html(url);
+}
 
 //////////////////////////////////////////
 //
@@ -698,14 +804,10 @@ function getLocationOfRequestedWindow(whichWindow)
 	{
 		oLocation = location;
 	}
-	else if(whichWindow == "parent")
+	else 
 	{
-		oLocation = parent.location
-	}	
-	else if(whichWindow == "main")
-	{
-		oLocation = parent.main.location;
-	}	
+		oLocation = window[whichWindow].location;
+	}		
 	return oLocation;
 }
 
@@ -725,15 +827,15 @@ function getBaseUrlPart()
 /*
  * gets variables from the query in the URL
  * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
- * @param string whichWindow "self", "parent" 
+ * @param string whichWindow "self", "viewerFrame". If not specified, it will take this window self
  */
-function getQueryArgs()
+function getQueryArgs(whichWindow)
 	{var URL,pos,argName,argValue,query;
 	var args = new Object();
 	
-	//oLocation =  getLocationOfRequestedWindow(whichWindow);
-	//query = oLocation.search.substring(1);
-	query = location.search.substring(1);
+	oLocation =  getLocationOfRequestedWindow(whichWindow);
+	query = oLocation.search.substring(1);
+	//query = location.search.substring(1);
 	
 	var pairs = query.split("&"); //split query in arg/value pairs
 	
@@ -752,7 +854,13 @@ function getQueryArgs()
 function ref(i) { return document.getElementById(i);}
 
 function exists(subject) //
-	{return (typeof subject != "undefined")? true : false}
+	{return (typeof subject != "undefined")? true : false;
+	}
+
+function isSet(subject) //
+{
+	return ((typeof subject != undefined) && (subject != null))? true : false;
+}
 
 function stripPx(value) { if (value == ""){ return 0;}
 return parseFloat(value.substring(0, value.length - 2));}
@@ -777,6 +885,7 @@ function handleClick(e)
 		}
 	
 	}
+
 
 //workaround because doesn't recognize first time else...
 
@@ -942,6 +1051,9 @@ function l(msg)
 	{var msg2=msg+", <br>";
 	logwin.innerHTML+=msg2;
 	}
+//alias conform the viewerframe
+function ih(msg)
+	{l(msg);}
 
 /*
  * creates alert with debuginfo
