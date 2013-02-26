@@ -134,7 +134,7 @@ var creditsPath=null; //path to .js file with additional credits to display
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
-var viewportWidth, viewportHeight; //dimensions in pixels of viewport
+var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
 var innerDiv, innerStyle, imageTiles, imageLabels, bgDiv; //global refs to elements, bgDiv= grey background
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
 var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hold down on image
@@ -142,6 +142,7 @@ var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoo
 var lockedZoomCursorX= null, lockedZoomCursorY= null; //
 var cursorX, cursorY; //continuously keeps track of cursorposition to enable scrolling with centerpoint cursorposition
 var downX=null,downY=null;//IE workaround for autozoomout
+var isDisplayingUrl = false; //boolean indictaing that urlBar with deeplink url is presently displayed
 
 //controls and thumbnail
 var controls0, controls1; //controls0 contains thumb and controls, controls1 contains zoom-buttons
@@ -207,7 +208,7 @@ function init()
 	recheckTilesTimer=setInterval("checkTiles()", 5000); //because regularly 'loses' updating tiles eg at viewport scroll, resize 
 
 	//Signal 'loaded slide' to the possible containing nav page 
-	if(parent)
+	if(parent && parent.slideIsLoaded) /*Chrome on local drive incorrectly regards accessing the main frame as cross-domain*/
 		{
 		parent.slideIsLoaded();
 		}
@@ -470,9 +471,10 @@ function getQueryArgs()
 //handles window resize
 function winsize()
 {
-	viewportWidth = 1300; 
-	viewportHeight = 1000;
-	
+	//used in keeping image at same center position whwn resizing
+	var oldViewportWidth = viewportWidth;
+	var oldViewportHeight = viewportHeight;
+		
 	if( typeof( window.innerWidth ) == 'number' ) 
 	{ 
 		viewportWidth = window.innerWidth; 
@@ -490,8 +492,20 @@ function winsize()
 	}
 	
 	moveThumb2();
-	centerMap();
+	//initial
+	if(oldViewportWidth == null)
+	{
+		centerMap();
+	}
+	//resize later on when a slide was already visible, than keep image centered as it was
+	else
+	{
+		var imgCoords= getImgCoords(oldViewportWidth/2,oldViewportHeight/2);
+		centerOn(imgCoords.x,imgCoords.y);
+	}
+	
 	placeArrows();
+	positionSizeIndicators();
 //if(logwin) {ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");}
 }
 
@@ -559,6 +573,7 @@ function handleMouseDown(event)
 	autoZoomOut();	//init autozoom, is cancelled by mousemove or mouseup
 	startMove(event); 	
 	stopAutoPan();	
+	//hideUrlBarAndSizeIndicators(); //presently not called, keep for a while
 	//ih("isIE"+isIE+", downX="+downX+", downY="+downY+", autoZooming="+autoZooming)
 	}	
 
@@ -637,6 +652,7 @@ function processMove(event)
 		
 		ref('coordsPane').innerHTML= "x: " + coordX + ", y: " + coordY ;
 	}
+	if(isDisplayingUrl) {parent.updateUrl();}
 	//move the image
 	if (dragging) 
 	{
@@ -781,6 +797,7 @@ function ZoomIn()
 		moveThumb2();
 		//lowZoomHideLabels();
 		resizeLabels();
+		if(isDisplayingUrl) {parent.updateUrl();}
 	}	
 }
 
@@ -840,6 +857,7 @@ function ZoomOut()
 		moveThumb2();
 		// lowZoomHideLabels();
 		resizeLabels();
+		if(isDisplayingUrl) {parent.updateUrl();}
 	}
 }
 
@@ -1267,7 +1285,7 @@ function stopThumb(event)
 
 		keepInViewport();
 		checkTiles();
-			
+		if(isDisplayingUrl) {parent.updateUrl();}
 		}
 	}
 
@@ -1403,6 +1421,43 @@ function getPresentViewSettings()
 	
 }
 
+
+function positionSizeIndicators()
+{
+	var horCenter  = viewportWidth/2;
+	var vertCenter = viewportHeight/2;
+	jQ("#hor800x600").css({"left": horCenter-280, "top": vertCenter - 248});
+	jQ("#hor1024x768").css({"left": horCenter-392, "top": vertCenter - 328});
+}
+/*
+ * shows and positions the sizeIndicators
+ */
+function showSizeIndicators()
+{
+	positionSizeIndicators();
+	jQ("#sizeIndicators").show();
+	isDisplayingUrl = true; 
+}
+
+
+function hideSizeIndicators()
+{
+	jQ("#sizeIndicators").hide();
+	isDisplayingUrl = false;
+}
+
+
+/*
+ * presently not called, keep for a while
+ */
+function hideUrlBarAndSizeIndicators()
+{
+	if(isDisplayingUrl && parent.closeUrlBar)
+		{
+		parent.closeUrlBar();//this will also call hideSizeIndicators()
+		}
+	
+}
 //////////////////////////////////////////////////////////////////////
 //
 //  MOBILE FUNCTIONS

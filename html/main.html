@@ -8,7 +8,7 @@
 -->
 <meta http-equiv="imagetoolbar" content="no">
 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-<title>Virtual Microscopy powered by Brainmaps-CASK viewer</title>
+<title>CASK Virtual Microscopy Viewer</title>
 
 
 <!-- STYLES /////////////////////////////-->
@@ -72,6 +72,13 @@ div#controls0 {position:absolute;right:10px;top:25px;width:200px;height:200px;z-
 #iconMobileCont  {position:absolute;right:7px;bottom:7px;width:26px;height:36px;cursor:pointer;z-index:100;}
 .iconMobile  {position:absolute;left:0px;top:0px;width:26px;height:36px;cursor:pointer;z-index:100;}
 #mobileHint  {display:none;position:absolute;left:-180px;top:5px;width:165px;height:15px;padding:5px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef;}
+/*test sreensizeindicators */
+div#sizeIndicators {display:none;}
+.sizeLabel {position:absolute; top:-20px; right:10px;font-family:Arial, Helvetica, sans-serif;font-size:0.9em; color:#808080}
+.sizeIndicator {position:absolute;border: 2px solid #c0c0c0;}
+div#hor800x600 {width:560px;height:496px;}
+div#hor1024x768 {width:784px;height:656px;}
+
 /* The data loading iFrame */
 #dataLoaderFrame {width:1px; height:1px;}
 
@@ -154,6 +161,10 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 		<a href="http://brainmaps.org/index.php?p=brain-maps-api" target="_blank">BrainMaps</a>-<a href="http://www.caskanatomy.info/developer/brainmaps-cask-api" target="_blank">CASK</a> Viewer
 		</div> <!--eof credit -->
 		
+		<div id="sizeIndicators">
+		<div id="hor1024x768" class="sizeIndicator"><div class="sizeLabel">Small screen, Low-mid range Tablet (1024x768px)</div></div>	
+		<div id="hor800x600" class="sizeIndicator"><div class="sizeLabel">Netbook (800x600px)</div></div>
+		</div>
 		
 	</div> <!--eof outerdiv -->	
 </div> <!--eof outerdiv0 -->

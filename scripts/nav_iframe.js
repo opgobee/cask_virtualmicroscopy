@@ -149,6 +149,7 @@ function setHandlers()
 	window.onresize=winsize; 
 	ref("nav").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
+	ref("closeUrlBar").onclick = closeUrlBar;
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	
@@ -717,6 +718,10 @@ function setWheelZoomDirection()
 	{
 		window.viewerFrame.setWheelZoomInDirection(wheelZoomInDirection);
 	}
+	else
+	{
+		showWarningChromeLocal();
+	}
 } 
 
 	
@@ -728,9 +733,13 @@ function showHideCoordsPanel()
 	setLocalSetting("showCoordinatesPanel",bShowCoordinates);		
 	//effectuate it: push it to viewerframe
 	if(window.viewerFrame.showHideCoordinatesPanel)
-		{
-			window.viewerFrame.showHideCoordinatesPanel(bShowCoordinates);
-		}	
+	{
+		window.viewerFrame.showHideCoordinatesPanel(bShowCoordinates);
+	}	
+	else
+	{
+		showWarningChromeLocal();
+	}
 }
 
 /*
@@ -778,12 +787,50 @@ function getUrl()
 
 function showUrl()
 {
+	
+	if(jQ("#urlBar").css("display") == "block")
+		{
+		closeUrlBar();
+		return;
+		}
+	else if(window.viewerFrame && window.viewerFrame.showSizeIndicators)
+		{
+		url = getUrl();
+		jQ("#urlString").html(url);
+		jQ("#urlBar").show();
+		window.viewerFrame.showSizeIndicators()
+		}
+	else
+		{
+		showWarningChromeLocal();
+		}
+}
 
+function updateUrl()
+{
 	url = getUrl();
-	var urlInfo = "<span class='urlInfoBarLeader'>Direct URL to this view :</span> ";
-	jQ("#urlBar").show();
 	jQ("#urlString").html(url);
 }
+
+function closeUrlBar()
+{
+	jQ("#urlBar").hide();
+	if(window.viewerFrame && window.viewerFrame.hideSizeIndicators)
+	{
+		window.viewerFrame.hideSizeIndicators()
+	}
+}
+
+
+function showWarningChromeLocal()
+{
+	if(!window.viewerFrame.document)
+	{
+		jQ("#chromeLocalWarning").show().fadeOut(5000);
+	}
+}
+
+
 
 //////////////////////////////////////////
 //

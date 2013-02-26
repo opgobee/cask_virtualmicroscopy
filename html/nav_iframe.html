@@ -70,14 +70,15 @@
 
 <!-- to display URL -->
 <div id="urlBar" >
-	
-	<span class='urlInfoBarLeader'>Direct URL to this view :</span><br />
-	<textarea id="urlString"></textarea>		
-	<img id="closeUrlBar" src="../img/close.png" title="Close" onclick="closeUrlBar()">
-	
+	<img id="closeUrlBar" src="../img/close.png" title="Close" >
+	<div class="urlInfoBarLeader">Direct link to this view  <em>(Note that what users will see depends on their screen-size, approximate viewing areas are indicated)</em> :</div>
+	<textarea id="urlString"></textarea>	
 </div>
 
-
+<div id="chromeLocalWarning">This browser does not support settings and tools when used from a <em>local source (e.g. from a harddisk or USB device)</em>.<br/><br />Firefox, Internet Explorer, Safari <em>DO</em> work locally.
+</div>
 </div> <!-- eof container-->
+
+
 </body>
 </html>
