@@ -152,9 +152,11 @@ function setHandlers()
 	ref("closeUrlBar").onclick = closeUrlBar;
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
-	
+	initTooltips();
 	slidesCont = ref("slidesCont");
 }	
+
+
 
 /*
  * In the options menus, checks the options according to the present settings
@@ -1092,6 +1094,8 @@ function purge(d) {
         }
     }
 }
+
+
 
 //logging?
 function l(msg)

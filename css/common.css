@@ -1,0 +1,40 @@
+
+/*tooltip*/
+.hastooltip {cursor: help;}
+.tooltip {	
+	display:none;
+	font-family: Verdana,Arial,Helvetica,sans-serif;
+	font-size:0.75em;
+	color:#202020;
+	padding:4px;
+	border: 1px solid #808080;
+	-webkit-border-radius:3px;
+	-moz-border-radius:3px;
+	border-radius:3px;
+	background: #fdfdfd; /* Old browsers */
+	background: -moz-linear-gradient(#fdfdfd,#e9eaef); /* FF3.6+  #fdfdfd # d6d7e0*/
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fdfdfd), color-stop(100%,#e9eaef)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top, #fdfdfd,#e9eaef); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top, #fdfdfd,#e9eaef); /* Opera11.10+ */
+	background: -ms-linear-gradient(top, #fdfdfd,#e9eaef); /* IE10+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fdfdfd', endColorstr='#e9eaef',GradientType=0 );  
+	background: linear-gradient(top, #fdfdfd,#e9eaef); /* W3C */
+}
+
+/*
+ * Extracted from jquery-ui-1.10.1.css
+ */
+.ui-tooltip {
+	padding: 8px;
+	position: absolute;
+	z-index: 9999;
+	max-width: 300px;
+	-webkit-box-shadow: 0 0 5px #aaa;
+	box-shadow: 0 0 5px #aaa;
+}
+body .ui-tooltip {
+	border-width: 1px;
+}
+/*
+ * End Extracted from jquery-ui-1.10.1.css
+ */

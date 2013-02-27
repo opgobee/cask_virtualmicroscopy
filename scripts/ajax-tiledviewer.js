@@ -105,10 +105,12 @@ var tileSize = 256;
 var res = 0.2325; //micrometers/ pixel 
 var resunits = "&micro;m";
 var zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
+var labelsPathInSlidesFolder = "labels.js"; //the default path (fileName) of the file with labels in the slides folder
 
 var settings= {}; //container object for settings
 settings["showCoordinatesPanel"] = false; //default dont show coords panel
 settings["wheelZoomInDirection"] = -1; //determines zoomin/out direction of wheel; 1= up, -1= down
+settings["hasLabels"] = false; 
 
 //stuff to be moved to the settings object
 var wheelmode = 0; //0 = wheel zooms, 1 = wheel goes to next/prev image (for stacks of images (not yet implemented)
@@ -247,7 +249,11 @@ function readDataToSettings()
 		imgPath=rawPath;
 	}
 	else {showNoPathWarning(); return;}
-	
+	//if there are labels, construct the path to the file with the labels-data
+	if(settings["hasLabels"])
+	{
+		labelsPath = rawPath + labelsPathInSlidesFolder;
+	}
 	//if dimensions not yet known, try to read from ImageProperties.xml file
 	if (!imgWidthMaxZoom && !loadedXML ) 
 		{//ih("init0-loadXML");
@@ -321,7 +327,7 @@ function readslideDataToGlobals()
 	if (slideData.width) {imgWidthMaxZoom = slideData.width;} 
 	if (slideData.height) {imgHeightMaxZoom = slideData.height;} 
 	if (slideData.res)	{res = slideData.res;}
-	if (slideData.labels) {labelsPath = slideData.labels;} 
+	if (slideData.hasLabels) {settings["hasLabels"] = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
 	if (slideData.credits) {creditsPath = slideData.credits;} 	
 
 }
@@ -338,7 +344,8 @@ function setHandlers()
 	//outerDiv.ontouchstart  = handleMouseDown; outerDiv.ontouchmove = handleMouseMove; outerDiv.ontouchup = handleMouseUp; //weird behaviour for now 
 	outerDiv.ondragstart = function() { return false;};
 
-	window.onresize=winsize; //moved to here to prevent error on Chrome	
+	window.onresize=winsize; //moved to here to prevent error on Chrome
+	initTooltips();
 }
 
 
@@ -376,7 +383,6 @@ function showInitialView()
 			if(showLabel)
 			{
 				createLabel("called", {"label": showLabel,  "x": cX, "y": cY});
-				resizeLabels();
 			}
 		}
 	//center on middle of image
@@ -387,11 +393,10 @@ function showInitialView()
 	
 		
 	//load labels
-	if (labelsPath) 
+	if (settings["hasLabels"]) 
 		{//ih("init0-loadLbl");
 		loadLabels(labelsPath);
 		} 
-
 
 //ih("init-showThumb");
 	if (!hideThumb) 	{showThumb();}
@@ -1458,6 +1463,199 @@ function hideUrlBarAndSizeIndicators()
 		}
 	
 }
+
+////////////////////////////////////////////
+//
+// LABELS Functions
+//
+///////////////////////////////////////////
+
+
+function loadLabels(pathToFile)
+{ 
+	
+	try
+	{// ih("loadLblwXhr-1");
+
+		// First try jQuery.getScript
+		// works from server, not local
+		jQ.getScript(pathToFile, checkLabelsLoaded);
+				
+		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, so fallback to own method loadJs
+		// works, on Chrome, FF, IE, Saf, both local and on server
+		if(window.location.protocol == "file:")
+		{
+			loadJs(pathToFile, checkLabelsLoaded);
+		}
+
+		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
+		checkLabelsLoaded.pathToFile = pathToFile;
+	}	
+	 catch(e)
+	{
+		return;
+	}			
+}
+
+
+		
+
+
+
+//var labelsLoaded= false;
+//checks that that the labels/.js file are loaded 
+function checkLabelsLoaded()
+	{
+	//isLoaded= (window.labels)? "loaded":"NOTloaded";
+	//ih(isLoaded);
+	if(window.labels ) //js file should state labels= {...}//Note: labelsLoaded check is essential to let it work on IE when running from file. Hmm later on doesn't seem so anymore?
+		{//labelsLoaded = true; //Note: this line as very first is essential to let it work on IE from file
+		//ih("lblFromJs");
+		oLabels = labels;
+		renderLabels();	
+		}
+	else
+		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
+			{clearTimeout(checkLabelsLoaded.timer);
+			checkLabelsLoaded.counter++;
+			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
+			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
+			
+			//also attempt the loadJs method
+			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
+			}
+		}	
+	}
+checkLabelsLoaded.counter=0;
+checkLabelsLoaded.timer="";
+checkLabelsLoaded.pathToFile=""; 
+
+	
+function renderLabels() 
+	{//ih("renderLabels1");
+		if(!dimensionsKnown()) 
+			{clearTimeout(labelTimer);
+			labelTimer=setTimeout("renderLabels()", 500); 
+	//ih("dimensionsUnknown");
+			return;
+			}
+
+		//remove any old labels
+		var labelDivs = imageLabels.getElementsByTagName("div"); 
+		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
+	//ih("renderLabels2");
+	//debug(oLabels);
+	
+		for (label in oLabels)
+			{
+			var labelData = oLabels[label];
+			createLabel(label,labelData);		
+			}
+		initTooltips();
+		//neccessary because the page may be initialized via a deep link directly at a certain zoom level
+		resizeLabels();
+
+		//possibly focus on a specific label
+		focusOnLabel();
+	}
+
+function focusOnLabel()
+{
+	if(focusLabel)
+	{
+		//alert("focussing on "+focusLabel)
+		var x = oLabels[focusLabel].x
+		var y = oLabels[focusLabel].y;
+		centerOn(x,y);
+		//alert("centered on x="+x+", y="+y)
+	}
+}
+
+/*
+ * Creates a label from the given object oLabel and appends the label into div imageLabels
+ * @param object labelData e.g. {"label": "Source", "info": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
+ * 
+ */
+createLabel.index=0;
+function createLabel(labelName,labelData)
+{
+	//debug(labelData);
+	var labelText = labelData.label;
+	var labelPopUpText = (labelData.info != undefined)? labelData.info : ""; 
+	var nX = labelData.x; 
+	var nY = labelData.y; 
+	if (labelData.href!=undefined)
+		{labelText='<a href="'+labelData.href+'" target="_blank">'+labelText+'</a>'; 
+		}
+	
+	
+	var newLabel = document.createElement("div"); 
+	newLabel.style.position = "absolute";
+	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
+	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
+	labelLeft = nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	labelTop  =  nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	newLabel.style.left = labelLeft + "px"; 
+	newLabel.style.top  = labelTop  + "px"; 
+	//newLabel.style.width = 8*labelText.length + "px"; //doesn't seem neccessary and is also not yet scaled at resizelabels, so better skip it
+	//newLabel.style.height = "2px"; 
+	newLabel.style.zIndex = 1; 
+	newLabel.setAttribute("id", "L"+createLabel.index);
+	if(labelPopUpText != "")
+		{newLabel.setAttribute("title", labelPopUpText);
+		}
+	newLabel.setAttribute("class", "label hastooltip"); 
+	newLabel.setAttribute("className", "label hastooltip"); //IE
+	newLabel.innerHTML= labelText; 
+	imageLabels.appendChild(newLabel);
+
+	//add the tooltips
+	if(labelPopUpText != "")
+	{
+		var labelTooltip = document.createElement("div");
+		labelTooltip.setAttribute("class", "tooltip"); 
+		labelTooltip.setAttribute("className", "tooltip"); //IE
+		labelTooltip.innerHTML= labelPopUpText; 
+		imageLabels.appendChild(labelTooltip);
+	}
+
+	createLabel.index++;
+	
+}
+
+
+
+function resizeLabels()
+{
+	var fontSize  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
+	jQ(".label").css('fontSize',fontSize);	
+}
+
+
+//adds additional credits into credit div
+function displayCredits()
+	{displayCredits.timer="";
+	displayCredits.counter=0;
+	if(window.credits)
+		{
+		var credDiv = ref("credit");
+		if(credDiv)
+			{var credNow = credDiv.innerHTML;
+			credDiv.innerHTML= credNow +"<br />" + credits;
+			}
+		}
+	else
+		{if ( displayCredits.counter < 6 ) //6 attempts
+			{clearTimeout(displayCredits.timer);
+			displayCredits.counter++;
+			var delay= displayCredits.counter * 200; //each attempt longer delay for retry
+			displayCredits.timer = setTimeout("displayCredits()",delay);
+			}
+		}	
+	}
+
+
+
 //////////////////////////////////////////////////////////////////////
 //
 //  MOBILE FUNCTIONS
@@ -1651,180 +1849,6 @@ function panMap(dir)
 	
 
 
-////////////////////////////////////////////
-//
-// LABELS Functions
-//
-///////////////////////////////////////////
-
-
-function loadLabels(pathToFile)
-{ 
-	
-	try
-	{// ih("loadLblwXhr-1");
-
-		// First try jQuery.getScript
-		// works from server, not local
-		jQ.getScript(pathToFile, checkLabelsLoaded);
-				
-		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, so fallback to own method loadJs
-		// works, on Chrome, FF, IE, Saf, both local and on server
-		if(window.location.protocol == "file:")
-		{
-			loadJs(pathToFile, checkLabelsLoaded);
-		}
-
-		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
-		checkLabelsLoaded.pathToFile = pathToFile;
-	}	
-	 catch(e)
-	{
-		return;
-	}			
-}
-
-
-		
-
-
-
-var labelsLoaded= false;
-//checks that that the labels/.js file are loaded 
-function checkLabelsLoaded()
-	{
-	//isLoaded= (window.labels)? "loaded":"NOTloaded";
-	//ih(isLoaded);
-	if(window.labels && !labelsLoaded) //js file should state labels= {...}//Note: labelsLoaded check is essential to let it work on IE when running from file
-		{labelsLoaded = true; //Note: this line as very first is essential to let it work on IE from file
-		//ih("lblFromJs");
-		oLabels = labels;
-		renderLabels();	
-		}
-	else
-		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
-			{clearTimeout(checkLabelsLoaded.timer);
-			checkLabelsLoaded.counter++;
-			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
-			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
-			
-			//also attempt the loadJs method
-			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
-			}
-		}	
-	}
-checkLabelsLoaded.counter=0;
-checkLabelsLoaded.timer="";
-checkLabelsLoaded.pathToFile=""; 
-
-	
-function renderLabels() 
-	{//ih("renderLabels1");
-		if(!dimensionsKnown()) 
-			{clearTimeout(labelTimer);
-			labelTimer=setTimeout("renderLabels()", 500); 
-	//ih("dimensionsUnknown");
-			return;
-			}
-
-		//remove any old labels
-		var labelDivs = imageLabels.getElementsByTagName("div"); 
-		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
-	//ih("renderLabels2");
-	//debug(oLabels);
-	
-		for (label in oLabels)
-			{
-			var labelInfo = oLabels[label];
-			createLabel(label,labelInfo);		
-			}
-		//possibly focus on a specific label
-		focusOnLabel();
-	}
-
-function focusOnLabel()
-{
-	if(focusLabel)
-	{
-		//alert("focussing on "+focusLabel)
-		var x = oLabels[focusLabel].x
-		var y = oLabels[focusLabel].y;
-		centerOn(x,y);
-		//alert("centered on x="+x+", y="+y)
-	}
-}
-
-/*
- * Creates a label from the given object oLabel and appends the label into div imageLabels
- * @param object labelInfo e.g. {"label": "Source", "popUpText": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
- * 
- */
-createLabel.index=0;
-function createLabel(labelName,labelInfo)
-{
-	//debug(labelInfo);
-	var labelText = labelInfo.label;
-	var labelPopUpText = (labelInfo.popUpText != undefined)? labelInfo.popUpText : ""; 
-	var nX = labelInfo.x; 
-	var nY = labelInfo.y; 
-	if (labelInfo.href!=undefined)
-		{labelText='<a href="'+labelInfo.href+'" target="_blank">'+labelText+'</a>'; 
-		}
-	
-	
-	var pinImage = document.createElement("div"); 
-	pinImage.style.position = "absolute";
-	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
-	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
-	pinImage.style.left =(nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-	pinImage.style.top =(nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"px"; 
-	//pinImage.style.width = 8*labelText.length + "px"; //doesn't seem neccessary and is also not yet scaled at resizelabels, so better skip it
-	//pinImage.style.height = "2px"; 
-	pinImage.style.zIndex = 1; 
-	pinImage.setAttribute("id", "L"+createLabel.index);
-	if(labelPopUpText != "")
-		{pinImage.setAttribute("title", labelPopUpText);
-		}
-	pinImage.setAttribute("class", "label"); 
-	pinImage.setAttribute("className", "label"); //IE
-	pinImage.innerHTML= labelText; 
-	imageLabels.appendChild(pinImage);
-
-	createLabel.index++;
-	
-}
-
-
-
-function resizeLabels()
-{
-	var fontSize  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
-	jQ(".label").css('fontSize',fontSize);	
-}
-
-
-//adds additional credits into credit div
-function displayCredits()
-	{displayCredits.timer="";
-	displayCredits.counter=0;
-	if(window.credits)
-		{
-		var credDiv = ref("credit");
-		if(credDiv)
-			{var credNow = credDiv.innerHTML;
-			credDiv.innerHTML= credNow +"<br />" + credits;
-			}
-		}
-	else
-		{if ( displayCredits.counter < 6 ) //6 attempts
-			{clearTimeout(displayCredits.timer);
-			displayCredits.counter++;
-			var delay= displayCredits.counter * 200; //each attempt longer delay for retry
-			displayCredits.timer = setTimeout("displayCredits()",delay);
-			}
-		}	
-	}
-
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -1902,6 +1926,8 @@ function rawDimensionsKnown()
 function dimensionsKnown()
 	{return ( imgWidthMaxZoom==null || imgHeightMaxZoom==null || isNaN(imgWidthMaxZoom) || isNaN(imgHeightMaxZoom) )? false : true;
 	}	
+
+
 
 /*
  * Gets the part of the url that is NOT the query, that is: protocol + host + pathname (see JavaScript Definitive Guide, Flanagan 3rd ed. p.854),

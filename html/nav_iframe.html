@@ -5,14 +5,18 @@
    
 	<title>Virtual Microscopy powered by Brainmaps-CASK viewer</title>
 
+
+<link rel="stylesheet" href="../css/common.css" type="text/css" />
 <link rel="stylesheet" href="../css/nav_iframe.css" type="text/css" />
+
 
 <!-- libs -->
 <script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
-<script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.0.custom.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.1.custom.min.js"></script>
 
 <!-- nav scripts -->
+<script type="text/javascript" src="../scripts/common.js"></script>
 <script type="text/javascript" src="../scripts/nav_iframe.js"></script>
 
 <!-- content-->
@@ -37,8 +41,10 @@
 <div id="nav" class="column"> 
 <img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
 <a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
-<img id="link" src="../img/link.png" title="Get link to present view" onclick="showUrl()">
-<img id="wrench" src="../img/wrench_light.png" title="Settings" onclick="showHideSettings()">
+<img id="link" src="../img/link.png" class="hastooltip"  title="Get link to present view" onclick="showUrl()">
+	<div class="tooltip">Get link to present view</div>
+<img id="wrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings" onclick="showHideSettings()">
+	<div class="tooltip">Settings</div>
 <img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
 <a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
 <a id="menutab2" class="menutab" onclick="toggleSlideSetsMenuPane('menuInstitutionsModules')">Institution/Module</a>
