@@ -214,6 +214,8 @@ function init()
 		{
 		parent.slideIsLoaded();
 		}
+	
+	makeLabel();
 }//eof init()
 
 
@@ -1463,6 +1465,52 @@ function hideUrlBarAndSizeIndicators()
 		}
 	
 }
+function makeLabel()
+{
+	
+	var newLabel = document.createElement("div"); 
+	labelLeft = viewportWidth/2 -100;
+	labelTop  = viewportHeight/2 -100;
+	var containerId = "L"+makeLabel.index; 
+	newLabel.setAttribute("id", containerId);
+	newLabel.setAttribute("class", "labelHandle"); 
+	newLabel.setAttribute("className", "labelHandle"); //IE
+	/*if(labelPopUpText != "")
+		{newLabel.setAttribute("title", labelPopUpText);
+		}
+	
+	 
+*/	
+	//newLabel.innerHTML= "HELP";
+	ref("outerDiv0").appendChild(newLabel);
+	
+	var labelTextArea = document.createElement('textarea');
+	var labelTextId = "LText"+makeLabel.index;
+	labelTextArea.id = labelTextId;
+//	labelTextArea.rows=20; //Number of rows
+//	labelTextArea.cols=10; //Number of columns
+	labelTextArea.setAttribute("class", "labelTextArea"); 
+	labelTextArea.setAttribute("className", "labelTextAreas"); //IE
+
+	labelTextArea= ref(containerId).appendChild(labelTextArea);
+	jQ( "#"+labelTextId ).css({});
+	jQ( "#"+labelTextId ).autosize({append: "\n", callback:function(){
+		ih(jQ("#"+labelTextId).css("height"));
+	}});
+	jQ( "#"+containerId ).css({"left":labelLeft,"top":labelTop,"width":"210px","height":"20px"}).draggable({
+		stop: function( event, ui ) 
+		{
+		
+			var left = ui.position.left;
+			var top = ui.position.top;
+			var imgCoords= getImgCoords(ui.position.left,ui.position.top)
+		ih("x="+imgCoords.x+",y="+imgCoords.y+", text="+labelTextArea.value);	
+		}
+	});
+	
+	makeLabel.index++;
+}
+makeLabel.index=1;
 
 ////////////////////////////////////////////
 //

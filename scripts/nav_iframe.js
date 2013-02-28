@@ -900,7 +900,6 @@ function getQueryArgs(whichWindow)
 	return args	;
 	}	
 
-function ref(i) { return document.getElementById(i);}
 
 function exists(subject) //
 	{return (typeof subject != "undefined")? true : false;
@@ -1105,76 +1104,4 @@ function l(msg)
 //alias conform the viewerframe
 function ih(msg)
 	{l(msg);}
-
-/*
- * creates alert with debuginfo
- * @param one or more argumnets to be shown
- */ 
-function debug(subjects)
-{
-	var str="";
-	
-	for(var i=0;i<arguments.length;i++)
-		{
-			var subject = arguments[i]; 	
-					
-			if(typeof subject == "object" && subject instanceof Array)
-			{	
-				str+= "[Array]\n";
-				if (subject.length == 0) {str+= "EMPTY"}
-				else
-					{
-					for(var i=1;i<subject.length;i++)
-						{
-							str+= i + " : " + subject[i] + "\n";
-						}
-					}	
-			}
-			else if(typeof subject == "object" )
-			{	
-				str+= "[Object]\n";
-				counter= 0;
-				for(prop in subject)
-				{
-					str+= prop + " : " + subject[prop]  + "\n";;
-					counter++;
-				}
-				if(counter==0){str+= "EMPTY"}
-				
-			}	
-			else if(typeof subject == "string")
-			{
-				{
-					str= "[string] " + subject;
-				}
-			}
-			else if(typeof subject == "number")
-			{
-				{
-					str= "[number] " + subject;
-				}
-			}
-			else if(typeof subject == "boolean")
-			{
-				{
-					str= "[boolean] " + subject? "TRUE" : "FALSE";
-				}
-			}
-			else if(typeof subject == "undefined")
-			{
-				{
-					str= "undefined";
-				}
-			}
-			else if(subject == null)
-			{
-				{
-					str= "NULL!";
-				}
-			}	
-			str+="\n";
-		}//end loop all arguments
-	alert(str);
-}
-
 

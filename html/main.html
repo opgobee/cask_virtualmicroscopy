@@ -83,6 +83,23 @@ div#hor1024x768 {width:784px;height:656px;}
 
 .hastooltip {cursor: help;}
 
+/*labelmakers*/
+.labelTextArea {
+position:absolute;left:3px;top:20px;width:200px;height:50px;background-color:transparent;
+border:1px solid gray;
+vertical-align: top; /*for auto-resize*/
+-webkit-transition: height 0.2s; /*for auto-resize*/
+-moz-transition: height 0.2s; /*for auto-resize*/
+transition: height 0.2s; /*for auto-resize*/
+background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
+} 
+.labelHandle
+{
+	z-index:10;background-color:transparent;border:1px solid gray;
+	background-color:transparent;
+	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
+	cursor:move;
+}
 /* The data loading iFrame */
 #dataLoaderFrame {width:1px; height:1px;}
 
@@ -105,6 +122,7 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 <script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.1.custom.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery.autosize-min.js"></script>
 
 
 <!-- pm: "http://code.jquery.com/jquery-latest.js" -->
