@@ -26,6 +26,8 @@ function initTooltips()
 	});
 }
 
+
+
 /*
  * creates alert with debuginfo
  * @param one or more argumnets to be shown

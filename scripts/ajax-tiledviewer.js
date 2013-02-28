@@ -1462,51 +1462,63 @@ function hideUrlBarAndSizeIndicators()
 	if(isDisplayingUrl && parent.closeUrlBar)
 		{
 		parent.closeUrlBar();//this will also call hideSizeIndicators()
-		}
-	
+		}	
 }
+
+/*
+ * Creates a draggable textbox to make labels in GUI 
+ */
 function makeLabel()
 {
 	
-	var newLabel = document.createElement("div"); 
+	var index= makeLabel.index; //shorthand
+	//container
+	var labelContainer = document.createElement("div"); 
 	labelLeft = viewportWidth/2 -100;
 	labelTop  = viewportHeight/2 -100;
-	var containerId = "L"+makeLabel.index; 
-	newLabel.setAttribute("id", containerId);
-	newLabel.setAttribute("class", "labelHandle"); 
-	newLabel.setAttribute("className", "labelHandle"); //IE
+	var containerId = "L" + 
+	index; 
+	labelContainer.setAttribute("id", containerId);
+	labelContainer.setAttribute("class", "labelContainer"); 
+	labelContainer.setAttribute("className", "labelContainer"); //IE
 	/*if(labelPopUpText != "")
-		{newLabel.setAttribute("title", labelPopUpText);
+		{labelContainer.setAttribute("title", labelPopUpText);
 		}
-	
 	 
 */	
-	//newLabel.innerHTML= "HELP";
-	ref("outerDiv0").appendChild(newLabel);
-	
-	var labelTextArea = document.createElement('textarea');
-	var labelTextId = "LText"+makeLabel.index;
-	labelTextArea.id = labelTextId;
-//	labelTextArea.rows=20; //Number of rows
-//	labelTextArea.cols=10; //Number of columns
-	labelTextArea.setAttribute("class", "labelTextArea"); 
-	labelTextArea.setAttribute("className", "labelTextAreas"); //IE
-
-	labelTextArea= ref(containerId).appendChild(labelTextArea);
-	jQ( "#"+labelTextId ).css({});
-	jQ( "#"+labelTextId ).autosize({append: "\n", callback:function(){
-		ih(jQ("#"+labelTextId).css("height"));
-	}});
+	//labelContainer.innerHTML= "HELP";
+	ref("outerDiv0").appendChild(labelContainer);
 	jQ( "#"+containerId ).css({"left":labelLeft,"top":labelTop,"width":"210px","height":"20px"}).draggable({
+		cancel: "input", //neccessary to make textarea draggable
 		stop: function( event, ui ) 
-		{
-		
+		{		
 			var left = ui.position.left;
 			var top = ui.position.top;
 			var imgCoords= getImgCoords(ui.position.left,ui.position.top)
 		ih("x="+imgCoords.x+",y="+imgCoords.y+", text="+labelTextArea.value);	
 		}
-	});
+	});	
+		
+	//textarea for the labeltext
+	var labelTextArea = document.createElement('textarea');
+	var labelTextAreaId = "LTextArea" + index;
+	labelTextArea.id = labelTextAreaId;
+//	labelTextArea.rows=20; //Number of rows
+//	labelTextArea.cols=10; //Number of columns
+	labelTextArea.setAttribute("class", "labelTextArea"); 
+	labelTextArea.setAttribute("className", "labelTextAreas"); //IE
+	ref(containerId).appendChild(labelTextArea);	
+	jQ( "#"+labelTextAreaId ).click(function(e){e.target.focus();}).autosize({append: "\n"}); //click(function(e){e.target.focus() = neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361
+	
+	//arrow buttons
+	var arwDown = document.createElement('image');
+	var arwDownId = arwDown + index;
+	arwDown.id = arwDownId;
+	arwDown.setAttribute("class", "labelArwDown"); 
+	arwDown.setAttribute("className", "labelArwDown"); //IE
+	arwDown.setAttribute("src", "../img/bullet_arrow_down.png");
+	ref(containerId).appendChild(arwDown);
+
 	
 	makeLabel.index++;
 }

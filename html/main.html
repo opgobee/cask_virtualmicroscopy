@@ -84,21 +84,26 @@ div#hor1024x768 {width:784px;height:656px;}
 .hastooltip {cursor: help;}
 
 /*labelmakers*/
+.labelContainer
+{
+	z-index:10;background-color:transparent;border:none;
+	background-color:transparent;
+	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
+	cursor:move;
+}
 .labelTextArea {
-position:absolute;left:3px;top:20px;width:200px;height:50px;background-color:transparent;
+position:absolute;left:0px;top:0px;width:200px;height:50px;background-color:transparent;
 border:1px solid gray;
+cursor:move;
 vertical-align: top; /*for auto-resize*/
 -webkit-transition: height 0.2s; /*for auto-resize*/
 -moz-transition: height 0.2s; /*for auto-resize*/
 transition: height 0.2s; /*for auto-resize*/
-background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
+background-image:url('../img/transp.png'); /*IE workaround */
 } 
-.labelHandle
+.labelArwDown
 {
-	z-index:10;background-color:transparent;border:1px solid gray;
-	background-color:transparent;
-	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
-	cursor:move;
+
 }
 /* The data loading iFrame */
 #dataLoaderFrame {width:1px; height:1px;}
