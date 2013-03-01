@@ -354,7 +354,7 @@ function setHandlers()
 
 //do calculations and rendering for which width and height are needed	
 function showInitialView() 
-	{//ih("init");
+{//ih("init");
 
 	//set global information 
 	imgWidthMaxZoom=parseInt(imgWidthMaxZoom); 
@@ -410,8 +410,9 @@ function showInitialView()
 	moveThumb2(); 
 	updateLengthBar();
 
+	
 	if(hasSmallViewport()) {adaptDimensions();}
-	}
+}
 
 
 /*
@@ -1473,56 +1474,76 @@ function makeLabel()
 	
 	var index= makeLabel.index; //shorthand
 	//container
-	var labelContainer = document.createElement("div"); 
-	labelLeft = viewportWidth/2 -100;
-	labelTop  = viewportHeight/2 -100;
-	var containerId = "L" + 
-	index; 
-	labelContainer.setAttribute("id", containerId);
-	labelContainer.setAttribute("class", "labelContainer"); 
-	labelContainer.setAttribute("className", "labelContainer"); //IE
-	/*if(labelPopUpText != "")
-		{labelContainer.setAttribute("title", labelPopUpText);
-		}
-	 
-*/	
-	//labelContainer.innerHTML= "HELP";
-	ref("outerDiv0").appendChild(labelContainer);
-	jQ( "#"+containerId ).css({"left":labelLeft,"top":labelTop,"width":"210px","height":"20px"}).draggable({
+	var containerId = "L" + index; 
+	//methode jQuery
+	var containerHtml = '<div id="'+containerId+'" class="labelContainer" className="labelContainer"></div>';
+	jQ( "#outerDiv0").append(containerHtml)
+	//methode DOM scripting
+	//var labelContainer= makeElement("div",containerId,"labelContainer");
+	//ref("outerDiv0").appendChild(labelContainer);
+	
+		
+	//textarea for the labeltext
+	var labelTextAreaId = "LTextArea" + index;
+	jQ( "#"+containerId ).append('<textarea id="'+labelTextAreaId+'" class="labelTextArea label" classname="labelTextAreas label"></textarea>');
+	//var labelTextArea = makeElement("textarea",labelTextAreaId,"labelTextArea label");
+	//labelContainer.appendChild(labelTextArea);
+	
+
+	//neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable	
+	jQ( "#"+labelTextAreaId ).click(function(e){e.target.focus();}) 
+	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
+	jQ( "#"+labelTextAreaId ).autosize({append: "\n"}); 
+	//get the entered text
+	jQ( "#"+labelTextAreaId ).keyup(function () {var temp = ref(labelTextAreaId).value; }); //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
+	
+	
+	//arrow buttons
+	jQ( "#"+containerId ).append('<br /><img id="arwDown1" class="labelArwDown" classname="labelArwDown" src="../img/bullet_arrow_down.png">');
+
+	//position and add the functionality to the container: draggable and getting the textarea's value at stop drag
+	var labelLeft = viewportWidth/2 -100;
+	var labelTop  = viewportHeight/2 -100;
+	jQ( "#"+containerId ).css({"left":labelLeft,"top":labelTop}).draggable({
 		cancel: "input", //neccessary to make textarea draggable
 		stop: function( event, ui ) 
 		{		
 			var left = ui.position.left;
 			var top = ui.position.top;
 			var imgCoords= getImgCoords(ui.position.left,ui.position.top)
-		ih("x="+imgCoords.x+",y="+imgCoords.y+", text="+labelTextArea.value);	
+		//ih("x="+imgCoords.x+",y="+imgCoords.y);	
 		}
 	});	
-		
-	//textarea for the labeltext
-	var labelTextArea = document.createElement('textarea');
-	var labelTextAreaId = "LTextArea" + index;
-	labelTextArea.id = labelTextAreaId;
-//	labelTextArea.rows=20; //Number of rows
-//	labelTextArea.cols=10; //Number of columns
-	labelTextArea.setAttribute("class", "labelTextArea"); 
-	labelTextArea.setAttribute("className", "labelTextAreas"); //IE
-	ref(containerId).appendChild(labelTextArea);	
-	jQ( "#"+labelTextAreaId ).click(function(e){e.target.focus();}).autosize({append: "\n"}); //click(function(e){e.target.focus() = neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361
-	
-	//arrow buttons
-	var arwDown = document.createElement('image');
-	var arwDownId = arwDown + index;
-	arwDown.id = arwDownId;
-	arwDown.setAttribute("class", "labelArwDown"); 
-	arwDown.setAttribute("className", "labelArwDown"); //IE
-	arwDown.setAttribute("src", "../img/bullet_arrow_down.png");
-	ref(containerId).appendChild(arwDown);
 
+//	jQ( "#"+labelTextAreaId ).click();
+//	setTimeout("resizeLabels()",500)
 	
 	makeLabel.index++;
+	
+	
+	
 }
 makeLabel.index=1;
+
+
+
+function makeElement(type,id,className)
+{
+	var el = document.createElement(type); 
+	el.setAttribute("id", id);
+	el.setAttribute("class", className); 
+	el.setAttribute("className", className); //IE
+	return el;
+}
+
+
+
+
+
+
+
+
+
 
 ////////////////////////////////////////////
 //
@@ -1687,8 +1708,11 @@ function createLabel(labelName,labelData)
 
 function resizeLabels()
 {
-	var fontSize  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
-	jQ(".label").css('fontSize',fontSize);	
+	var sizeFactor  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
+	jQ(".label").css({'fontSize':sizeFactor});
+	jQ(".labelTextArea").trigger('autosize');//let the resizing of the textbox also occur when resizing text size
+	
+	 
 }
 
 
@@ -1916,12 +1940,16 @@ function panMap(dir)
 //
 /////////////////////////////////////////////////////////////////////
 
-function slideNext(){ if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
+function slideNext(){ 
+	return; //temp disabled
+	if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
 rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
 init0(); refreshTiles(); checkTiles();moveThumb2()}
 
 
-function slidePrev(){ if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
+function slidePrev(){
+	return; //temp disabled
+	if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
 rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
 init0(); refreshTiles(); checkTiles();moveThumb2()}
 

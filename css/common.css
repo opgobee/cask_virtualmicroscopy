@@ -1,3 +1,21 @@
+/*CLEARFIX: CSS: the Missing Manual p295*/
+.clearfix:after { 
+   content: ""; 
+   visibility: hidden; 
+   display: block; 
+   height: 0; 
+   clear: both;
+   font-size: 0;
+}
+.clearfix {
+	min-height: 1px;
+}
+* html .clearfix {
+	height: 1px;
+}
+/*End clearfix*/
+
+
 
 /*tooltip*/
 .hastooltip {cursor: help;}

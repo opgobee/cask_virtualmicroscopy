@@ -17,7 +17,10 @@
 
 <!-- NOTE Styles are included here instead of in a separate css, as this appears to work slightly faster during slide viewing, panning, zooming etc., gives a more immediate response experience-->
 <style>
-body {margin:0px;width:100%;height:100%;overflow:hidden;}
+body {
+	margin:0px;width:100%;height:100%;overflow:hidden;
+	font-family:Arial, Helvetica, sans-serif;
+}
 div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
 div#centeringContainer {position:absolute;width:100%;text-align:center;z-index:10;} /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
 div#namePanel{
@@ -86,14 +89,17 @@ div#hor1024x768 {width:784px;height:656px;}
 /*labelmakers*/
 .labelContainer
 {
+	float:left;
+	width:300px;
 	z-index:10;background-color:transparent;border:none;
 	background-color:transparent;
 	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
 	cursor:move;
 }
 .labelTextArea {
-position:absolute;left:0px;top:0px;width:200px;height:50px;background-color:transparent;
+width:300px;min-height:50px;background-color:transparent;
 border:1px solid gray;
+font-family:Arial, Helvetica, sans-serif;
 cursor:move;
 vertical-align: top; /*for auto-resize*/
 -webkit-transition: height 0.2s; /*for auto-resize*/
@@ -103,8 +109,11 @@ background-image:url('../img/transp.png'); /*IE workaround */
 } 
 .labelArwDown
 {
-
+	float:right;	
 }
+
+
+
 /* The data loading iFrame */
 #dataLoaderFrame {width:1px; height:1px;}
 
@@ -117,6 +126,12 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 </style>
 <![endif]-->
 
+<!--[if IE 9]>
+<style type="text/css">
+textarea {font-size:300%;} /*IE9 workaround for strange clipping of the text area at zoom. So far the only way I found is to set it hard, not dynamically*/
+/*bug described here: http://social.msdn.microsoft.com/Forums/en-US/iewebdevelopment/thread/45c7f82c-7b2b-47b3-be78-fd745626befb/ */
+</style>
+<![endif]-->
 
 
 
@@ -127,7 +142,7 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 <script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.1.custom.min.js"></script>
-<script type="text/javascript" src="../scripts/libs/jquery.autosize-min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery.autosize.js"></script>
 
 
 <!-- pm: "http://code.jquery.com/jquery-latest.js" -->
@@ -197,6 +212,7 @@ div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to s
 		</div>
 		
 	</div> <!--eof outerdiv -->	
+<br>
 </div> <!--eof outerdiv0 -->
 		
 
