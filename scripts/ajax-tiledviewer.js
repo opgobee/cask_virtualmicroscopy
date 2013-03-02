@@ -121,6 +121,17 @@ var cX = cY = null;
 var showLabel = null; //label that will be shown on the requested x, y spot
 var focusLabel = focusLabelId = null; //labelText and id of label that will be shown automatically on its own location
 
+var elem = {}; //global containing references to DOM elements in the connected html page, wiil be initialized in function setGlobalReferences()
+
+var data = {}; // global container for data
+data.labels = null;
+data.slides = null;
+
+var status = {}; //global object to keep data that needs to be kept track of
+status.numberLabels = 0;
+status.renderingLabels = false; //busy creating labels.
+status.labelsRendered = false;
+
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -131,13 +142,13 @@ var height = null, width = null; //may be defined in html page (then overwrites 
 var imgWidthMaxZoom = null, imgHeightMaxZoom= null; //width/height of max size image, Note: may be string as read from html page, query or xhr
 var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[zoom]
 var loadedXML=0; //used in xhr loading of XML and JSON files
-var labelsPath=null, oLabels, labelTimer;//oLabels= object containing the read labels
+var labelsPath=null, labelTimer;
 var creditsPath=null; //path to .js file with additional credits to display
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
-var innerDiv, innerStyle, imageTiles, imageLabels, bgDiv; //global refs to elements, bgDiv= grey background
+var innerDiv, innerStyle, imageTiles,  bgDiv; //global refs to elements, bgDiv= grey background
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
 var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hold down on image
 var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoombuttons locks the start zoomcenter until mousemove or zoom on cursor
@@ -271,7 +282,7 @@ function setGlobalReferences()
 	innerDiv = document.getElementById("innerDiv"); 
 	innerStyle= innerDiv.style; //keep ref to speed up
 	imageTiles = document.getElementById("imageTiles"); 
-	imageLabels = document.getElementById("imageLabels");
+	elem.imageLabels = document.getElementById("imageLabels");
 	bgDiv=ref('bgDiv'); //grey background div behind image
 	thumb0=ref('Thumb0'); 
 	thumb=ref('Thumb');  
@@ -384,7 +395,7 @@ function showInitialView()
 			//and show the requested label
 			if(showLabel)
 			{
-				createLabel("called", {"label": showLabel,  "x": cX, "y": cY});
+				createLabel({"label": showLabel,  "x": cX, "y": cY});
 			}
 		}
 	//center on middle of image
@@ -755,7 +766,7 @@ function ZoomIn()
 	{
 		var imgTop = stripPx(innerDiv.style.top); 
 		var imgLeft = stripPx(innerDiv.style.left); 
-	//ih(imgLeft)
+	ih("imgLeft=" +imgLeft + ", imgTop="+imgTop +"<br>");
 
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
 			{zoomCenterX = lockedZoomCenterX;
@@ -774,21 +785,22 @@ function ZoomIn()
 			}
 
 
-//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
+ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		innerDiv.style.left =  2 * imgLeft - zoomCenterX;
 		innerDiv.style.top = 2 * imgTop - zoomCenterY;
 		
-//ih("innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
+ih("innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
 		zoom=zoom+1; 
 		
 		var imgs = imageTiles.getElementsByTagName("img"); 
 		while (imgs.length > 0) imageTiles.removeChild(imgs[0]); 
 		checkTiles();
 		
-		var divs = imageLabels.getElementsByTagName("div"); 
+		var divs = elem.imageLabels.getElementsByTagName("div"); //@todo replace by jQ labels zoeken niet divs
 		for (var $i = 0; $i <divs.length; $i++) //new placement of the labels
 		{ 
 			var Ltemp="L"+$i; 
+
 			if(ref(Ltemp)) 
 			{
 				ref(Ltemp).style.top= parseInt(2*stripPx(ref(Ltemp).style.top)); 
@@ -846,7 +858,7 @@ function ZoomOut()
 		while (imgs.length > 0) imageTiles.removeChild(imgs[0]); 
 		checkTiles(); 
 		
-		var divs = imageLabels.getElementsByTagName("div"); 
+		var divs = elem.imageLabels.getElementsByTagName("div"); 
 		for (var $i = 0; $i <divs.length; $i++)
 		{ 
 			var Ltemp="L"+$i;
@@ -872,8 +884,8 @@ function ZoomOut()
 
 //hide labels at low zoom, because then the labels appear to be offset, probably due to Zoomify inaccuracies at high size reductions (=low zoom)
 function lowZoomHideLabels()
-	{if(zoom<=1) {imageLabels.style.display="none";}
-	else {imageLabels.style.display="block";}
+	{if(zoom<=1) {elem.imageLabels.style.display="none";}
+	else {elem.imageLabels.style.display="block";}
 	}
 	
 
@@ -1562,7 +1574,7 @@ function loadLabels(pathToFile)
 		// works from server, not local
 		jQ.getScript(pathToFile, checkLabelsLoaded);
 				
-		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, so fallback to own method loadJs
+		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, fallback to own method loadJs
 		// works, on Chrome, FF, IE, Saf, both local and on server
 		if(window.location.protocol == "file:")
 		{
@@ -1582,17 +1594,20 @@ function loadLabels(pathToFile)
 		
 
 
-
-//var labelsLoaded= false;
-//checks that that the labels/.js file are loaded 
+/*
+ * Callback function called when the file labels.js has been loaded
+ * checks that that the labels.js file is loaded and contains a variable 'labels'. 
+ * If so, calls for the labels to be rendered, if not re-calls itself 
+ */
 function checkLabelsLoaded()
 	{
 	//isLoaded= (window.labels)? "loaded":"NOTloaded";
 	//ih(isLoaded);
-	if(window.labels ) //js file should state labels= {...}//Note: labelsLoaded check is essential to let it work on IE when running from file. Hmm later on doesn't seem so anymore?
-		{//labelsLoaded = true; //Note: this line as very first is essential to let it work on IE from file
+	if(window.labels && !status.labelsRendered ) //js file should state labels= {...}
+		{
 		//ih("lblFromJs");
-		oLabels = labels;
+		//copy the
+		data.labels = labels;
 		renderLabels();	
 		}
 	else
@@ -1613,31 +1628,47 @@ checkLabelsLoaded.pathToFile="";
 
 	
 function renderLabels() 
-	{//ih("renderLabels1");
+	{
 		if(!dimensionsKnown()) 
-			{clearTimeout(labelTimer);
-			labelTimer=setTimeout("renderLabels()", 500); 
-	//ih("dimensionsUnknown");
-			return;
-			}
+		{clearTimeout(labelTimer);	
+		labelTimer=setTimeout("renderLabels()", 500); 
+		return;
+		}	
+		
+		//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
+		if(status.renderingLabels)
+			{return;}
+		//set switch: busy!
+		status.renderingLabels = true;
+		
+		//ih("renderLabels1");
 
-		//remove any old labels
-		var labelDivs = imageLabels.getElementsByTagName("div"); 
-		while (labelDivs.length > 0) {imageLabels.removeChild(labelDivs[0]);}
-	//ih("renderLabels2");
-	//debug(oLabels);
+
+		//remove any old labels and reset counter and status
+		jQ(elem.imageLabels).empty();
+		status.numberLabels = 0;
+		status.labelsRendered = false;
+		
+		//next 2 lines old code can be removed if all ok
+		//var labelDivs = elem.imageLabels.getElementsByTagName("div"); 
+		//while (labelDivs.length > 0) {elem.imageLabels.removeChild(labelDivs[0]);}
+		//ih("renderLabels2");
+		//debug(data.labels);
 	
-		for (label in oLabels)
+		for (label in data.labels)
 			{
-			var labelData = oLabels[label];
-			createLabel(label,labelData);		
+			var labelData = data.labels[label];
+			createLabel(labelData);		
 			}
+		//attaches handlers to labels that shows the tooltips
 		initTooltips();
 		//neccessary because the page may be initialized via a deep link directly at a certain zoom level
 		resizeLabels();
-
 		//possibly focus on a specific label
 		focusOnLabel();
+		//set global booleans
+		status.renderingLabels = false;
+		status.labelsRendered = true;
 	}
 
 function focusOnLabel()
@@ -1645,8 +1676,8 @@ function focusOnLabel()
 	if(focusLabel)
 	{
 		//alert("focussing on "+focusLabel)
-		var x = oLabels[focusLabel].x
-		var y = oLabels[focusLabel].y;
+		var x = data.labels[focusLabel].x
+		var y = data.labels[focusLabel].y;
 		centerOn(x,y);
 		//alert("centered on x="+x+", y="+y)
 	}
@@ -1655,53 +1686,45 @@ function focusOnLabel()
 /*
  * Creates a label from the given object oLabel and appends the label into div imageLabels
  * @param object labelData e.g. {"label": "Source", "info": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
- * 
+ * @return nothing
  */
-createLabel.index=0;
-function createLabel(labelName,labelData)
+function createLabel(labelData)
 {
 	//debug(labelData);
+	var index = status.numberLabels + 1;
+	
+	//ih("Creating:"+labelData.label+", createLabel.index="+index+"<br>");
+	
+	//create element
+	var label = document.createElement("div"); 
+	label.style.position = "absolute";
+	label.style.left = ( labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)) ) + "px"; 
+	label.style.top  = ( labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)) )  + "px"; 
+	label.style.zIndex = 1; 
+	var labelId = "L" + index;
+	label.setAttribute("id", labelId);
+	label.setAttribute("class", "label hastooltip"); 
+	label.setAttribute("className", "label hastooltip"); //IE
+	label = elem.imageLabels.appendChild(label);
+	
+	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
 	var labelText = labelData.label;
-	var labelPopUpText = (labelData.info != undefined)? labelData.info : ""; 
-	var nX = labelData.x; 
-	var nY = labelData.y; 
-	if (labelData.href!=undefined)
-		{labelText='<a href="'+labelData.href+'" target="_blank">'+labelText+'</a>'; 
-		}
-	
-	
-	var newLabel = document.createElement("div"); 
-	newLabel.style.position = "absolute";
-	//nX = nX + (0.002/(Math.pow(2,zoom-1))); //empirically determined corr.factors
-	//nY = nY - (0.006/(Math.pow(2,zoom-1)));
-	labelLeft = nX*imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom));
-	labelTop  =  nY*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
-	newLabel.style.left = labelLeft + "px"; 
-	newLabel.style.top  = labelTop  + "px"; 
-	//newLabel.style.width = 8*labelText.length + "px"; //doesn't seem neccessary and is also not yet scaled at resizelabels, so better skip it
-	//newLabel.style.height = "2px"; 
-	newLabel.style.zIndex = 1; 
-	newLabel.setAttribute("id", "L"+createLabel.index);
-	if(labelPopUpText != "")
-		{newLabel.setAttribute("title", labelPopUpText);
-		}
-	newLabel.setAttribute("class", "label hastooltip"); 
-	newLabel.setAttribute("className", "label hastooltip"); //IE
-	newLabel.innerHTML= labelText; 
-	imageLabels.appendChild(newLabel);
+	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
+	jQ(label).append( jQ.parseHTML(labelText) );
 
-	//add the tooltips
-	if(labelPopUpText != "")
+	//add tooltip
+	if(isSet(labelData.info))
 	{
+		//create element
 		var labelTooltip = document.createElement("div");
 		labelTooltip.setAttribute("class", "tooltip"); 
-		labelTooltip.setAttribute("className", "tooltip"); //IE
-		labelTooltip.innerHTML= labelPopUpText; 
-		imageLabels.appendChild(labelTooltip);
+		labelTooltip.setAttribute("className", "tooltip"); //IE		
+		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
+		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
+		jQ(labelTooltip).append( jQ.parseHTML(labelData.info) );
 	}
-
-	createLabel.index++;
-	
+	//increment the global counter
+	status.numberLabels++;	
 }
 
 
@@ -1993,9 +2016,14 @@ pos.top = (isNaN(pos.top)) ? viewportHeight - pos.bottom - pos.height : pos.top;
 return pos;
 }
 
-function stripPx(value) { if (value == ""){ return 0;}
-
-return parseFloat(value.substring(0, value.length - 2));}
+function stripPx(value) 
+{ 
+	if (value == "")
+	{ 
+		return 0;
+	}
+	return parseFloat(value.substring(0, value.length - 2));
+}
 
 
 function refreshTiles() { var imgs = imageTiles.getElementsByTagName("img"); while (imgs.length > 0) imageTiles.removeChild(imgs[0]);}

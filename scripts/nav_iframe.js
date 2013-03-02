@@ -901,14 +901,7 @@ function getQueryArgs(whichWindow)
 	}	
 
 
-function exists(subject) //
-	{return (typeof subject != "undefined")? true : false;
-	}
 
-function isSet(subject) //
-{
-	return ((typeof subject != undefined) && (subject != null))? true : false;
-}
 
 function stripPx(value) { if (value == ""){ return 0;}
 return parseFloat(value.substring(0, value.length - 2));}

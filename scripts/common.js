@@ -1,6 +1,15 @@
 
 function ref(i) { return document.getElementById(i);}
 
+function exists(subject) //
+{
+	return (typeof subject != "undefined")? true : false;
+}
+
+function isSet(subject) //
+{
+	return ((typeof subject != undefined) && (subject != null))? true : false;
+}
 
 /*
  * Tooltip:

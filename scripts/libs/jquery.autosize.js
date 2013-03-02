@@ -141,7 +141,7 @@
 					mirror.scrollTop = 0;
 					mirror.scrollTop = 9e4;
 					height = mirror.scrollTop;
-					ih(height)
+				//	ih(height)
 					////////////////////////////////////////////////////////////////////////////
 					//CASK INSERT :empirically determined correction factors because of the zoom: worked well on FF but exploded on IE and Chrome
 				//	var factor = parseInt(caskTextAreaFontSize)/16;
