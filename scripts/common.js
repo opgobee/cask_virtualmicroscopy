@@ -12,6 +12,20 @@ function isSet(subject) //
 }
 
 /*
+ * prevent xss
+ * cleans input from '<', '>', 'eval(', and 'javascript:'
+ * @return cleaned input
+ */
+function preventXss(input)
+{
+	//remove < and > JavaScript Def Guide 5th ed. Flanagan. p. 268 
+	var output = input.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	//remove 'eval(', and 'javascript:'  http://weblogs.java.net/blog/gmurray71/archive/2006/09/preventing_cros.html
+	output = output.replace(/eval\(/, "").replace(/javascript\:/, "")
+	return output;
+}
+
+/*
  * Tooltip:
  * 1. add class 'hastooltip' to the thing that you wnat the tooltip to work on   <img class="hastooltip" src=""/>
  * 2. add a html element directly after that element and give it class 'tooltip' <div class="tooltip">this wil appear when you hover over the image</div>

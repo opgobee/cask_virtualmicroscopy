@@ -148,7 +148,7 @@ var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
-var innerDiv, innerStyle, imageTiles,  bgDiv; //global refs to elements, bgDiv= grey background
+var innerDiv, innerStyle,  bgDiv; //global refs to elements, bgDiv= grey background
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
 var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hold down on image
 var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoombuttons locks the start zoomcenter until mousemove or zoom on cursor
@@ -281,7 +281,7 @@ function setGlobalReferences()
 {
 	innerDiv = document.getElementById("innerDiv"); 
 	innerStyle= innerDiv.style; //keep ref to speed up
-	imageTiles = document.getElementById("imageTiles"); 
+	elem.imageTiles = document.getElementById("imageTiles"); 
 	elem.imageLabels = document.getElementById("imageLabels");
 	bgDiv=ref('bgDiv'); //grey background div behind image
 	thumb0=ref('Thumb0'); 
@@ -481,6 +481,8 @@ function getQueryArgs()
 		argName = pairs[i].substring(0,pos); //get name
 		argValue = pairs[i].substring(pos+1); //get value
 		argValue = decodeURIComponent(argValue);
+		//a bit cleaning...
+		argValue = preventXss(argValue);
 		//alert("argName= "+argName+",argValue= "+argValue)
 		args[argName] = argValue;
 	}		
@@ -766,48 +768,45 @@ function ZoomIn()
 	{
 		var imgTop = stripPx(innerDiv.style.top); 
 		var imgLeft = stripPx(innerDiv.style.left); 
-	ih("imgLeft=" +imgLeft + ", imgTop="+imgTop +"<br>");
+		//ih("imgLeft=" +imgLeft + ", imgTop="+imgTop +", cursorX="+cursorX+", cursorY="+cursorY+", lockedZoomCenterX="+lockedZoomCenterX+", lockedZoomCenterY="+lockedZoomCenterY+"<br>");
 
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
-			{zoomCenterX = lockedZoomCenterX;
-			zoomCenterY = lockedZoomCenterY;
+			{
+				zoomCenterX = lockedZoomCenterX;
+				zoomCenterY = lockedZoomCenterY;
 			}
 		else if(zoomCenterOnCursor && cursorOverImage()) //zooming with scrollbutton or mouseclick> center on mouse-position
-			{zoomCenterX = cursorX;
-			zoomCenterY = cursorY;
+			{
+				zoomCenterX = cursorX;
+				zoomCenterY = cursorY;
 			}
 		else //zooming with +/- keys or zoom-buttons> center on center of visible part of image
-			{var visImgCenter=getVisibleImgCenter();
-			lockedZoomCenterX = zoomCenterX = visImgCenter.x;
-			lockedZoomCenterY = zoomCenterY = visImgCenter.y;
-			lockedZoomCursorX = cursorX;
-			lockedZoomCursorY = cursorY;
+			{
+				var visImgCenter=getVisibleImgCenter();
+				lockedZoomCenterX = zoomCenterX = visImgCenter.x;
+				lockedZoomCenterY = zoomCenterY = visImgCenter.y;
+				lockedZoomCursorX = cursorX;
+				lockedZoomCursorY = cursorY;
 			}
 
-
-ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
-		innerDiv.style.left =  2 * imgLeft - zoomCenterX;
-		innerDiv.style.top = 2 * imgTop - zoomCenterY;
-		
-ih("innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
+		//ih("DETERMINED zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
+		innerDiv.style.left = (2 * imgLeft - zoomCenterX) + "px";
+		innerDiv.style.top  = (2 * imgTop  - zoomCenterY) + "px";
+		//ih("AFTER: innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
 		zoom=zoom+1; 
 		
-		var imgs = imageTiles.getElementsByTagName("img"); 
-		while (imgs.length > 0) imageTiles.removeChild(imgs[0]); 
+		//remove present tiles
+		deleteTiles();
+		//load with new tiles
 		checkTiles();
 		
-		var divs = elem.imageLabels.getElementsByTagName("div"); //@todo replace by jQ labels zoeken niet divs
-		for (var $i = 0; $i <divs.length; $i++) //new placement of the labels
-		{ 
-			var Ltemp="L"+$i; 
+		//reposition labels
+		jQ(elem.imageLabels).children(".label").each( function(){
+			var left = parseFloat(jQ(this).css("left"));
+			var top  = parseFloat(jQ(this).css("top" ));		
+			jQ(this).css({"left": 2*left + "px", "top": 2*top + "px"});		
+		})
 
-			if(ref(Ltemp)) 
-			{
-				ref(Ltemp).style.top= parseInt(2*stripPx(ref(Ltemp).style.top)); 
-				ref(Ltemp).style.left= parseInt(2*stripPx(ref(Ltemp).style.left));
-			}
-		}
-			
 		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
 
@@ -849,25 +848,23 @@ function ZoomOut()
 		}
 
 // ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
-		innerDiv.style.left = 0.5 * imgLeft + 0.5 * zoomCenterX; 
-		innerDiv.style.top = 0.5 * imgTop + 0.5 * zoomCenterY; 
+		innerDiv.style.left = (0.5 * imgLeft + 0.5 * zoomCenterX) + "px"; 
+		innerDiv.style.top  = (0.5 * imgTop  + 0.5 * zoomCenterY) + "px"; 
 		
 		zoom=zoom-1; 
 		
-		var imgs = imageTiles.getElementsByTagName("img"); 
-		while (imgs.length > 0) imageTiles.removeChild(imgs[0]); 
+		//remove present tiles
+		deleteTiles();
+		//load with new tiles
 		checkTiles(); 
 		
-		var divs = elem.imageLabels.getElementsByTagName("div"); 
-		for (var $i = 0; $i <divs.length; $i++)
-		{ 
-			var Ltemp="L"+$i;
-			if(ref(Ltemp)) 
-			{
-			ref(Ltemp).style.top = parseInt(.5*stripPx(ref(Ltemp).style.top)); 
-			ref(Ltemp).style.left = parseInt(.5*stripPx(ref(Ltemp).style.left));
-			}
-		}
+		//reposition labels
+		jQ(elem.imageLabels).children(".label").each( function(){
+			var left = parseFloat(jQ(this).css("left"));
+			var top  = parseFloat(jQ(this).css("top" ));		
+			jQ(this).css({"left": 0.5*left + "px", "top": 0.5*top + "px"});		
+		})
+
 		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
 
@@ -1164,20 +1161,24 @@ function checkTiles()
 			img.style.top = (tileArray[1] * tileSize) + "px"; 
 			img.style.zIndex = 0; 
 			img.setAttribute("id", tileName); 
-			imageTiles.appendChild(img);
+			elem.imageTiles.appendChild(img);
 			}
 		}
 		
-		var imgs = imageTiles.getElementsByTagName("img"); 
+		var imgs = elem.imageTiles.getElementsByTagName("img"); 
 		for (i = 0; i < imgs.length; i++) 
 			{ var id = imgs[i].getAttribute("id"); 
 			if (!visibleTilesMap[id]) 
-				{ imageTiles.removeChild(imgs[i]); i--;
+				{ elem.imageTiles.removeChild(imgs[i]); i--;
 				}
 			}
 			
 		}
-		
+	
+function deleteTiles()
+{
+	jQ(elem.imageTiles).children("img").remove();
+}
 		
 function getVisibleTiles() 
 	{
@@ -2026,7 +2027,7 @@ function stripPx(value)
 }
 
 
-function refreshTiles() { var imgs = imageTiles.getElementsByTagName("img"); while (imgs.length > 0) imageTiles.removeChild(imgs[0]);}
+function refreshTiles() { var imgs = elem.imageTiles.getElementsByTagName("img"); while (imgs.length > 0) elem.imageTiles.removeChild(imgs[0]);}
 
 //gives IE version nr source: DHTML D.Goodman 3rd ed p 669
 function readIEVersion()
