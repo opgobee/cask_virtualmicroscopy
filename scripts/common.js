@@ -11,6 +11,62 @@ function isSet(subject) //
 	return ((typeof subject != undefined) && (subject != null))? true : false;
 }
 
+
+//////////////////////////////////////////////////////////////////////
+//
+// HANDLE INPUT 
+//
+/////////////////////////////////////////////////////////////////////
+
+
+/*
+ * gets variables from the query in the URL
+ * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
+ * @param string whichWindow "self", "viewerFrame". If not specified, it will take this window self
+ */
+function getQueryArgs(whichWindow)
+{
+	var pos,argName,argValue;
+	var args = new Object();
+	var oLocation =  getLocationOfRequestedWindow(whichWindow);
+	var query = oLocation.search.substring(1);
+	//split query in arg/value pairs
+	var pairs = query.split("&"); 
+	
+	for(var i=0; i < pairs.length ; i++)
+	{
+		pos=pairs[i].indexOf("=");
+		if(pos == -1) {continue;}
+		argName = pairs[i].substring(0,pos); //get name
+		argValue = pairs[i].substring(pos+1); //get value
+		argValue = decodeURIComponent(argValue);
+		//a bit cleaning...
+		argValue = preventXss(argValue);
+		//alert("argName= "+argName+",argValue= "+argValue)
+		args[argName] = argValue;
+	}		
+	return args	;
+}	
+
+
+/*
+ * gets location object!! (not string URL) from the requested window
+ * 
+ */
+function getLocationOfRequestedWindow(whichWindow)
+{
+	var whichWindow =(typeof whichWindow == "undefined")? "self" : whichWindow;
+	if(whichWindow == "undefined" || whichWindow == "self")
+	{
+		oLocation = location;
+	}
+	else 
+	{
+		oLocation = window[whichWindow].location;
+	}		
+	return oLocation;
+}
+
 /*
  * prevent xss
  * cleans input from '<', '>', 'eval(', and 'javascript:'
@@ -24,6 +80,17 @@ function preventXss(input)
 	output = output.replace(/eval\(/, "").replace(/javascript\:/, "")
 	return output;
 }
+
+
+function stripPx(value) 
+{ 
+	if (value == "")
+	{ 
+		return 0;
+	}
+	return parseFloat(value.substring(0, value.length - 2));
+}
+
 
 /*
  * Tooltip:

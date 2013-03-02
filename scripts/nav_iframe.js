@@ -842,23 +842,6 @@ function showWarningChromeLocal()
 
 //
 //
-/*
- * gets location object!! (not string URL) from the requested window
- * 
- */
-function getLocationOfRequestedWindow(whichWindow)
-{
-	var whichWindow =(typeof whichWindow == "undefined")? "self" : whichWindow;
-	if(whichWindow == "undefined" || whichWindow == "self")
-	{
-		oLocation = location;
-	}
-	else 
-	{
-		oLocation = window[whichWindow].location;
-	}		
-	return oLocation;
-}
 
 /*
  * Gets the part of the url that is NOT the query, that is: protocol + host + pathname (see JavaScript Definitive Guide, Flanagan 3rd ed. p.854),
@@ -873,38 +856,9 @@ function getBaseUrlPart()
 	return baseUrlPart; 
 }
 
-/*
- * gets variables from the query in the URL
- * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
- * @param string whichWindow "self", "viewerFrame". If not specified, it will take this window self
- */
-function getQueryArgs(whichWindow)
-	{var URL,pos,argName,argValue,query;
-	var args = new Object();
-	
-	oLocation =  getLocationOfRequestedWindow(whichWindow);
-	query = oLocation.search.substring(1);
-	//query = location.search.substring(1);
-	
-	var pairs = query.split("&"); //split query in arg/value pairs
-	
-	for(var i=0; i < pairs.length ; i++)
-  	{pos=pairs[i].indexOf("=");
-		if(pos == -1) {continue;}
-		argName = pairs[i].substring(0,pos); //get name
-		argValue = pairs[i].substring(pos+1); //get value
-		argValue = decodeURIComponent(argValue);
-		//alert("argName= "+argName+",argValue= "+argValue)
-		args[argName] = argValue;
-  	}		
-	return args	;
-	}	
 
 
 
-
-function stripPx(value) { if (value == ""){ return 0;}
-return parseFloat(value.substring(0, value.length - 2));}
 
 function winsize()
 	{ viewportWidth = 1300; viewportHeight = 1000; if( typeof( window.innerWidth ) == 'number' ) { viewportWidth = window.innerWidth; viewportHeight = window.innerHeight;} else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) { viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;} else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) { viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;}

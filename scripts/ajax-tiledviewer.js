@@ -465,29 +465,7 @@ function showSlideName()
 //
 /////////////////////////////////////////////////////////////////////
 
-//gets variables from the query in the URL
-//src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
-function getQueryArgs()
-{
-	var pos,argName,argValue;
-	var args = new Object();
-	var query = location.search.substring(1);
-	var pairs = query.split("&"); //split query in arg/value pairs
-	
-	for(var i=0; i < pairs.length ; i++)
-	{
-		pos=pairs[i].indexOf("=");
-		if(pos == -1) {continue;}
-		argName = pairs[i].substring(0,pos); //get name
-		argValue = pairs[i].substring(pos+1); //get value
-		argValue = decodeURIComponent(argValue);
-		//a bit cleaning...
-		argValue = preventXss(argValue);
-		//alert("argName= "+argName+",argValue= "+argValue)
-		args[argName] = argValue;
-	}		
-	return args	;
-}	
+
 
 //handles window resize
 function winsize()
@@ -2017,14 +1995,7 @@ pos.top = (isNaN(pos.top)) ? viewportHeight - pos.bottom - pos.height : pos.top;
 return pos;
 }
 
-function stripPx(value) 
-{ 
-	if (value == "")
-	{ 
-		return 0;
-	}
-	return parseFloat(value.substring(0, value.length - 2));
-}
+
 
 
 function refreshTiles() { var imgs = elem.imageTiles.getElementsByTagName("img"); while (imgs.length > 0) elem.imageTiles.removeChild(imgs[0]);}
