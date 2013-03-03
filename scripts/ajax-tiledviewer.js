@@ -25,7 +25,7 @@
 // FIX BUG losing images or undefined image if dragging at low zoom levels to right or bottom (Sol: in getVisibleTiles) 
 // Note: too high count at smaller zooms inside viewPort uncorrected because it slowed down responsiveness
 // FIX BUG clickthumb not working on IE (Sol: call winsize after onload + catch event in clickTumb)
-// FIX BUG dragging from inside thumb2 not working on FF, Chrome, IE (only worked in Mac-Saf) (Sol: Handler on Thumb0, for IE: Thumb3 - filter opacity as described in forum)
+// FIX BUG dragging from inside viewIndicator not working on FF, Chrome, IE (only worked in Mac-Saf) (Sol: Handler on thumbContainer, for IE: viewIndicatorSenser - filter opacity as described in forum)
 // FIX BUG not fetching tiles after thumb navigation until move mouse outside thumb (add checktiles call in clickthumb) 
 // FIX BUG keypress plus not well detected. On Opera one must use + key and SHIFT - keys, and not Numeric keypad keys
 // FIX BUG micrometer-character correct
@@ -34,7 +34,7 @@
 // FIX BUG? removed '-16' subtraction in coords calculation (now in function getCoordsImg) due to which labels were incorrectly repositioned at small zooms
 // FIX BUG/CHG replaced function getVar by function getQueryArgs because getVar could misrecognize args, eg. 'jslabels' was also found as 'labels' 
 // FIX ERR referencing to elements by id/name in global scope generated errors
-// ADD thumb2 visibly moves while dragged (originally only jumped to drag-end position)
+// ADD viewIndicator visibly moves while dragged (originally only jumped to drag-end position)
 // ADD doubleclick zooms in, hold mouse down zooms out (with a workaround for IE)
 // ADD grey background colour behind not yet loaded tiles
 // ADD prevent dragging or zooming outside viewport
@@ -53,7 +53,7 @@
 // CHG function name: $ to: ref, to prevent conflicts upon possible combining with other libraries
 // EFFIC countTilesPerTier() performed once, not in each checkTiles
 // EFFIC func processmove, call to checktiles in (if drag) to prevent checking at simple mousemove without drag
-// EFFIC in loop in checktiles removed call to moveThumb2, now called once in higher level calling functs together with call of checktiles()
+// EFFIC in loop in checktiles removed call to moveViewIndicator, now called once in higher level calling functs together with call of checktiles()
 
 
 /* TESTED:
@@ -132,6 +132,7 @@ status.numberLabels = 0;
 status.renderingLabels = false; //busy creating labels.
 status.labelsRendered = false;
 
+var newLabels = []; //array with data of live created labels
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -158,10 +159,8 @@ var downX=null,downY=null;//IE workaround for autozoomout
 var isDisplayingUrl = false; //boolean indictaing that urlBar with deeplink url is presently displayed
 
 //controls and thumbnail
-var controls0, controls1; //controls0 contains thumb and controls, controls1 contains zoom-buttons
-var thumb0, thumb, thumb2, thumb3; //thumb0=container, thumb=img, thumb2=cyan box, thumb3=for catching events on IE 
-var thumb0Width, thumb0Height, thumb2Width, thumb2Height; 
-var thumb2DragOffsetLeft, thumb2DragOffsetTop, thumbDragging= false; //used in dragging cyan box
+var thumbContainerWidth, thumbContainerHeight, viewIndicatorWidth, viewIndicatorHeight; 
+var viewIndicatorDragOffsetLeft, viewIndicatorDragOffsetTop, thumbDragging= false; //used in dragging cyan box
 var tips;//contains tips shown over zoom buttons
 var tipTimer=false, zoomCenterOnCursor= false;// zoomCenterOnCursor true: zooms around cursorPosition, false: zooms around ImgCenter
 var zoomInTipsIndex=0; zoomInTipsShown=false;
@@ -226,7 +225,7 @@ function init()
 		parent.slideIsLoaded();
 		}
 	
-	makeLabel();
+	makeNewLabel();
 }//eof init()
 
 
@@ -283,13 +282,15 @@ function setGlobalReferences()
 	innerStyle= innerDiv.style; //keep ref to speed up
 	elem.imageTiles = document.getElementById("imageTiles"); 
 	elem.imageLabels = document.getElementById("imageLabels");
-	bgDiv=ref('bgDiv'); //grey background div behind image
-	thumb0=ref('Thumb0'); 
-	thumb=ref('Thumb');  
-	thumb2=ref('Thumb2');
-	thumb3=ref('Thumb3');	
-	controls0=ref('controls0');
- 	controls1=ref('controls1');
+	elem.newLabels = document.getElementById("newLabels");
+	bgDiv = ref('bgDiv'); //grey background div behind image
+	elem.controlsContainer = ref('controlsContainer');
+ 	elem.zoomButtonsContainer = ref('zoomButtonsContainer');
+	elem.thumbContainer = ref('thumbContainer'); 
+	elem.thumbImageHolder = ref('thumbImageHolder');  
+	elem.viewIndicator = ref('viewIndicator');
+	elem.viewIndicatorSenser = ref('viewIndicatorSenser');	
+
 	tips=ref('tips');
 	logwin=document.getElementById("log"); 
 	logwin.ondblclick=resetlog;
@@ -418,7 +419,7 @@ function showInitialView()
 	//resizeBackgroundDiv(); 
 	//loads the tiles
 	checkTiles(); 
-	moveThumb2(); 
+	moveViewIndicator(); 
 	updateLengthBar();
 
 	
@@ -490,7 +491,7 @@ function winsize()
 		viewportHeight = document.body.clientHeight;
 	}
 	
-	moveThumb2();
+	moveViewIndicator();
 	//initial
 	if(oldViewportWidth == null)
 	{
@@ -659,7 +660,7 @@ function processMove(event)
 		innerStyle.left = event.clientX + dragOffsetLeft +"px";
 		innerStyle.top = event.clientY + dragOffsetTop + "px"; 
 		checkTiles();
-		moveThumb2();
+		moveViewIndicator();
 	}
 	
 }
@@ -779,7 +780,7 @@ function ZoomIn()
 		checkTiles();
 		
 		//reposition labels
-		jQ(elem.imageLabels).children(".label").each( function(){
+		jQ([elem.imageLabels,elem.newLabels]).children(".label").each( function(){
 			var left = parseFloat(jQ(this).css("left"));
 			var top  = parseFloat(jQ(this).css("top" ));		
 			jQ(this).css({"left": 2*left + "px", "top": 2*top + "px"});		
@@ -791,7 +792,7 @@ function ZoomIn()
 		resizeBackgroundDiv();	
 		keepInViewport();
 		updateLengthBar();	
-		moveThumb2();
+		moveViewIndicator();
 		//lowZoomHideLabels();
 		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
@@ -837,7 +838,7 @@ function ZoomOut()
 		checkTiles(); 
 		
 		//reposition labels
-		jQ(elem.imageLabels).children(".label").each( function(){
+		jQ([elem.imageLabels,elem.newLabels]).children(".label").each( function(){
 			var left = parseFloat(jQ(this).css("left"));
 			var top  = parseFloat(jQ(this).css("top" ));		
 			jQ(this).css({"left": 0.5*left + "px", "top": 0.5*top + "px"});		
@@ -849,7 +850,7 @@ function ZoomOut()
 		resizeBackgroundDiv(); 
 		keepInViewport(); 
 		updateLengthBar(); 
-		moveThumb2();
+		moveViewIndicator();
 		// lowZoomHideLabels();
 		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
@@ -1073,7 +1074,7 @@ function keepInViewport()
 */				
 	if (corrected)	
 		{checkTiles();
-		moveThumb2();
+		moveViewIndicator();
 		return "corrected";
 		}
 	}
@@ -1195,110 +1196,135 @@ function showThumb()
 	
 	if( !dimensionsKnown() ) {return;}
 	
-	thumb.style.display="block"; //unhide (in fact would be better on Thumb0)
-	thumb.innerHTML='<img src="' + imgPath + 'TileGroup0/0-0-0.jpg">';
+	//unhide thumb (in fact would be better on thumbContainer)
+	elem.thumbImageHolder.style.display="block"; 
+	elem.viewIndicator.style.display="block"; 
+	elem.viewIndicatorSenser.style.display="block"; 
+
+	//insert the thumb image of the slide in the control
+	elem.thumbImageHolder.innerHTML='<img id="thumbImage" src="' + imgPath + 'TileGroup0/0-0-0.jpg">';
+
+	//dimension the thumbContainer so that it neatly fits the thumb image, note: it appears difficult to get the dimensions of the thumbImage or the thumbImageHolder, so the whole large image is used as a replacement for it 
+	thumbContainerHeight = imgHeightMaxZoom/(Math.pow(2,gTierCount-1)); 
+	thumbContainerWidth  = imgWidthMaxZoom/(Math.pow(2,gTierCount-1)); 
+	elem.thumbContainer.style.height   = (thumbContainerHeight + 2) +"px"; //add 2: border 1px on thumbImagHolder must be accomodated
+	elem.thumbContainer.style.width    = (thumbContainerWidth  + 2) +"px";
+	elem.thumbImageHolder.style.height = thumbContainerHeight +"px";
+	elem.thumbImageHolder.style.width  = thumbContainerWidth  +"px";
 	
+	//dimension the controlsContainer to hold both the thumb and the zoomButtons and place the zoomButtons at correct location //@TODO cant this be done with CSS?
+	var zoomButtonsDim=getElemPos(elem.zoomButtonsContainer);
+	elem.controlsContainer.style.height= thumbContainerHeight + 10 + zoomButtonsDim.height  +"px";
+	elem.controlsContainer.style.width= ((thumbContainerWidth > zoomButtonsDim.width)?  thumbContainerWidth : zoomButtonsDim.width)  +"px";
+	elem.zoomButtonsContainer.style.top= thumbContainerHeight + 10  +"px";
 
-	thumb0Height = thumb0.style.height = imgHeightMaxZoom/(Math.pow(2,gTierCount-1))+2; 
-	thumb0Width = thumb0.style.width = imgWidthMaxZoom/(Math.pow(2,gTierCount-1))+3; 
-
-	var ctrl1=getElemPos(controls1);
-	
-	ref("controls0").style.height= thumb0Height + 10 + ctrl1.height;
-	ref("controls0").style.width= (thumb0Width > ctrl1.width)?  thumb0Width : ctrl1.width;
-	ref("controls1").style.top= thumb0Height + 10;
-
-//ih("ctrl1.height="+ctrl1.height+", thumb0Height="+thumb0Height+", ctrl0.height"+ctrl0.height+", ctrl0.width="+ctrl0.width+"<br>"); 
+//ih("zoomButtonsDim.height="+zoomButtonsDim.height+", thumbContainerHeight="+thumbContainerHeight+", controlsContPos.height"+controlsContPos.height+", controlsContPos.width="+controlsContPos.width+"<br>"); 
 //ih("thumbHeight="+thumbHeight+", thumbWidth="+thumbWidth+"<br>"); 
-	
-	thumb2.style.display="block"; 
-	thumb3.style.display="block"; 
 		
-		
-	thumb0.ondragstart = function() { return false;}
-	thumb3.onmousedown = startThumbMove; thumb0.onmousemove = processThumbMove; thumb0.onmouseup = stopThumb; thumb3.ondragstart = function() {return false;}
+	//connect handlers
+	elem.thumbContainer.ondragstart = function() { return false;}
+	elem.thumbContainer.onmousemove = processThumbMove; 
+	elem.thumbContainer.onmouseup = stopThumb; 
+	elem.viewIndicatorSenser.onmousedown = startThumbMove; 
+	elem.viewIndicatorSenser.ondragstart = function() {return false;}
 	}
 
-function hideThumb(){ ref('Thumb').style.display="none";}
+function hideThumb(){ ref('elem.thumbImageHolder').style.display="none";}
 
 	
 function startThumbMove(event)
 	{
-	 if (!event){ event = window.event;}
-	var thumb2DragStartLeft = event.clientX; 
-	var thumb2DragStartTop = event.clientY; 
-	var thumb2OrigLeft = stripPx(thumb2.style.left); 
-	var thumb2OrigTop = stripPx(thumb2.style.top); 
-	thumb2DragOffsetLeft = thumb2OrigLeft - thumb2DragStartLeft;
-	thumb2DragOffsetTop = thumb2OrigTop - thumb2DragStartTop;
-	thumbDragging = true; return false;
-	
+	if (!event){ event = window.event;}
+	var viewIndicatorDragStartLeft = event.clientX; 
+	var viewIndicatorDragStartTop = event.clientY; 
+	var viewIndicatorOrigLeft = stripPx(elem.viewIndicator.style.left); 
+	var viewIndicatorOrigTop = stripPx(elem.viewIndicator.style.top); 
+	viewIndicatorDragOffsetLeft = viewIndicatorOrigLeft - viewIndicatorDragStartLeft;
+	viewIndicatorDragOffsetTop = viewIndicatorOrigTop - viewIndicatorDragStartTop;
+	thumbDragging = true; return false;	
 	}
 	
 function processThumbMove(event)
-	{ if (!event){ event = window.event;}
-	if (thumbDragging) 
-		{thumb2.style.left = thumb3.style.left = event.clientX + thumb2DragOffsetLeft; 
-		thumb2.style.top = thumb3.style.top = event.clientY + thumb2DragOffsetTop; 
-		}
+	{ 
+		if (!event){ event = window.event;}
+		if (thumbDragging) 
+			{
+			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = event.clientX + viewIndicatorDragOffsetLeft +"px"; 
+			elem.viewIndicator.style.top = elem.viewIndicatorSenser.style.top = event.clientY + viewIndicatorDragOffsetTop + "px"; 
+			}
 	}
 	
-//handles both end of drag thumb2 and random click positioning on thumb
+/*
+ * handles both end of drag viewIndicator and random click positioning on thumb
+ */
 function stopThumb(event)
-	{//ih("XXX in stopThumb XXX");
+{//ih("XXX in stopThumb XXX");
 	if (!event){ event = window.event;}
 	if (event)
-		{var eventX = event.clientX; var eventY = event.clientY; 
+	{
+		var eventX = event.clientX; //has no "px" apparently
+		var eventY = event.clientY; 
 		var fractionLR, fractionTB; 
+		
 		//ih("XXX in If Event XXX");
 
-		var t0= getElemPos(thumb0);
-		var ctrl0= getElemPos(controls0);
+		var controlsContPos= getElemPos(elem.controlsContainer);
+		var thumbContPos= getElemPos(elem.thumbContainer);
 		
 		//ih("XXX in If Event AFTER XXX");
+		
+		//end of thumbdragging
 		if(thumbDragging)
 			{//ih("XXX thumbDragging=TRUE XXX");
 			thumbDragging = false;
 			
-			fractionLR = (eventX + thumb2DragOffsetLeft + thumb2Width/2 ) / thumb0Width; 
-			fractionTB = (eventY + thumb2DragOffsetTop + thumb2Height/ 2 ) / thumb0Height; 			
+			fractionLR = (eventX + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
+			fractionTB = (eventY + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 			
 			}
-		else //if click on thumb0 without thumbdragging
+		//click on thumbContainer without thumbdragging
+		else 
 			{
 			//ih("XXX thumbDragging=FALSE XXX");
-			fractionLR = (eventX - ctrl0.left - t0.left) / thumb0Width; 
-			fractionTB = (eventY - ctrl0.top - t0.top) / thumb0Height; 
-			//update position thumb2
-			thumb3.style.left = thumb2.style.left = eventX - ctrl0.left - t0.left - thumb2Width/2;
-			thumb3.style.top = thumb2.style.top = eventY - ctrl0.top - t0.top - thumb2Height/2;
+			fractionLR = (eventX - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
+			fractionTB = (eventY - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
+			//update position viewIndicator
+			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = (eventX - controlsContPos.left - thumbContPos.left - viewIndicatorWidth/2 ) +"px" ;
+			elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = (eventY - controlsContPos.top  - thumbContPos.top  - viewIndicatorHeight/2) +"px" ;
 			}	
 
 /*			if(testing)
-				{ih("eventX="+eventX+", eventY="+eventY+", t0.left="+t0.left+", ctrl0.left="+ctrl0.left+", ctrl0.top="+ctrl0.top+", thumb0Width="+thumb0Width+", thumb2Width/2="+thumb2Width/2+"<br>"); 	
-				ih("t0.left="+t0.left+", t0.right="+t0.right+", t0.top="+t0.top+", t0.bottom="+t0.bottom+", t0.width="+t0.width+"<br>"); 
+				{ih("eventX="+eventX+", eventY="+eventY+", thumbContPos.left="+thumbContPos.left+", controlsContPos.left="+controlsContPos.left+", controlsContPos.top="+controlsContPos.top+", thumbContainerWidth="+thumbContainerWidth+", viewIndicatorWidth/2="+viewIndicatorWidth/2+"<br>"); 	
+				ih("thumbContPos.left="+thumbContPos.left+", thumbContPos.right="+thumbContPos.right+", thumbContPos.top="+thumbContPos.top+", thumbContPos.bottom="+thumbContPos.bottom+", thumbContPos.width="+thumbContPos.width+"<br>"); 
 				ih("fractionLR="+fractionLR+", fractionTB="+fractionTB+"<br><br>"); 
 				}
 */		
-		innerDiv.style.left= viewportWidth/2 - gTierWidth[zoom]*fractionLR;
-		innerDiv.style.top= viewportHeight/2 - gTierHeight[zoom]*fractionTB;
-
+		//reposition the main image according to how the viewIndicator was set by user
+		innerDiv.style.left= (viewportWidth/2  - gTierWidth[zoom]  * fractionLR) +"px";
+		innerDiv.style.top = (viewportHeight/2 - gTierHeight[zoom] * fractionTB) +"px";
 		keepInViewport();
 		checkTiles();
+		
 		if(isDisplayingUrl) {parent.updateUrl();}
-		}
 	}
+}
 
-//resizes Thumb2 and Thumb3, thumb2 in fact indicates screen (viewport) size in relation to shown image
-function moveThumb2()
+/*
+ * resizes and positions viewIndicator and viewIndicatorSenser, viewIndicator in fact indicates screen (viewport) size in relation to shown image
+ */
+function moveViewIndicator()
 	{
-	//ih("moveThumb2()"+moveThumb2.caller);
-	topT = stripPx(innerDiv.style.top); leftT = stripPx(innerDiv.style.left); 
-	thumb3.style.width = thumb2.style.width = thumb2Width = viewportWidth/Math.pow(2,zoom); 
-	thumb3.style.height = thumb2.style.height = thumb2Height = viewportHeight/Math.pow(2,zoom); 
-	thumb3.style.left = thumb2.style.left = -leftT/(Math.pow(2,zoom)); 
-	thumb3.style.top = thumb2.style.top = -topT/(Math.pow(2,zoom));
+	//ih("moveViewIndicator()"+moveViewIndicator.caller);
+	innerDivLeft = stripPx(innerDiv.style.left);
+	innerDivTop  = stripPx(innerDiv.style.top);
+	viewIndicatorWidth  = viewportWidth/Math.pow(2,zoom);
+	viewIndicatorHeight = viewportHeight/Math.pow(2,zoom); 
 
-//ih("Math.pow(2,zoom)="+Math.pow(2,zoom)+", viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+", Thumb2.style.width="+Thumb2.style.width+", Thumb2.style.height="+Thumb2.style.height+", leftT="+leftT+", topT="+topT+", Thumb2.style.left="+Thumb2.style.left+", Thumb2.style.top="+Thumb2.style.top+"<br>");
+	elem.viewIndicator.style.left   = elem.viewIndicatorSenser.style.left   =  -innerDivLeft/(Math.pow(2,zoom)) +"px"; 
+	elem.viewIndicator.style.top    = elem.viewIndicatorSenser.style.top    =  -innerDivTop/(Math.pow(2,zoom))  +"px";
+	elem.viewIndicator.style.width  = elem.viewIndicatorSenser.style.width  =  viewIndicatorWidth + "px";
+	elem.viewIndicator.style.height = elem.viewIndicatorSenser.style.height =  viewIndicatorHeight + "px";
+
+//ih("Math.pow(2,zoom)="+Math.pow(2,zoom)+", viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+", viewIndicator.style.width="+viewIndicator.style.width+", viewIndicator.style.height="+viewIndicator.style.height+", innerDivLeft="+innerDivLeft+", innerDivTop="+innerDivTop+", viewIndicator.style.left="+viewIndicator.style.left+", viewIndicator.style.top="+viewIndicator.style.top+"<br>");
 	}
 
 	
@@ -1307,7 +1333,7 @@ function moveThumb2()
 
 //////////////////////////////////////////////////////////////////////
 //
-// SIZE INDICATOR BAR
+// LENGTH INDICATOR BAR
 //
 /////////////////////////////////////////////////////////////////////
 
@@ -1404,7 +1430,7 @@ function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input
 
 /*
  * Get present view settings
- * Is called by the navframe to cretae an url that calls the present view
+ * Is called by the navframe to create an url that calls the present view
  */
 function getPresentViewSettings()
 {
@@ -1416,11 +1442,12 @@ function getPresentViewSettings()
 	o["cX"] = center.x;
 	o["cY"] = center.y;
 	
-	return o;
-	
+	return o;	
 }
 
-
+/*
+ * positions the sizeIndicators
+ */
 function positionSizeIndicators()
 {
 	var horCenter  = viewportWidth/2;
@@ -1428,6 +1455,7 @@ function positionSizeIndicators()
 	jQ("#hor800x600").css({"left": horCenter-280, "top": vertCenter - 248});
 	jQ("#hor1024x768").css({"left": horCenter-392, "top": vertCenter - 328});
 }
+
 /*
  * shows and positions the sizeIndicators
  */
@@ -1457,88 +1485,11 @@ function hideUrlBarAndSizeIndicators()
 		}	
 }
 
-/*
- * Creates a draggable textbox to make labels in GUI 
- */
-function makeLabel()
-{
-	
-	var index= makeLabel.index; //shorthand
-	//container
-	var containerId = "L" + index; 
-	//methode jQuery
-	var containerHtml = '<div id="'+containerId+'" class="labelContainer" className="labelContainer"></div>';
-	jQ( "#outerDiv0").append(containerHtml)
-	//methode DOM scripting
-	//var labelContainer= makeElement("div",containerId,"labelContainer");
-	//ref("outerDiv0").appendChild(labelContainer);
-	
-		
-	//textarea for the labeltext
-	var labelTextAreaId = "LTextArea" + index;
-	jQ( "#"+containerId ).append('<textarea id="'+labelTextAreaId+'" class="labelTextArea label" classname="labelTextAreas label"></textarea>');
-	//var labelTextArea = makeElement("textarea",labelTextAreaId,"labelTextArea label");
-	//labelContainer.appendChild(labelTextArea);
-	
-
-	//neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable	
-	jQ( "#"+labelTextAreaId ).click(function(e){e.target.focus();}) 
-	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
-	jQ( "#"+labelTextAreaId ).autosize({append: "\n"}); 
-	//get the entered text
-	jQ( "#"+labelTextAreaId ).keyup(function () {var temp = ref(labelTextAreaId).value; }); //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
-	
-	
-	//arrow buttons
-	jQ( "#"+containerId ).append('<br /><img id="arwDown1" class="labelArwDown" classname="labelArwDown" src="../img/bullet_arrow_down.png">');
-
-	//position and add the functionality to the container: draggable and getting the textarea's value at stop drag
-	var labelLeft = viewportWidth/2 -100;
-	var labelTop  = viewportHeight/2 -100;
-	jQ( "#"+containerId ).css({"left":labelLeft,"top":labelTop}).draggable({
-		cancel: "input", //neccessary to make textarea draggable
-		stop: function( event, ui ) 
-		{		
-			var left = ui.position.left;
-			var top = ui.position.top;
-			var imgCoords= getImgCoords(ui.position.left,ui.position.top)
-		//ih("x="+imgCoords.x+",y="+imgCoords.y);	
-		}
-	});	
-
-//	jQ( "#"+labelTextAreaId ).click();
-//	setTimeout("resizeLabels()",500)
-	
-	makeLabel.index++;
-	
-	
-	
-}
-makeLabel.index=1;
-
-
-
-function makeElement(type,id,className)
-{
-	var el = document.createElement(type); 
-	el.setAttribute("id", id);
-	el.setAttribute("class", className); 
-	el.setAttribute("className", className); //IE
-	return el;
-}
-
-
-
-
-
-
-
-
 
 
 ////////////////////////////////////////////
 //
-// LABELS Functions
+// LABELS 
 //
 ///////////////////////////////////////////
 
@@ -1568,10 +1519,6 @@ function loadLabels(pathToFile)
 		return;
 	}			
 }
-
-
-		
-
 
 /*
  * Callback function called when the file labels.js has been loaded
@@ -1607,59 +1554,43 @@ checkLabelsLoaded.pathToFile="";
 
 	
 function renderLabels() 
-	{
-		if(!dimensionsKnown()) 
-		{clearTimeout(labelTimer);	
-		labelTimer=setTimeout("renderLabels()", 500); 
-		return;
-		}	
-		
-		//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
-		if(status.renderingLabels)
-			{return;}
-		//set switch: busy!
-		status.renderingLabels = true;
-		
-		//ih("renderLabels1");
-
-
-		//remove any old labels and reset counter and status
-		jQ(elem.imageLabels).empty();
-		status.numberLabels = 0;
-		status.labelsRendered = false;
-		
-		//next 2 lines old code can be removed if all ok
-		//var labelDivs = elem.imageLabels.getElementsByTagName("div"); 
-		//while (labelDivs.length > 0) {elem.imageLabels.removeChild(labelDivs[0]);}
-		//ih("renderLabels2");
-		//debug(data.labels);
-	
-		for (label in data.labels)
-			{
-			var labelData = data.labels[label];
-			createLabel(labelData);		
-			}
-		//attaches handlers to labels that shows the tooltips
-		initTooltips();
-		//neccessary because the page may be initialized via a deep link directly at a certain zoom level
-		resizeLabels();
-		//possibly focus on a specific label
-		focusOnLabel();
-		//set global booleans
-		status.renderingLabels = false;
-		status.labelsRendered = true;
-	}
-
-function focusOnLabel()
 {
-	if(focusLabel)
+	if(!dimensionsKnown()) 
+	{clearTimeout(labelTimer);	
+	labelTimer=setTimeout("renderLabels()", 500); 
+	return;
+	}	
+	
+	//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
+	if(status.renderingLabels)
+		{return;}
+	//set switch: busy!
+	status.renderingLabels = true;	
+	//ih("renderLabels1");
+
+	//remove any old labels and reset counter and status
+	jQ(elem.imageLabels).empty();
+	status.numberLabels = 0;
+	status.labelsRendered = false;
+	
+	//ih("renderLabels2");
+	//debug(data.labels);
+
+	//create labels
+	for (label in data.labels)
 	{
-		//alert("focussing on "+focusLabel)
-		var x = data.labels[focusLabel].x
-		var y = data.labels[focusLabel].y;
-		centerOn(x,y);
-		//alert("centered on x="+x+", y="+y)
+		var labelData = data.labels[label];
+		createLabel(labelData);		
 	}
+	//attaches handlers to labels that shows the tooltips
+	initTooltips();
+	//neccessary because the page may be initialized via a deep link directly at a certain zoom level
+	resizeLabels();
+	//possibly focus on a specific label
+	focusOnLabel();
+	//set global booleans
+	status.renderingLabels = false;
+	status.labelsRendered = true;
 }
 
 /*
@@ -1706,16 +1637,85 @@ function createLabel(labelData)
 	status.numberLabels++;	
 }
 
-
-
+/*
+ * resize labels at zooming
+ */
 function resizeLabels()
 {
 	var sizeFactor  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
 	jQ(".label").css({'fontSize':sizeFactor});
 	jQ(".labelTextArea").trigger('autosize');//let the resizing of the textbox also occur when resizing text size
-	
-	 
 }
+
+function focusOnLabel()
+{
+	if(focusLabel)
+	{
+		//alert("focussing on "+focusLabel)
+		var x = data.labels[focusLabel].x
+		var y = data.labels[focusLabel].y;
+		centerOn(x,y);
+		//alert("centered on x="+x+", y="+y)
+	}
+}
+
+/*
+ * Creates a new label (GUI label making), that is a draggable textbox  
+ */
+function makeNewLabel()
+{
+	//Create data object fro the new label and add it to the global newLabels
+	var index= newLabels.length; 
+	var newLabel = {x:null,y:null,text:"",info:null}; //container for the data of the new label
+	newLabels[index] = newLabel; 
+	
+	//DOM creation
+	//container
+	var newLabelContainerId = "NL" + index; 
+	var newLabelContainerHtml = '<div id="'+newLabelContainerId+'" class="newLabelContainer" className="newLabelContainer"></div>';
+	jQ( "#newLabels").append(newLabelContainerHtml)
+		
+	//textarea for the labeltext
+	var newLabelTextAreaId = "NLTextArea" + index;
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label"></textarea>');
+	//neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
+	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();}) 
+	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
+	jQ( "#"+newLabelTextAreaId ).autosize({append: "\n"}); 
+	//get the entered text and store it in the data of the newlabel
+	jQ( "#"+newLabelTextAreaId ).keyup(function () {
+		newLabels[index].text = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
+		ih(newLabels[index].text)
+		}); 
+		
+	//buttons to open the tooltip textarea
+	jQ( "#"+newLabelContainerId ).append('<br /><img id="arwDown1" class="newLabelArwDown" classname="newLabelArwDown" src="../img/bullet_arrow_down.png">');
+
+	//position new Label in the middle of viewport to start with, and store it in the data of the newlabel
+	var newLabelLeft = viewportWidth/2 -100;
+	var newLabelTop  = viewportHeight/2 -100;
+	jQ( "#"+newLabelContainerId).css({"left":newLabelLeft,"top":newLabelTop});
+	var labelCoords = getImgCoords(newLabelLeft,newLabelTop);
+	newLabels[index].x = labelCoords.x;
+	newLabels[index].y = labelCoords.y;
+	
+	//make label draggable. At stopdrag get the textarea's value and update the position data of the newlabel
+	jQ( "#"+newLabelContainerId).draggable({
+		cancel: "input", //neccessary to make textarea draggable
+		stop: function( event, ui ) 
+		{		
+			var left = ui.position.left;
+			var top = ui.position.top;
+			labelCoords = getImgCoords(ui.position.left,ui.position.top);
+			newLabels[index].x = labelCoords.x;
+			newLabels[index].y = labelCoords.y;	
+			ih("x="+newLabels[index].x+",y="+newLabels[index].y);	
+		}
+	});	
+	
+}
+
+
 
 
 //adds additional credits into credit div
@@ -1770,10 +1770,10 @@ function setMobileOn()
 	ref("iconMobile").style.display="none";
 	adaptDimensions();
 	showArrows();
-	controls0.style.right=""; //left positioning thumb to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
-	controls0.style.left="0px";
-	controls0.style.top="0px";
-	ref("barCont").style.left= "100px";//move the bar aside of the thumb that has now come to the left
+	elem.controlsContainer.style.right=""; //left positioning elem.thumbImageHolder to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
+	elem.controlsContainer.style.left="0px";
+	elem.controlsContainer.style.top="0px";
+	ref("barCont").style.left= "100px";//move the bar aside of the elem.thumbImageHolder that has now come to the left
 	//ref('test').style.display="block";
 	}
 	
@@ -1782,9 +1782,9 @@ function setMobileOff()
 	ref("iconMobile").style.display="block";
 	resetDimensions();
 	hideArrows();
-	controls0.style.left="";
-	controls0.style.top="10px";
-	controls0.style.right="10px";
+	elem.controlsContainer.style.left="";
+	elem.controlsContainer.style.top="10px";
+	elem.controlsContainer.style.right="10px";
 	ref("barCont").style.left= "0px";
 	//ref('test').style.display="none";
 	ref("log").style.display="none";
@@ -1870,14 +1870,15 @@ function placeArrows()
 	}
 	
 function correctOverlapControls()
-	{var ctrl1=getElemPos(controls1);
-	var btLRtop=stripPx(ref("btRightCont").style.top);
-	//ih("ctrl1.top="+ctrl1.top+", btLRtop="+btLRtop+"<br>");
-	if (btLRtop < (ctrl1.top + 30)) 
-		{//ih("correcting ");
-		ref("btLeftCont").style.top= ref("btRightCont").style.top=  ctrl1.top + 30; 
-		}
-	}	
+{
+	var zoomButtonsDim = getElemPos(elem.zoomButtonsContainer);
+	var btLRtop = stripPx(ref("btRightCont").style.top);
+	//ih("zoomButtonsDim.top="+zoomButtonsDim.top+", btLRtop="+btLRtop+"<br>");
+	if (btLRtop < (zoomButtonsDim.top + 30)) 
+	{//ih("correcting ");
+		ref("btLeftCont").style.top = ref("btRightCont").style.top =  (zoomButtonsDim.top + 30) +"px"; 
+	}
+}	
 
 function lightArw(elemId)
 	{var id=elemId+"1";
@@ -1920,14 +1921,14 @@ function stopAutoPan()
 		
 function panMap(dir)
 	{var map= getElemPos(innerDiv);
-	if(dir=="up") {innerDiv.style.top= map.top + 10;}
-	else if(dir=="down") {innerDiv.style.top= map.top - 10;}
-	else if(dir=="left") {innerDiv.style.left= map.left + 10;}
-	else if(dir=="right") {innerDiv.style.left= map.left - 10;}
+	if(dir=="up") 			{ innerDiv.style.top  = (map.top  + 10) +"px"; }
+	else if(dir=="down") 	{ innerDiv.style.top  = (map.top  - 10) +"px"; }
+	else if(dir=="left") 	{ innerDiv.style.left = (map.left + 10) +"px"; }
+	else if(dir=="right") 	{ innerDiv.style.left = (map.left - 10) +"px"; }
 	var result= keepInViewport();
 	if (result=="corrected") {stopAutoPan(dir);}
 	checkTiles();
-	moveThumb2();
+	moveViewIndicator();
 	}		
 
 
@@ -1946,14 +1947,14 @@ function slideNext(){
 	return; //temp disabled
 	if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
 rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
-init0(); refreshTiles(); checkTiles();moveThumb2()}
+init0(); refreshTiles(); checkTiles();moveViewIndicator()}
 
 
 function slidePrev(){
 	return; //temp disabled
 	if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
 rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
-init0(); refreshTiles(); checkTiles();moveThumb2()}
+init0(); refreshTiles(); checkTiles();moveViewIndicator()}
 
 
 ////////////////////////////////////////////

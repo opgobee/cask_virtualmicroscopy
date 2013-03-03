@@ -1,6 +1,4 @@
-
 ;
-
 var slideSetsMenus= {
 	"menuAnatomicalRegions":
 	[

@@ -79,7 +79,7 @@
 			minHeight = Math.max(parseInt($ta.css('minHeight'), 10) - boxOffset, $ta.height());
 
 			////////////////////////////////////////////////////////////////////////////
-			//CASK CHANGE: because our text areas are draggable, which renders the resize not working anymore: then also hide the handle
+			//CASK CHANGE: because our text areas are draggable, which renders the resize not working anymore: then also hide the handle to prevent user confusion
 			//resize = ($ta.css('resize') === 'none' || $ta.css('resize') === 'vertical') ? 'none' : 'horizontal';
 			resize = 'none';
 			//END CASK CHANGE
@@ -121,7 +121,7 @@
 					active = true;
 					
 					////////////////////////////////////////////////////////////////////////////					
-					//CASK INSERT : Copy the font-size of the labels (is influenced by zoom level)				
+					//CASK INSERT : Copy the font-size of the labels to the mirror (is influenced by zoom level)				
 					var caskTextAreaFontSize = jQ(ta).css("font-size")
 					if(caskTextAreaFontSize)
 						{mirror.style.fontSize = caskTextAreaFontSize;}

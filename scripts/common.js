@@ -1,4 +1,11 @@
 
+
+//////////////////////////////////////////////////////////////////////
+//
+// JavaScript
+//
+/////////////////////////////////////////////////////////////////////
+
 function ref(i) { return document.getElementById(i);}
 
 function exists(subject) //
@@ -9,6 +16,23 @@ function exists(subject) //
 function isSet(subject) //
 {
 	return ((typeof subject != undefined) && (subject != null))? true : false;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// DOM scripting 
+//
+/////////////////////////////////////////////////////////////////////
+
+
+function makeElement(type,id,className)
+{
+	var el = document.createElement(type); 
+	el.setAttribute("id", id);
+	el.setAttribute("class", className); 
+	el.setAttribute("className", className); //IE
+	return el;
 }
 
 

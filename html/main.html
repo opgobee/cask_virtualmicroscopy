@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html >
 
 <html style="height:100%;">
 <head>
@@ -21,7 +21,41 @@ body {
 	margin:0px;width:100%;height:100%;overflow:hidden;
 	font-family:Arial, Helvetica, sans-serif;
 }
-div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+
+/*The large moving containers for the image tiles, labels*/
+div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:0px solid black;overflow:hidden;}
+	div#outerDiv {position:absolute;height:100%;width:100%;border:1px solid black;overflow:hidden;}
+		div#nav {display:none;position:absolute;top:70px;left:20px;z-index:1}
+			div#divNext {position:absolute;top:0px;left:79px;}
+		div#wheelMode {display:none;position:absolute;left:10px;top:260px;overflow:hidden;font-size:11px;font-family:sans-serif;}
+		div#innerDiv {position:absolute;top:0px;left:0px;z-index:0;}
+			/*div#imageTiles styling is in the element itself*/
+			div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;}
+			/*seems not neccessary?div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}*/
+			div#newLabels {position:absolute;top:0px;left:0px;}
+
+/*thumbImageHolder control*/
+div#controlsContainer {position:absolute;right:10px;top:25px;width:200px;height:200px;z-index:1;} /*positions the container with all the controls*/
+	div#thumbContainer {display:block;position:absolute;left:0px;right:0px;top:0px;text-align:center;width:200px;height:200px;overflow:hidden;} /*holds the thumb stuff*/
+		div#thumbImageHolder {display:none;position:absolute;right:0px;top:0px;width:200px;height:200px;border:1px solid blue;overflow:hidden;} /*holds the thumb image*/
+		div#viewIndicator {display:none;position:absolute;border:1px solid #29ffde;overflow:hidden;} /*cyan box that indicates which part of the image is visible in the viewport now*/ /*cyan: #29ffde*/
+		div#viewIndicatorSenser {display:none;position:absolute;} /*senser over the viewIndicator for catching events on IE, because IE doesn't sense events on transparent/empty elements, see IE conditional comments*/
+	div#zoomButtonsContainer {position:absolute;right:0px;width:80px;height:30px;} 
+		#zoomin {position:absolute;left:0px;top:0px;cursor:pointer;}
+		#zoomout {position:absolute;left:40px;top:0px;cursor:pointer;}
+	div#tips {display:none;position:absolute;right:0px;bottom:-50px;width:200px;height:50px;padding:3px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef}
+
+/*length bar*/
+div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-index:100;}
+.bar {position:absolute;top:0px;background-color:blue;}
+.verticalLine {width:2px;height:12px;}
+.horizontalLine {top:5px;height:2px;}
+#theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;}
+#theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:white;}
+
+div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
+
+/*little panel at top of page showing name of slide*/
 div#centeringContainer {position:absolute;width:100%;text-align:center;z-index:10;} /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
 div#namePanel{
 	display:inline-block;top:0px;min-width:100px;height:15px;margin:auto;padding:3px 15px;z-index:10;
@@ -30,44 +64,15 @@ div#namePanel{
 	-webkit-border-bottom-left-radius:5px 8px;-moz-border-radius-bottomleft:5px 8px;border-bottom-left-radius:5px 8px;
 	text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#808080
 	}
-div#coordsPane{display:inline-block;top:1px;width:200px;height:25px;margin:auto;padding:3px;z-index:10;border: solid black 2px; background-color:#FFFFFF;text-align:center;}
 
-span.deemphasize {font-size: 80%; color:#a1a1a1}
-div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
-div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
-span#signalI {display:none;}
-span#signalj {display:none;}
+/* optional little panel at top of page showing live cursor position*/	
+div#coordsPane{
+	display:inline-block;top:1px;width:200px;height:25px;
+	margin:auto;padding:3px;z-index:10;
+	border: solid black 2px; background-color:#FFFFFF;
+	text-align:center;}
 
-/*length bar*/
-div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-index:100;}
-.bar {position:absolute;top:0px;background-color:blue;}
-.verticalLine {width:2px;height:12px;}
-.horizontalLine {top:5px;height:2px;}
-
-#theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;}
-#theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:white;}
-
-div#outerDiv0 {position:absolute;top:0px;left:0px;height:100%;width:100%;border:0px solid black;overflow:hidden;}
-	div#outerDiv {position:absolute;height:100%;width:100%;border:1px solid black;overflow:hidden;}
-		div#nav {display:none;position:absolute;top:70px;left:20px;z-index:1}
-			div#divNext {position:absolute;top:0px;left:79px;}
-		div#wheelMode {display:none;position:absolute;left:10px;top:260px;overflow:hidden;font-size:11px;font-family:sans-serif;}
-		div#innerDiv {position:absolute;top:0px;left:0px;z-index:0;}
-			div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;}
-			div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}
-			div.label {font-family:Arial,sans-serif;font-weight:bold;font-size:80%;color:black;text-shadow: 1px 1px 0px #ffffff;cursor:pointer;text-align:center;vertical-align:middle;clear: both;float:left}
-		div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
-
-div#controls0 {position:absolute;right:10px;top:25px;width:200px;height:200px;z-index:1;}
-	div#Thumb0 {display:block;position:absolute;left:0px;right:0px;top:0px;text-align:center;width:200px;height:150px;overflow:hidden;}
-		div#Thumb {display:none;position:absolute;right:0px;top:0px;border:1px solid blue;overflow:hidden;}
-	div#Thumb2 {display:none;position:absolute;border:1px solid #29ffde;overflow:hidden;} /*cyan: #29ffde*/
-		div#Thumb3 {display:none;position:absolute;}
-	div#controls1 {position:absolute;right:0px;width:80px;height:30px;}
-		#zoomin {position:absolute;left:0px;top:0px;cursor:pointer;}
-		#zoomout {position:absolute;left:40px;top:0px;cursor:pointer;}
-	div#tips {display:none;position:absolute;right:0px;bottom:-50px;width:200px;height:50px;padding:3px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef}
-
+/*mobile*/
 .arw {position:absolute;left:0px;top:0px;width:45px;height:40px;}
 .arwCont{position:absolute;width:45px;height:40px;z-index:100;cursor:pointer;}
 #btUpCont {display:none;position:absolute;left:100px;top:0px;}
@@ -77,58 +82,73 @@ div#controls0 {position:absolute;right:10px;top:25px;width:200px;height:200px;z-
 #iconMobileCont  {position:absolute;right:7px;bottom:7px;width:26px;height:36px;cursor:pointer;z-index:100;}
 .iconMobile  {position:absolute;left:0px;top:0px;width:26px;height:36px;cursor:pointer;z-index:100;}
 #mobileHint  {position:absolute;left:-180px;top:5px;width:165px;height:15px;padding:5px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef;}
-/*screensizeindicators */
+
+/* general styles */
+.hastooltip {cursor: help;}
+span.deemphasize {font-size: 80%; color:#a1a1a1}
+
+
+/*labels*/
+.label {
+	font-family:Arial,sans-serif;font-weight:bold;
+	color:black;text-shadow: 1px 1px 0px #ffffff;
+	font-size:80%;
+	cursor:pointer;
+	text-align:left; vertical-align:middle;
+	}
+.newLabelContainer
+{
+	float:left;
+	min-width:100px;
+	z-index:10;background-color:transparent;border:none;
+	background-color:transparent;
+	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
+	cursor:move;
+}
+.newLabelTextArea {
+	min-width:100px;min-height:50px;background-color:transparent;
+	border:1px solid gray;
+	cursor:move;
+	vertical-align: top; /*for auto-resize*/
+	-webkit-transition: height 0.2s; /*for auto-resize*/
+	-moz-transition: height 0.2s; /*for auto-resize*/
+	transition: height 0.2s; /*for auto-resize*/
+	background-image:url('../img/transp.png'); /*IE workaround */
+} 
+.newLabelArwDown
+{
+	float:right;	
+}
+
+/*screensizeindicators (displayed when requesting a direct URL)*/
 div#sizeIndicators {display:none;}
 .sizeLabel {position:absolute; top:-20px; right:10px;font-family:Arial, Helvetica, sans-serif;font-size:0.9em; color:#808080}
 .sizeIndicator {position:absolute;border: 2px solid #c0c0c0;}
 div#hor800x600 {width:560px;height:496px;}
 div#hor1024x768 {width:784px;height:656px;}
 
-.hastooltip {cursor: help;}
-
-/*labelmakers*/
-.labelContainer
-{
-	float:left;
-	width:300px;
-	z-index:10;background-color:transparent;border:none;
-	background-color:transparent;
-	background-image:url('../img/transp.png'); /*IE workaround otherwise won't sense input on the transparent*/
-	cursor:move;
-}
-.labelTextArea {
-width:300px;min-height:50px;background-color:transparent;
-border:1px solid gray;
-font-family:Arial, Helvetica, sans-serif;
-cursor:move;
-vertical-align: top; /*for auto-resize*/
--webkit-transition: height 0.2s; /*for auto-resize*/
--moz-transition: height 0.2s; /*for auto-resize*/
-transition: height 0.2s; /*for auto-resize*/
-background-image:url('../img/transp.png'); /*IE workaround */
-} 
-.labelArwDown
-{
-	float:right;	
-}
-
-
-
 /* The data loading iFrame */
 #dataLoaderFrame {width:1px; height:1px;}
 
+/*debug*/
 #test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
+div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
+div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
+span#signalI {display:none;}
+span#signalj {display:none;}
+
 </style>
 
 <!--[if IE]>
 <style type="text/css">
-div#Thumb3 {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "thumb2"*/
+div#viewIndicatorSenser {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "viewIndicator"*/
 </style>
 <![endif]-->
 
 <!--[if IE 9]>
 <style type="text/css">
-textarea {font-size:300%;} /*IE9 workaround for strange clipping of the text area at zoom. So far the only way I found is to set it hard, not dynamically*/
+/*textarea {font-size:300%;}*/ /*Forget it.. IE9 workaround for strange clipping of the text area at zoom. So far the only way I found is to set it hard, not dynamically*/
 /*bug described here: http://social.msdn.microsoft.com/Forums/en-US/iewebdevelopment/thread/45c7f82c-7b2b-47b3-be78-fd745626befb/ */
 </style>
 <![endif]-->
@@ -169,18 +189,16 @@ textarea {font-size:300%;} /*IE9 workaround for strange clipping of the text are
 <div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
 
 <div id="barCont">
-<!--	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
+<!-- Old bar images, keep a moment, might be necessary for old IE fallback that sometimes breaks the div version
+	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
 	<img id="bar_right" src="../img/bar_vert.gif" class="bar" />
 	<img id="bar_mid" src="../img/bar_mid.gif" class="bar" /> -->
 
 	<div id="bar_left"  class="bar verticalLine" ></div>
 	<div id="bar_mid" class="bar horizontalLine"></div>
 	<div id="bar_right" class="bar verticalLine"></div>
-	
 
 	<div id="theScale2"></div><div id="theScale1"></div> 
-	
-	
 </div> 
 	
 <div id="outerDiv0">
@@ -212,6 +230,7 @@ textarea {font-size:300%;} /*IE9 workaround for strange clipping of the text are
 		</div>
 		
 	</div> <!--eof outerdiv -->	
+	<div id="newLabels" ></div>
 <br>
 </div> <!--eof outerdiv0 -->
 		
@@ -224,20 +243,20 @@ textarea {font-size:300%;} /*IE9 workaround for strange clipping of the text are
 </div>
 		
 
-<div id="controls0">
-	<div id="Thumb0">
-		<div id="Thumb"></div>
-		<div id="Thumb2"></div>
-		<div id="Thumb3"></div>			  	  
-	</div><!-- eof Thumb0 -->
+<div id="controlsContainer">
+	<div id="thumbContainer">
+		<div id="thumbImageHolder"></div>
+		<div id="viewIndicator"></div>
+		<div id="viewIndicatorSenser"></div>			  	  
+	</div><!-- eof thumbContainer -->
 		
-	<div id="controls1">
+	<div id="zoomButtonsContainer">
 		<img id="zoomin" src="../img/zoomin.png" onclick="btZoomIn()" onmouseover="showZoomInTips()" onmouseout="hideTips()"/>  
 		<img id="zoomout" src="../img/zoomout.png" onclick="btZoomOut()"  onmouseover="showZoomOutTips()" onmouseout="hideTips()"/>
 	</div> 
 	
 	<div id="tips"></div>
-</div><!--eof controls0 -->
+</div><!--eof controlsContainer -->
 
 
 <div id="btUpCont" class="arwCont">

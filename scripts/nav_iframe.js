@@ -23,7 +23,7 @@
     
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
-var initialSlideSet = "carotid_atherosclerosis,brain"; //slideSet to load opening
+var initialSlideSet = "carotid_atherosclerosis_with_labels,brain"; //slideSet to load opening //@TODO: put this in the menus.js file
 var urlViewerFile = "../html/main.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
