@@ -18,6 +18,23 @@ function isSet(subject) //
 	return ((typeof subject != undefined) && (subject != null))? true : false;
 }
 
+/*
+ * Counts the number of properties in an object
+ * Neccessary because 'length' is not a native property of a javascript object, like it is of an Array.
+ * $param the object you want to know the amount of properties ('=length') of
+ * @return number - amount of properties ('=length')
+ * Source //http://stackoverflow.com/questions/5223/length-of-javascript-object-ie-associative-array (modified)
+ */
+function getObjectLength(obj)
+{
+    var length = 0, key;
+    for (key in obj) 
+    {
+        if (obj.hasOwnProperty(key)) length++;
+    }
+    return length;
+};
+
 
 //////////////////////////////////////////////////////////////////////
 //

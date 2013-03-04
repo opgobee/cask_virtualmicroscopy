@@ -111,6 +111,9 @@ var settings= {}; //container object for settings
 settings["showCoordinatesPanel"] = false; //default dont show coords panel
 settings["wheelZoomInDirection"] = -1; //determines zoomin/out direction of wheel; 1= up, -1= down
 settings["hasLabels"] = false; 
+settings["labelOffsetHeight"] = null; //amount of pixels that label is shown higher/lower related to the exact spot on the picture where it is placed - to allow the text (with a certain height to stand exactly next to the spot)
+settings.crosshairHeight = 16; //pixelsize of crosshairimage
+settings.crosshairWidth = 16; //pixelsize of crosshairimage
 
 //stuff to be moved to the settings object
 var wheelmode = 0; //0 = wheel zooms, 1 = wheel goes to next/prev image (for stacks of images (not yet implemented)
@@ -124,15 +127,17 @@ var focusLabel = focusLabelId = null; //labelText and id of label that will be s
 var elem = {}; //global containing references to DOM elements in the connected html page, wiil be initialized in function setGlobalReferences()
 
 var data = {}; // global container for data
-data.labels = null;
-data.slides = null;
+data.slides = {};
+data.labels = {}; //object with data of the labels
+data.newLabels = {}; //object with data of live created labels
+data.currentImageWidth = null; //width of complete image at the current zoom level
+data.currentImageHeight = null; //height of complete image at the current zoom level
 
 var status = {}; //global object to keep data that needs to be kept track of
 status.numberLabels = 0;
 status.renderingLabels = false; //busy creating labels.
 status.labelsRendered = false;
 
-var newLabels = []; //array with data of live created labels
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -149,7 +154,7 @@ var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
-var innerDiv, innerStyle,  bgDiv; //global refs to elements, bgDiv= grey background
+var innerStyle; //global refs to elements, 
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
 var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hold down on image
 var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoombuttons locks the start zoomcenter until mousemove or zoom on cursor
@@ -226,6 +231,7 @@ function init()
 		}
 	
 	makeNewLabel();
+	
 }//eof init()
 
 
@@ -278,12 +284,12 @@ function readDataToSettings()
  */
 function setGlobalReferences()
 {
-	innerDiv = document.getElementById("innerDiv"); 
-	innerStyle= innerDiv.style; //keep ref to speed up
+	elem.innerDiv = document.getElementById("innerDiv"); 
+	innerStyle= elem.innerDiv.style; //keep ref to speed up
 	elem.imageTiles = document.getElementById("imageTiles"); 
 	elem.imageLabels = document.getElementById("imageLabels");
 	elem.newLabels = document.getElementById("newLabels");
-	bgDiv = ref('bgDiv'); //grey background div behind image
+	elem.bgDiv = ref('bgDiv'); //grey background div behind image
 	elem.controlsContainer = ref('controlsContainer');
  	elem.zoomButtonsContainer = ref('zoomButtonsContainer');
 	elem.thumbContainer = ref('thumbContainer'); 
@@ -380,6 +386,8 @@ function showInitialView()
 	imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 	imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
 	
+	setLabelOffsetHeight();
+	
 //ih("init-winsize");
 	winsize();//do after onload for IE
 
@@ -408,7 +416,7 @@ function showInitialView()
 		
 	//load labels
 	if (settings["hasLabels"]) 
-		{//ih("init0-loadLbl");
+		{
 		loadLabels(labelsPath);
 		} 
 
@@ -627,8 +635,8 @@ function startMove(event)
 	if (!event){ event = window.event;}
 	var dragStartLeft = event.clientX; 
 	var dragStartTop = event.clientY; 
-	var imgLeft = stripPx(innerDiv.style.left); 
-	var imgTop = stripPx(innerDiv.style.top); 
+	var imgLeft = stripPx(elem.innerDiv.style.left); 
+	var imgTop = stripPx(elem.innerDiv.style.top); 
 	dragOffsetLeft= Math.round(imgLeft - dragStartLeft);
 	dragOffsetTop= Math.round(imgTop - dragStartTop);
 	dragging = true; return false;
@@ -656,9 +664,10 @@ function processMove(event)
 	//move the image
 	if (dragging) 
 	{
-		//ih("event.clientX="+event.clientX+", dragOffsetLeft="+dragOffsetLeft);	
-		innerStyle.left = event.clientX + dragOffsetLeft +"px";
-		innerStyle.top = event.clientY + dragOffsetTop + "px"; 
+		//ih("event.clientX="+event.clientX+", dragOffsetLeft="+dragOffsetLeft);
+		var newX = event.clientX + dragOffsetLeft;
+		var newY = event.clientY + dragOffsetTop;
+		setInnerDiv(newX,newY);
 		checkTiles();
 		moveViewIndicator();
 	}
@@ -678,11 +687,23 @@ function stopMove()
  */
 function getImgCoords(cursorX,cursorY)	
 	{var imgCoords={};
-	imgCoords.x = Math.round(((cursorX - stripPx(innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000;
-	imgCoords.y = Math.round(((cursorY - stripPx(innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
+	imgCoords.x = Math.round(((cursorX - stripPx(elem.innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000;
+	imgCoords.y = Math.round(((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
 	
+/*
+ * gets the width and height sizes of the 'complete image' at the present zoom level (be it within or outside viewport) 
+ * @return object {o.width,o.height} with dimensions in pixels (without "px" suffix)
+ * Oeps appears to be superfluous there is already imgWidthPresentZoom and imgHeightPresentZoom
+ */
+function getCurrentImageSizes()
+{
+	var o={};
+	o.width  = imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom));
+	o.height = imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	return o;
+}
 
 /*
  * gets center of the visible part of the image (expressed in pixels of the image). Used as zoomcenter at +/- or buttonclick zooming
@@ -707,8 +728,8 @@ function getVisibleImgCenter()
 	
 //	ih("visLeft="+visLeft+",visRight="+visRight+", imgCenter.x="+imgCenter.x+"visTop="+visTop+",visBottom="+visBottom+", imgCenter.y="+imgCenter.y)
 //	ih("imgCenter.x="+imgCenter.x+", imgCenter.y="+imgCenter.y+"<br>")	 
-//	imgCenter.x = Math.round( stripPx(innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-zoom) ) );
-//	imgCenter.y = Math.round( stripPx(innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-zoom) ) );
+//	imgCenter.x = Math.round( stripPx(elem.innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-zoom) ) );
+//	imgCenter.y = Math.round( stripPx(elem.innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-zoom) ) );
 	return imgCenter;
 	}
 	
@@ -745,8 +766,8 @@ function ZoomIn()
 	
 	if (zoom!=gTierCount-1)
 	{
-		var imgTop = stripPx(innerDiv.style.top); 
-		var imgLeft = stripPx(innerDiv.style.left); 
+		var imgTop = stripPx(elem.innerDiv.style.top); 
+		var imgLeft = stripPx(elem.innerDiv.style.left); 
 		//ih("imgLeft=" +imgLeft + ", imgTop="+imgTop +", cursorX="+cursorX+", cursorY="+cursorY+", lockedZoomCenterX="+lockedZoomCenterX+", lockedZoomCenterY="+lockedZoomCenterY+"<br>");
 
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
@@ -767,27 +788,29 @@ function ZoomIn()
 				lockedZoomCursorX = cursorX;
 				lockedZoomCursorY = cursorY;
 			}
-
 		//ih("DETERMINED zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
-		innerDiv.style.left = (2 * imgLeft - zoomCenterX) + "px";
-		innerDiv.style.top  = (2 * imgTop  - zoomCenterY) + "px";
-		//ih("AFTER: innerDiv.style.left="+innerDiv.style.left+", innerDiv.style.top="+innerDiv.style.top)		
+		
+		//reposition the innerDiv that contains the image
+		var newX = 2 * imgLeft - zoomCenterX;
+		var newY = 2 * imgTop  - zoomCenterY;
+		setInnerDiv(newX,newY);
+		
+		//ih("AFTER: elem.innerDiv.style.left="+elem.innerDiv.style.left+", elem.innerDiv.style.top="+elem.innerDiv.style.top)		
 		zoom=zoom+1; 
+		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
+		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
+		//ih("ZOOMIN to zoom: "+zoom+"<br>");
+		setLabelOffsetHeight();
+		
 		
 		//remove present tiles
 		deleteTiles();
+		
 		//load with new tiles
 		checkTiles();
 		
 		//reposition labels
-		jQ([elem.imageLabels,elem.newLabels]).children(".label").each( function(){
-			var left = parseFloat(jQ(this).css("left"));
-			var top  = parseFloat(jQ(this).css("top" ));		
-			jQ(this).css({"left": 2*left + "px", "top": 2*top + "px"});		
-		})
-
-		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
-		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
+		repositionLabels();
 
 		resizeBackgroundDiv();	
 		keepInViewport();
@@ -796,6 +819,7 @@ function ZoomIn()
 		//lowZoomHideLabels();
 		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
+		//ih("ZOOMIN done<br>")
 	}	
 }
 
@@ -804,8 +828,8 @@ function ZoomOut()
 { 
 	if (zoom!=0)
 	{
-		var imgTop = stripPx(innerDiv.style.top); 
-		var imgLeft = stripPx(innerDiv.style.left); 
+		var imgTop = stripPx(elem.innerDiv.style.top); 
+		var imgLeft = stripPx(elem.innerDiv.style.left); 
 	
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
 		{
@@ -826,27 +850,29 @@ function ZoomOut()
 			lockedZoomCursorY = cursorY;
 		}
 
-// ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
-		innerDiv.style.left = (0.5 * imgLeft + 0.5 * zoomCenterX) + "px"; 
-		innerDiv.style.top  = (0.5 * imgTop  + 0.5 * zoomCenterY) + "px"; 
+		//reposition the innerDiv that contains the image
+		var newX = 0.5 * imgLeft + 0.5 * zoomCenterX;
+		var newY = 0.5 * imgTop  + 0.5 * zoomCenterY;
+		setInnerDiv(newX,newY);
+
+		//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
 		zoom=zoom-1; 
+		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
+		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
+		//ih("ZOOMOUT to zoom: "+zoom+"<br>");
+		setLabelOffsetHeight();
+		
 		
 		//remove present tiles
 		deleteTiles();
+				
 		//load with new tiles
 		checkTiles(); 
 		
 		//reposition labels
-		jQ([elem.imageLabels,elem.newLabels]).children(".label").each( function(){
-			var left = parseFloat(jQ(this).css("left"));
-			var top  = parseFloat(jQ(this).css("top" ));		
-			jQ(this).css({"left": 0.5*left + "px", "top": 0.5*top + "px"});		
-		})
-
-		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
-		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
-
+		repositionLabels();
+		
 		resizeBackgroundDiv(); 
 		keepInViewport(); 
 		updateLengthBar(); 
@@ -854,6 +880,7 @@ function ZoomOut()
 		// lowZoomHideLabels();
 		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
+		//ih("ZOOMOUT done<br>")
 	}
 }
 
@@ -980,7 +1007,7 @@ function countTilesPerTier()
 	var tempWidth = imgWidthMaxZoom; var tempHeight = imgHeightMaxZoom; var divider=2; 
 
 	for (var j=gTierCount-1; j>=0; j--) 
-		{ gTileCountWidth[j] = Math.floor(tempWidth/tileSize); //couldn't this one and tempwidth one be replaced by ceil and no modulo addition?
+		{ gTileCountWidth[j] = Math.floor(tempWidth/tileSize); //couldn't this one and tempwidth one be replaced by ceil and no modulo addition? //@TODO: store in main data globals isntead of all these separate globals
 		if (tempWidth%tileSize){ gTileCountWidth[j]++;}
 		gTileCountHeight[j] = Math.floor(tempHeight/tileSize); 
 		if (tempHeight%tileSize){ gTileCountHeight[j]++;}
@@ -1000,31 +1027,47 @@ function countTilesPerTier()
 	}
 	
 /*
+ * repositions innerDiv, the large main div that holds and positions the image tiles, and newLabels div that holds and positions the newLabels
+ * Div newlabels is a separate div because it needs to be outside outerDiv, hence it needs separate repositioning  
+ */
+function setInnerDiv(xPosition,yPosition)
+{
+	elem.innerDiv.style.left  = xPosition  + "px";
+	elem.innerDiv.style.top   = yPosition  + "px";
+	elem.newLabels.style.left = xPosition  + "px";
+	elem.newLabels.style.top  = yPosition  + "px";
+}
+
+
+
+/*
  * Sets the innerDiv that contains the image, so that the passed x and y coords are in the center of the viewPort
  * @param number xcoord ; fraction of the image's width  = number between 0 and 1
  * @param number ycoord ; fraction of the image's height = number between 0 and 1
  */
 function centerOn(xcoord,ycoord)
 {
-	innerDiv.style.left= ( viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)) )  + "px";
-	innerDiv.style.top = ( viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)) )  + "px";
+	var x = viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom));
+	var y = viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	setInnerDiv(x,y);
 }
 
 function centerMap()
 {//ih("in centerMap1");
 	if(dimensionsKnown())
 	{
-		innerDiv.style.left = ( viewportWidth /2 - imgWidthPresentZoom /2 ) + "px"; 
-		innerDiv.style.top  = ( viewportHeight/2 - imgHeightPresentZoom/2 ) + "px"; 
+		var x = viewportWidth /2 - imgWidthPresentZoom /2;
+		var y = viewportHeight/2 - imgHeightPresentZoom/2;
+		setInnerDiv(x,y);
 		//center=1;
 		//ih("in centerMap2");
-		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", innerDiv="+innerDiv+", innerDiv.style="+innerDiv.style+", innerDiv.style.left="+innerDiv.style.left)
+		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", elem.innerDiv="+elem.innerDiv+", elem.innerDiv.style="+elem.innerDiv.style+", elem.innerDiv.style.left="+elem.innerDiv.style.left)
 	}	
 	else 
 	{//ih("dimensionsUnknown");
 	}	
 }
-		
+
 function keepInViewport()
 	{//safety factor, keep minimally this amount of pixesl of image in view
 	var minPixelsInView = 25;
@@ -1085,8 +1128,8 @@ function keepInViewport()
  */
 function resizeBackgroundDiv()
 {
-	bgDiv.style.width = imgWidthPresentZoom + "px";
-	bgDiv.style.height = imgHeightPresentZoom + "px";	
+	elem.bgDiv.style.width = imgWidthPresentZoom + "px";
+	elem.bgDiv.style.height = imgHeightPresentZoom + "px";	
 }
 
 
@@ -1161,8 +1204,8 @@ function deleteTiles()
 		
 function getVisibleTiles() 
 	{
-	var mapX = stripPx(innerDiv.style.left); //whole image position rel to top left of viewport
-	var mapY = stripPx(innerDiv.style.top);
+	var mapX = stripPx(elem.innerDiv.style.left); //whole image position rel to top left of viewport
+	var mapY = stripPx(elem.innerDiv.style.top);
 	var startX = (mapX < 0)? Math.abs(Math.ceil(mapX / tileSize)) : 0; //x number of first tile to be called. Added: if inside viewport startX == 0
 	var startY = (mapY < 0)? Math.abs(Math.ceil(mapY / tileSize)) : 0; 
 
@@ -1258,7 +1301,7 @@ function processThumbMove(event)
  * handles both end of drag viewIndicator and random click positioning on thumb
  */
 function stopThumb(event)
-{//ih("XXX in stopThumb XXX");
+{
 	if (!event){ event = window.event;}
 	if (event)
 	{
@@ -1266,25 +1309,19 @@ function stopThumb(event)
 		var eventY = event.clientY; 
 		var fractionLR, fractionTB; 
 		
-		//ih("XXX in If Event XXX");
-
 		var controlsContPos= getElemPos(elem.controlsContainer);
 		var thumbContPos= getElemPos(elem.thumbContainer);
-		
-		//ih("XXX in If Event AFTER XXX");
-		
+				
 		//end of thumbdragging
 		if(thumbDragging)
-			{//ih("XXX thumbDragging=TRUE XXX");
-			thumbDragging = false;
-			
+			{
+			thumbDragging = false;		
 			fractionLR = (eventX + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
 			fractionTB = (eventY + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 			
 			}
 		//click on thumbContainer without thumbdragging
 		else 
 			{
-			//ih("XXX thumbDragging=FALSE XXX");
 			fractionLR = (eventX - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
 			fractionTB = (eventY - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
 			//update position viewIndicator
@@ -1299,8 +1336,8 @@ function stopThumb(event)
 				}
 */		
 		//reposition the main image according to how the viewIndicator was set by user
-		innerDiv.style.left= (viewportWidth/2  - gTierWidth[zoom]  * fractionLR) +"px";
-		innerDiv.style.top = (viewportHeight/2 - gTierHeight[zoom] * fractionTB) +"px";
+		elem.innerDiv.style.left= (viewportWidth/2  - gTierWidth[zoom]  * fractionLR) +"px";
+		elem.innerDiv.style.top = (viewportHeight/2 - gTierHeight[zoom] * fractionTB) +"px";
 		keepInViewport();
 		checkTiles();
 		
@@ -1314,8 +1351,8 @@ function stopThumb(event)
 function moveViewIndicator()
 	{
 	//ih("moveViewIndicator()"+moveViewIndicator.caller);
-	innerDivLeft = stripPx(innerDiv.style.left);
-	innerDivTop  = stripPx(innerDiv.style.top);
+	innerDivLeft = stripPx(elem.innerDiv.style.left);
+	innerDivTop  = stripPx(elem.innerDiv.style.top);
 	viewIndicatorWidth  = viewportWidth/Math.pow(2,zoom);
 	viewIndicatorHeight = viewportHeight/Math.pow(2,zoom); 
 
@@ -1385,6 +1422,457 @@ ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
 }
 
 
+
+
+
+
+////////////////////////////////////////////
+//
+// LABELS 
+//
+///////////////////////////////////////////
+
+
+function loadLabels(pathToFile)
+{ 
+	
+	try
+	{// ih("loadLblwXhr-1");
+
+		// First try jQuery.getScript
+		// works from server, not local
+		jQ.getScript(pathToFile, checkLabelsLoaded);
+				
+		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, fallback to own method loadJs
+		// works, on Chrome, FF, IE, Saf, both local and on server
+		if(window.location.protocol == "file:")
+		{
+			loadJs(pathToFile, checkLabelsLoaded);
+		}
+
+		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
+		checkLabelsLoaded.pathToFile = pathToFile;
+	}	
+	 catch(e)
+	{
+		return;
+	}			
+}
+
+/*
+ * Callback function called when the file labels.js has been loaded
+ * checks that that the labels.js file is loaded and contains a variable 'labels'. 
+ * If so, calls for the labels to be rendered, if not re-calls itself 
+ */
+function checkLabelsLoaded()
+	{
+	//isLoaded= (window.labels)? "loaded":"NOTloaded";
+	//ih(isLoaded);
+	if(window.labels && !status.labelsRendered ) //js file should state labels= {...}
+		{
+		//ih("lblFromJs");
+		
+		//copy the labels to the internal object
+		//create labelIds, use these as key and also set it in the labelData self //@TODO change in array type for loop after the labels are changed from object to array - for now is a rename
+		var index = 0;
+		for(label in labels)
+		{
+			var LabelId = "L"+index;
+			//store labelData in the internal object by key labelId
+			data.labels[LabelId]= labels[label];
+			//also store the id in the data of the individual label (ie in the object that is value)
+			data.labels[LabelId].id = LabelId;
+			index++;
+		}
+		renderLabels();	
+		}
+	else
+		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
+			{clearTimeout(checkLabelsLoaded.timer);
+			checkLabelsLoaded.counter++;
+			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
+			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
+			
+			//also attempt the loadJs method
+			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
+			}
+		}	
+	}
+checkLabelsLoaded.counter=0;
+checkLabelsLoaded.timer="";
+checkLabelsLoaded.pathToFile=""; 
+
+	
+function renderLabels() 
+{
+	if(!dimensionsKnown()) 
+	{clearTimeout(labelTimer);	
+	labelTimer=setTimeout("renderLabels()", 500); 
+	return;
+	}	
+	
+	//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
+	if(status.renderingLabels)
+		{return;}
+	//set switch: busy!
+	status.renderingLabels = true;	
+	//ih("renderLabels1");
+
+	//remove any old labels and reset counter and status
+	jQ(elem.imageLabels).empty();
+	status.numberLabels = 0;
+	status.labelsRendered = false;
+	
+	//ih("renderLabels2");
+	//debug(data.labels);
+	
+	//create labels
+	for (labelId in data.labels)
+	{
+		var labelData = data.labels[labelId];
+		createLabel(labelData);		
+	}
+	//attaches handlers to labels that shows the tooltips
+	initTooltips();
+	//neccessary because the page may be initialized via a deep link directly at a certain zoom level
+	resizeLabels();
+	//possibly focus on a specific label
+	focusOnLabel();
+	//set global booleans
+	status.renderingLabels = false;
+	status.labelsRendered = true;
+}
+
+/*
+ * Creates a label from the given object oLabel and appends the label into div imageLabels
+ * @param object labelData e.g. {"label": "Source", "info": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
+ * @return nothing
+ */
+function createLabel(labelData)
+{
+	//debug(labelData);
+	var index = status.numberLabels + 1;
+	
+	//ih("Creating:"+labelData.label+", createLabel.index="+index+"<br>");
+	
+	//create element
+	var label = document.createElement("div"); 
+	label.style.position = "absolute";
+	label.style.zIndex = 1; 
+	label.setAttribute("id", labelData.id);
+	label.setAttribute("class", "label hastooltip"); 
+	label.setAttribute("className", "label hastooltip"); //IE
+	label = elem.imageLabels.appendChild(label);
+			
+	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
+	var labelText = labelData.label;
+	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
+	jQ(label).append( jQ.parseHTML(labelText) );
+
+	//add tooltip
+	if(isSet(labelData.info))
+	{
+		//create element
+		var labelTooltip = document.createElement("div");
+		labelTooltip.setAttribute("class", "tooltip"); 
+		labelTooltip.setAttribute("className", "tooltip"); //IE		
+		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
+		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
+		jQ(labelTooltip).append( jQ.parseHTML(labelData.info) );
+	}
+	
+	//position the label
+	positionLabel(labelData);
+	
+	//increment the global counter
+	status.numberLabels++;	
+}
+
+/*
+ * Calculates the position of the label, dependent on the present zoom
+ * @param object labelData - this should contain properties x and y with the locations of the label (in fractions of the image)
+ * @return object {o.x,o.y} holding x and y positions in pixels in relation to the div that contains the labels (without "px")
+ */
+function calculateLabelPosition(labelData)
+{
+	var o = {};
+	o.x = labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)); 
+	o.y = labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)); 
+	return o;	
+}
+
+
+/*
+ * positions a label (or a new label)
+ */
+function positionLabel(labelData)
+{
+	var labelId  = labelData.id;
+	var labelPos = calculateLabelPosition(labelData);
+	jQ("#"+labelId).css({"left": labelPos.x + "px", "top": (labelPos.y + settings["labelOffsetHeight"]) + "px"});
+	if( labelId=="NL0")
+	{
+		var fontSize= jQ("#NLTextArea0").css("font-size");
+		var lineHeight= jQ("#NLTextArea0").css("line-height");
+		var str="Positioning. Stored position left: "+labelData.x+"FR, top: "+labelData.y+"FR<br>"
+		str+="font-size: "+fontSize+", line-height: "+lineHeight+", labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
+		str+="Container set to left: "+labelPos.x+"px, top: "+(labelPos.y + settings["labelOffsetHeight"])+"px<br>";;
+		//ih(str);	
+
+		
+		//ih("<br>Position "+labelId+" to: left="+labelPos.x+"px ["+labelData.x+"FR], top="+labelPos.y+ settings["labelOffsetHeight"]+"px, ["+labelData.y+"FR]<br />");
+	}
+}
+
+/*
+ * repositions (after zoom) labels and newlabels
+ */
+function repositionLabels()
+{
+	for(labelId in data.labels)
+	{
+		positionLabel(data.labels[labelId]);
+	}
+	for(labelId in data.newLabels)
+	{
+		positionLabel(data.newLabels[labelId]);
+	}	
+}
+
+/*
+ * resize labels at zooming
+ * 
+ */
+function resizeLabels() 
+{	
+	var sizeFactor  = parseFloat( (zoom/(gTierCount-1)) * 3 );
+	var sizeProcent = (sizeFactor * 100) + "%";  //100pct
+	var labelWidth  = (sizeFactor * 100) + "px"; //100px is original width
+	var newLabelTooltipWidth = ((sizeFactor * 100) -8 ) + "px"; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding 
+	//ih(sizeProcent + ", "+ labelWidth);
+	
+	//adapt font-size and max-width of fixed labels 
+	//Note 1: this doesn't set width on newlabeltextareas despite they have class .label, as width is overruled by class .newlabeltextarea declared later in css
+	//Note 2: used max-width instead of width so that the actual width (esp. the tooltip area!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
+	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth});
+
+	positionCrossHairs()
+	
+	//adapt width of newLabels
+	jQ(".newLabelTextArea").css({"width": labelWidth});
+	jQ(".newLabelTooltip").css({"width": newLabelTooltipWidth});	
+	
+	//also activate autosize-resizing of the newlabeltextbox, to accomodate for the changed font-size 
+	//Note: doesn't seem to work when calling it by class, so call it by the textarea's id's: http://www.jacklmoore.com/autosize#comment-1324
+	var nrNewLabels = getObjectLength(data.newLabels); 
+	for(var i=0;i < nrNewLabels;i++)
+	{
+		jQ("#NLTextArea"+i).trigger('autosize');
+	}
+}
+
+/*
+ * gets the current font-size of labels, is read from the hiddenLabel, is used to determine the labelOffset
+ */
+function getCurrentLabelLineHeight()
+{
+	return stripPx(jQ("#hiddenLabel").css("line-height"));
+}
+
+/*
+ * Sets the amount of pixels that label is shown higher/lower related to the exact spot on the picture where it is placed 
+ * to allow the text (with a certain height) to stand exactly next to the spot
+ */
+function setLabelOffsetHeight()
+{
+	var labelLineHeight= getCurrentLabelLineHeight();
+	settings["labelOffsetHeight"] = - (labelLineHeight/2);
+	//ih("LabelLineHeight="+labelLineHeight + ", SET labelOffsetHeight= "+ settings["labelOffsetHeight"]+"<br>");
+}
+
+
+
+function placeTestLabel()
+{
+	var labelData={};
+	labelData.id="NL0";
+	labelData.x= 0.39;
+	labelData.y= 0.443;
+	positionLabel(labelData);
+	data.newLabels["NL0"].x= 0.39;
+	data.newLabels["NL0"].y= 0.443;
+}
+
+function testLabelPos()
+{
+
+	var str="";
+	str+= "Innerdiv-left:" +jQ("#innerDiv").css("left") +", Innerdiv-top:" +jQ("#innerDiv").css("top")+"<br>";
+	str+= "Dep-left:" +jQ("#L4").css("left") +" ["+data.labels["L4"].x+"FR]<br>";
+	str+= "Dep-top:"  +jQ("#L4").css("top")  +" ["+data.labels["L4"].y+"FR]<br>";
+	str+= "Dep-line-height:" +jQ("#L4").css("line-height") +"<br>";
+	str+= "Dep-font-size:" +jQ("#L4").css("font-size") +"<br>";
+
+	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
+	str+= "NL0-left:" +jQ("#NL0").css("left") +" ["+data.newLabels["NL0"].x+"FR]<br>";
+	str+= "NL0-top:"  +jQ("#NL0").css("top")  +" ["+data.newLabels["NL0"].y+"FR]<br>";
+	str+= "NLTextArea0-left:" +jQ("#NLTextArea0").css("left") +"<br>";
+	str+= "NLTextArea0-top:"  +jQ("#NLTextArea0").css("top")  +"<br>";	
+	str+= "NLTextArea0-line-height:" +jQ("#NLTextArea0").css("line-height") +"<br>";
+	str+= "NLTextArea0-font-size:" +jQ("#NLTextArea0").css("font-size") +"<br>";
+	
+	ih(str);
+	
+}
+function focusOnLabel()
+{
+	if(focusLabel)
+	{
+		//alert("focussing on "+focusLabel)
+		var x = data.labels[focusLabel].x
+		var y = data.labels[focusLabel].y;
+		centerOn(x,y);
+		//alert("centered on x="+x+", y="+y)
+	}
+}
+
+
+
+/*
+ * Creates a new label (for GUI label making), it is a draggable container with a textbox for the labeltext and a textbox for the tooltiptext  
+ */
+function makeNewLabel()
+{
+	//Note: length property is not a native thing in a javascript object
+	var index= getObjectLength(data.newLabels); 
+	//create id. 'newLabelId' is used as key in the object newLabels (with value= data-object for this new label)
+	var newLabelId =  "NL" + index; 
+	//Create data object for the new label and add it to the global data.newLabels
+	var newLabel = {"id":newLabelId,"x":null,"y":null,"text":"","tooltip":null}; //container for the data of the new label
+	data.newLabels[newLabelId] = newLabel;
+	
+	//DOM creation
+	//container, 'newLabelContainerId' is alias for newLabelId that is used in DOM actions to clarify that the container-div is indicated. 
+	var newLabelContainerId = newLabelId;
+	var newLabelContainerHtml = '<div id="'+newLabelContainerId+'" class="newLabelContainer" className="newLabelContainer"></div>';
+	jQ( "#newLabels").append(newLabelContainerHtml);
+	//The crosshair
+	jQ( "#"+newLabelContainerId ).append('<img src="../img/cursor_crosshair2.png" class="newLabelCrosshair hastooltip"/><div class="tooltip">The label will be affixed to this point.<br /><em><small>(This is at half the line-height of the label\'s text)</small></em>.</div>');
+	
+	//textarea for the labeltext
+	var newLabelTextAreaId = "NLTextArea" + index;
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label"></textarea>');
+	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
+	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();}) 
+	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
+	jQ( "#"+newLabelTextAreaId ).autosize({append: "\n"}); 
+	//Continuously get the entered text and store it in the data of the newlabel
+	jQ( "#"+newLabelTextAreaId ).keyup(function () {
+		data.newLabels[newLabelId].text = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
+		//ih(data.newLabels[newLabelId].text)
+		}); 
+		
+	//buttons to open the tooltip textarea
+	var htmlArws = '<br /><img id="newLabelArwDown' + index + '" class="newLabelArw hastooltip" classname="newLabelArw hastooltip" src="../img/bullet_arrow_down.png">';
+	htmlArws+= '<div class="tooltip">Add a tooltip for this label<br /><em><small>(A tooltip is a little box with additional information, that appears when the user hovers her mouse over the label. Just as the one you\'re reading now!)</small></em>.</div>';
+	htmlArws+= '<img id="newLabelArwUp' + index + '" class="newLabelArw hastooltip" classname="newLabelArw" src="../img/bullet_arrow_up.png">';
+	htmlArws+= '<div class="tooltip">Close tooltip (your text remains stored)</div>';
+	jQ( "#"+newLabelContainerId ).append(htmlArws);
+	//initially hide the up arrow
+	jQ("#newLabelArwUp"+index).hide();
+	
+	//textarea for the labeltext
+	var newLabelTooltipId = "NLTooltip" + index;
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip"></textarea>');
+	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
+	jQ( "#"+newLabelTooltipId ).click(function(e){e.target.focus();}) 
+	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
+	jQ( "#"+newLabelTooltipId ).autosize({append: "\n"}); 
+	//Continuously get the entered text and store it in the data of the newlabel
+	jQ( "#"+newLabelTooltipId ).keyup(function () {
+		data.newLabels[newLabelId].tooltip = ref(newLabelTooltipId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
+		//ih(data.newLabels[newLabelId].text)
+		}); 
+	
+
+
+	//attach handlers to button (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
+	jQ("#newLabelArwDown"+index).click(function(){
+		jQ( "#"+newLabelTooltipId ).show(); //open tooltip text area
+		jQ(this).hide(); //hide down arrow
+		jQ("#newLabelArwUp"+index).show(); //show up arrow
+	})
+
+	jQ("#newLabelArwUp"+index).click(function(){
+		jQ( "#"+newLabelTooltipId ).hide(); //hide tooltip text area
+		jQ(this).hide(); //hide up arrrow
+		jQ("#newLabelArwDown"+index).show(); //show down arrow
+	})
+	
+	//position new Label in the middle of viewport to start with
+	var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
+	data.newLabels[newLabelId].x = center.x; //store in the data object
+	data.newLabels[newLabelId].y = center.y;
+	
+	//position the new label
+	positionLabel(data.newLabels[newLabelId]);
+	//var labelPos = calculateLabelPosition(data.newLabels[newLabelId]);
+	//ih("newLabelLeft="+labelPos.x+"px= "+data.newLabels[newLabelId].x+"FR, newLabelTop="+labelPos.y+"px= "+data.newLabels[newLabelId].y+"FR");
+	
+	//make label draggable. At stopdrag get the textarea's value and update the position data in the data object of the newlabel
+	jQ( "#"+newLabelContainerId).draggable({
+		cancel: "input", //neccessary to make textarea draggable
+		stop: function( event, ui ) 
+		{		
+			//ui.position.left and top are px positions related to left top of image
+			data.newLabels[newLabelId].x = ui.position.left / imgWidthPresentZoom; //@TODO? add border correction of 1?
+			data.newLabels[newLabelId].y = (ui.position.top - settings["labelOffsetHeight"]) / imgHeightPresentZoom; //apparently border seems no effect on top???? so dont correct
+			var str="<br>Container moved to left: "+ui.position.left+"px, top: "+ui.position.top+"px<br>";
+			str+="labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
+			str+="Stored position left: "+data.newLabels[newLabelId].x+"FR, top: "+data.newLabels[newLabelId].y+"FR<br>";
+			//ih(str);	
+		}
+	});
+	
+	//set focus on new label
+	jQ( "#"+newLabelTextAreaId ).focus();
+	//activate tooltips
+	initTooltips();
+	
+}
+
+function positionCrossHairs()
+{
+	var left = - settings.crosshairWidth/2;
+	var top  = - settings.crosshairHeight/2 - settings["labelOffsetHeight"];
+
+	//set crosshair at middle of (first-line) line-height
+	jQ(".newLabelCrosshair").css({ "left": left +"px", "top": top +"px"});
+
+}
+
+
+//adds additional credits into credit div
+function displayCredits()
+	{displayCredits.timer="";
+	displayCredits.counter=0;
+	if(window.credits)
+		{
+		var credDiv = ref("credit");
+		if(credDiv)
+			{var credNow = credDiv.innerHTML;
+			credDiv.innerHTML= credNow +"<br />" + credits;
+			}
+		}
+	else
+		{if ( displayCredits.counter < 6 ) //6 attempts
+			{clearTimeout(displayCredits.timer);
+			displayCredits.counter++;
+			var delay= displayCredits.counter * 200; //each attempt longer delay for retry
+			displayCredits.timer = setTimeout("displayCredits()",delay);
+			}
+		}	
+	}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -1484,261 +1972,6 @@ function hideUrlBarAndSizeIndicators()
 		parent.closeUrlBar();//this will also call hideSizeIndicators()
 		}	
 }
-
-
-
-////////////////////////////////////////////
-//
-// LABELS 
-//
-///////////////////////////////////////////
-
-
-function loadLabels(pathToFile)
-{ 
-	
-	try
-	{// ih("loadLblwXhr-1");
-
-		// First try jQuery.getScript
-		// works from server, not local
-		jQ.getScript(pathToFile, checkLabelsLoaded);
-				
-		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, fallback to own method loadJs
-		// works, on Chrome, FF, IE, Saf, both local and on server
-		if(window.location.protocol == "file:")
-		{
-			loadJs(pathToFile, checkLabelsLoaded);
-		}
-
-		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
-		checkLabelsLoaded.pathToFile = pathToFile;
-	}	
-	 catch(e)
-	{
-		return;
-	}			
-}
-
-/*
- * Callback function called when the file labels.js has been loaded
- * checks that that the labels.js file is loaded and contains a variable 'labels'. 
- * If so, calls for the labels to be rendered, if not re-calls itself 
- */
-function checkLabelsLoaded()
-	{
-	//isLoaded= (window.labels)? "loaded":"NOTloaded";
-	//ih(isLoaded);
-	if(window.labels && !status.labelsRendered ) //js file should state labels= {...}
-		{
-		//ih("lblFromJs");
-		//copy the
-		data.labels = labels;
-		renderLabels();	
-		}
-	else
-		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
-			{clearTimeout(checkLabelsLoaded.timer);
-			checkLabelsLoaded.counter++;
-			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
-			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
-			
-			//also attempt the loadJs method
-			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
-			}
-		}	
-	}
-checkLabelsLoaded.counter=0;
-checkLabelsLoaded.timer="";
-checkLabelsLoaded.pathToFile=""; 
-
-	
-function renderLabels() 
-{
-	if(!dimensionsKnown()) 
-	{clearTimeout(labelTimer);	
-	labelTimer=setTimeout("renderLabels()", 500); 
-	return;
-	}	
-	
-	//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
-	if(status.renderingLabels)
-		{return;}
-	//set switch: busy!
-	status.renderingLabels = true;	
-	//ih("renderLabels1");
-
-	//remove any old labels and reset counter and status
-	jQ(elem.imageLabels).empty();
-	status.numberLabels = 0;
-	status.labelsRendered = false;
-	
-	//ih("renderLabels2");
-	//debug(data.labels);
-
-	//create labels
-	for (label in data.labels)
-	{
-		var labelData = data.labels[label];
-		createLabel(labelData);		
-	}
-	//attaches handlers to labels that shows the tooltips
-	initTooltips();
-	//neccessary because the page may be initialized via a deep link directly at a certain zoom level
-	resizeLabels();
-	//possibly focus on a specific label
-	focusOnLabel();
-	//set global booleans
-	status.renderingLabels = false;
-	status.labelsRendered = true;
-}
-
-/*
- * Creates a label from the given object oLabel and appends the label into div imageLabels
- * @param object labelData e.g. {"label": "Source", "info": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
- * @return nothing
- */
-function createLabel(labelData)
-{
-	//debug(labelData);
-	var index = status.numberLabels + 1;
-	
-	//ih("Creating:"+labelData.label+", createLabel.index="+index+"<br>");
-	
-	//create element
-	var label = document.createElement("div"); 
-	label.style.position = "absolute";
-	label.style.left = ( labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)) ) + "px"; 
-	label.style.top  = ( labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)) )  + "px"; 
-	label.style.zIndex = 1; 
-	var labelId = "L" + index;
-	label.setAttribute("id", labelId);
-	label.setAttribute("class", "label hastooltip"); 
-	label.setAttribute("className", "label hastooltip"); //IE
-	label = elem.imageLabels.appendChild(label);
-	
-	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
-	var labelText = labelData.label;
-	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
-	jQ(label).append( jQ.parseHTML(labelText) );
-
-	//add tooltip
-	if(isSet(labelData.info))
-	{
-		//create element
-		var labelTooltip = document.createElement("div");
-		labelTooltip.setAttribute("class", "tooltip"); 
-		labelTooltip.setAttribute("className", "tooltip"); //IE		
-		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
-		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
-		jQ(labelTooltip).append( jQ.parseHTML(labelData.info) );
-	}
-	//increment the global counter
-	status.numberLabels++;	
-}
-
-/*
- * resize labels at zooming
- */
-function resizeLabels()
-{
-	var sizeFactor  = parseInt(((zoom/(gTierCount-1)) * 300))  + "%";
-	jQ(".label").css({'fontSize':sizeFactor});
-	jQ(".labelTextArea").trigger('autosize');//let the resizing of the textbox also occur when resizing text size
-}
-
-function focusOnLabel()
-{
-	if(focusLabel)
-	{
-		//alert("focussing on "+focusLabel)
-		var x = data.labels[focusLabel].x
-		var y = data.labels[focusLabel].y;
-		centerOn(x,y);
-		//alert("centered on x="+x+", y="+y)
-	}
-}
-
-/*
- * Creates a new label (GUI label making), that is a draggable textbox  
- */
-function makeNewLabel()
-{
-	//Create data object fro the new label and add it to the global newLabels
-	var index= newLabels.length; 
-	var newLabel = {x:null,y:null,text:"",info:null}; //container for the data of the new label
-	newLabels[index] = newLabel; 
-	
-	//DOM creation
-	//container
-	var newLabelContainerId = "NL" + index; 
-	var newLabelContainerHtml = '<div id="'+newLabelContainerId+'" class="newLabelContainer" className="newLabelContainer"></div>';
-	jQ( "#newLabels").append(newLabelContainerHtml)
-		
-	//textarea for the labeltext
-	var newLabelTextAreaId = "NLTextArea" + index;
-	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label"></textarea>');
-	//neccessary to make textarea draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
-	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();}) 
-	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
-	jQ( "#"+newLabelTextAreaId ).autosize({append: "\n"}); 
-	//get the entered text and store it in the data of the newlabel
-	jQ( "#"+newLabelTextAreaId ).keyup(function () {
-		newLabels[index].text = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
-		ih(newLabels[index].text)
-		}); 
-		
-	//buttons to open the tooltip textarea
-	jQ( "#"+newLabelContainerId ).append('<br /><img id="arwDown1" class="newLabelArwDown" classname="newLabelArwDown" src="../img/bullet_arrow_down.png">');
-
-	//position new Label in the middle of viewport to start with, and store it in the data of the newlabel
-	var newLabelLeft = viewportWidth/2 -100;
-	var newLabelTop  = viewportHeight/2 -100;
-	jQ( "#"+newLabelContainerId).css({"left":newLabelLeft,"top":newLabelTop});
-	var labelCoords = getImgCoords(newLabelLeft,newLabelTop);
-	newLabels[index].x = labelCoords.x;
-	newLabels[index].y = labelCoords.y;
-	
-	//make label draggable. At stopdrag get the textarea's value and update the position data of the newlabel
-	jQ( "#"+newLabelContainerId).draggable({
-		cancel: "input", //neccessary to make textarea draggable
-		stop: function( event, ui ) 
-		{		
-			var left = ui.position.left;
-			var top = ui.position.top;
-			labelCoords = getImgCoords(ui.position.left,ui.position.top);
-			newLabels[index].x = labelCoords.x;
-			newLabels[index].y = labelCoords.y;	
-			ih("x="+newLabels[index].x+",y="+newLabels[index].y);	
-		}
-	});	
-	
-}
-
-
-
-
-//adds additional credits into credit div
-function displayCredits()
-	{displayCredits.timer="";
-	displayCredits.counter=0;
-	if(window.credits)
-		{
-		var credDiv = ref("credit");
-		if(credDiv)
-			{var credNow = credDiv.innerHTML;
-			credDiv.innerHTML= credNow +"<br />" + credits;
-			}
-		}
-	else
-		{if ( displayCredits.counter < 6 ) //6 attempts
-			{clearTimeout(displayCredits.timer);
-			displayCredits.counter++;
-			var delay= displayCredits.counter * 200; //each attempt longer delay for retry
-			displayCredits.timer = setTimeout("displayCredits()",delay);
-			}
-		}	
-	}
 
 
 
@@ -1920,11 +2153,11 @@ function stopAutoPan()
 	}	
 		
 function panMap(dir)
-	{var map= getElemPos(innerDiv);
-	if(dir=="up") 			{ innerDiv.style.top  = (map.top  + 10) +"px"; }
-	else if(dir=="down") 	{ innerDiv.style.top  = (map.top  - 10) +"px"; }
-	else if(dir=="left") 	{ innerDiv.style.left = (map.left + 10) +"px"; }
-	else if(dir=="right") 	{ innerDiv.style.left = (map.left - 10) +"px"; }
+	{var map= getElemPos(elem.innerDiv);
+	if(dir=="up") 			{ elem.innerDiv.style.top  = (map.top  + 10) +"px"; }
+	else if(dir=="down") 	{ elem.innerDiv.style.top  = (map.top  - 10) +"px"; }
+	else if(dir=="left") 	{ elem.innerDiv.style.left = (map.left + 10) +"px"; }
+	else if(dir=="right") 	{ elem.innerDiv.style.left = (map.left - 10) +"px"; }
 	var result= keepInViewport();
 	if (result=="corrected") {stopAutoPan(dir);}
 	checkTiles();
