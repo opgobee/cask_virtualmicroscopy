@@ -124,7 +124,7 @@ function readQueryToSettings()
 //	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
 
 	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
-	//querySettings = merge_options(querySettings,queryArgs);
+	//querySettings = mergeObjects(querySettings,queryArgs);
 
 }
 
@@ -591,7 +591,7 @@ function reload(clean)
 	//gets the queryparts in an associative array/object
 	queryArgs= getQueryArgs();
 	//add or replace the requested properties 
-	querySettings = merge_options(queryArgs,querySettings);
+	querySettings = mergeObjects(queryArgs,querySettings);
 	if(clean)
 		{
 			cleanQuerySettings();
@@ -627,34 +627,6 @@ function loadVirtualSlide(slideName)
 		}
 	}
 	
-/*
- * creates the URL query from the settings
- * @param object params with format: ["name"= "value"] 
- * return  query e.g. "?name1=value1&name2=value2" 
- * 
- */
-function createQuery(params)
-{ 
-	if(!isSet(params))
-	{
-		return "";	
-	}
-	var qSlide = 		(isSet(params["slideName"]))? 				"slide=" + params["slideName"] : "";
-	var QShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
-	var QZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
-	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
-	var cX =			(isSet(params["cX"]))? 						"&x=" + params["cX"] : "";
-	var cY =			(isSet(params["cY"]))? 						"&y=" + params["cY"] : "";
-	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
-
-//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
-//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
-	
-	var query = "?" + qSlide + qZoom + cX + cY + qLabel + QZoomInDir + QShowCoords;
-	//alert(query)
-	return query ;	
-}
-
 /*
  * cleans the query settings from all but the requested slide
  */
@@ -762,31 +734,6 @@ function applySettings()
 	}	
 }
 
-
-/*
- * Gets/creates URL link to present view
- * 
- */
-function getUrl()
-{
-	var baseUrl = getBaseUrlPart();
-	
-//NOte; busy here: you want to get it from viewerframe settings instead of from the url
-	//debug(getQueryArgs("viewerFrame"));
-	var presentViewSettings = (window.viewerFrame.getPresentViewSettings)? window.viewerFrame.getPresentViewSettings() : {};
-	//debug("presentViewSettings",presentViewSettings);
-	var combinedSettings = merge_options(settings,presentViewSettings);
-	//debug("combinedSettings",combinedSettings);
-	var query = createQuery(combinedSettings);
-
-	//var imgCenter = getVisibleImgCenter();
-//	url+= "&x=" + imgCenter.x;
-//	url+= "&y=" + imgCenter.y;
-	return baseUrl+query;
-
-}
-
-
 function showUrl()
 {
 	
@@ -797,7 +744,7 @@ function showUrl()
 		}
 	else if(window.viewerFrame && window.viewerFrame.showSizeIndicators)
 		{
-		url = getUrl();
+		var url = createUrl();
 		jQ("#urlString").html(url);
 		jQ("#urlBar").show();
 		window.viewerFrame.showSizeIndicators();
@@ -810,7 +757,7 @@ function showUrl()
 
 function updateUrl()
 {
-	url = getUrl();
+	var url = createUrl();
 	jQ("#urlString").html(url);
 }
 
@@ -821,6 +768,90 @@ function closeUrlBar()
 	{
 		window.viewerFrame.hideSizeIndicators();
 	}
+}
+
+/*
+ * Gets/creates URL link to present view
+ * 
+ */
+function createUrl()
+{
+	var baseUrl = getBaseUrlPart();
+	
+//NOte; busy here: you want to get it from viewerframe settings instead of from the url
+	//debug(getQueryArgs("viewerFrame"));
+	var presentViewSettings = (window.viewerFrame.getDataForUrl)? window.viewerFrame.getDataForUrl() : {};
+	//debug("presentViewSettings",presentViewSettings);
+	var combinedSettings = mergeObjects(settings,presentViewSettings);
+	//debug("combinedSettings",combinedSettings);
+	var query = createQuery(combinedSettings);
+
+	//var imgCenter = getVisibleImgCenter();
+//	url+= "&x=" + imgCenter.x;
+//	url+= "&y=" + imgCenter.y;
+	return baseUrl+query;
+
+}
+
+/*
+ * creates the URL query from the settings
+ * @param object params with format: ["name"= "value"] 
+ * return  query e.g. "?name1=value1&name2=value2" 
+ * 
+ */
+function createQuery(params)
+{ 
+	if(!isSet(params))
+	{
+		return "";	
+	}
+	var qSlide = 		(isSet(params["slideName"]))? 				"slide=" + params["slideName"] : "";
+	var qShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
+	var qZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
+	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
+	var qX =			(isSet(params["x"]))? 						"&x=" + params["x"] : "";
+	var qY =			(isSet(params["y"]))? 						"&y=" + params["y"] : "";
+	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
+	var qLabels =		(isSet(params["labels"]))? 					"&labels="+ createQueryPartLabels(params["labels"]) : "";
+	
+//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
+//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
+	
+	var query = "?" + qSlide + qZoom + qX + qY + qLabel + qZoomInDir + qShowCoords;
+	//alert(query)
+	return query ;	
+}
+
+/*
+ * creates query translation of labeldata for one of more labels 
+ */
+function createQueryPartLabels(labels)
+{
+	var str="";
+	for(label in labels)
+	{
+		str+= createQueryPartLabel(labels[label]);
+	}
+	return str;
+}
+
+/*
+ * creates query translation of labeldata 
+ */
+function createQueryPartLabel(labelData)
+{
+	var str="(";
+	for(prop in labelData)
+	{
+		//only 
+		if(labelData.label != "")
+		{
+		
+		}
+		//str+=	(prop=="x")? 	
+	}
+	str+=")";
+	return str;
 }
 
 function showSetLabelPanel()
@@ -1000,18 +1031,7 @@ function inArray(str, arr)
 	return -1;
 }
 
-/*
- * Performs a simple merge of two objects/associative arrays
- * //http://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically, 
- * jQuery has extend function but not neccessary here
- */
-function merge_options(obj1,obj2) 
-{
-    var obj3 = {};
-    for (var attrname in obj1) { obj3[attrname] = obj1[attrname]; }
-    for (var attrname in obj2) { obj3[attrname] = obj2[attrname]; }
-    return obj3;
-}
+
 
 function empty(elementRef)
 {

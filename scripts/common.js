@@ -35,6 +35,18 @@ function getObjectLength(obj)
     return length;
 };
 
+/*
+ * Performs a simple merge of two objects/associative arrays
+ * //http://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically, 
+ * jQuery has extend function but not neccessary here
+ */
+function mergeObjects(obj1,obj2) 
+{
+    var obj3 = {};
+    for (var key in obj1) { obj3[key] = obj1[key]; }
+    for (var key in obj2) { obj3[key] = obj2[key]; }
+    return obj3;
+}
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -161,72 +173,99 @@ function initTooltips()
 
 /*
  * creates alert with debuginfo
- * @param one or more argumnets to be shown
+ * @param one or more arguments to be shown
  */ 
 function debug(subjects)
 {
 	var str="";
 	
 	for(var i=0;i<arguments.length;i++)
-		{
-			var subject = arguments[i]; 	
-					
-			if(typeof subject == "object" && subject instanceof Array)
-			{	
-				str+= "[Array]\n";
-				if (subject.length == 0) {str+= "EMPTY"}
-				else
-					{
-					for(var i=1;i<subject.length;i++)
-						{
-							str+= i + " : " + subject[i] + "\n";
-						}
-					}	
+	{	
+		showSubject(arguments[i]);	
+		str+="\n";
+	}
+	
+	function showSubject(subject)
+	{
+		//alert(typeof subject)
+		if(typeof subject == "object" && subject instanceof Array)
+		{	
+			str+= "[Array]\n";
+			if (subject.length == 0) 
+			{
+				str+= "EMPTY"
 			}
-			else if(typeof subject == "object" )
-			{	
-				str+= "[Object]\n";
-				counter= 0;
-				for(prop in subject)
+			else
+			{
+				for(var i=1;i<subject.length;i++)
+				{
+					if(typeof subject[i] == "object")
+					{
+						str+="--------------\n\t";
+						showSubject(subject[i]);
+						//str+="--------------\n";
+					}
+					else
+					{
+						str+= i + " : " + subject[i] + "\n";
+					}
+				}
+			}	
+		}
+		else if(typeof subject == "object" && subject != null)
+		{	
+			
+			var counter= 0, prop;
+			str+= "[Object]\n";
+			for(prop in subject)
+			{
+				if(typeof subject[prop] == "object" && subject[prop] != null)
+				{
+					str+="--------------\n\t";
+					showSubject(subject[prop]);
+					//str+="--------------\n";
+				}
+				else
 				{
 					str+= prop + " : " + subject[prop]  + "\n";;
-					counter++;
 				}
-				if(counter==0){str+= "EMPTY"}
-				
-			}	
-			else if(typeof subject == "string")
-			{
-				{
-					str= "[string] " + subject;
-				}
+				counter++;	
 			}
-			else if(typeof subject == "number")
+			if(counter==0){str+= "EMPTY"}			
+		}	
+		else if(typeof subject == "string")
+		{
 			{
-				{
-					str= "[number] " + subject;
-				}
+				str+= "[string] " + subject;
 			}
-			else if(typeof subject == "boolean")
+		}
+		else if(typeof subject == "number")
+		{
 			{
-				{
-					str= "[boolean] " + subject? "TRUE" : "FALSE";
-				}
+				str+= "[number] " + subject;
 			}
-			else if(typeof subject == "undefined")
+		}
+		else if(typeof subject == "boolean")
+		{
 			{
-				{
-					str= "undefined";
-				}
+				str+= "[boolean] " + subject? "TRUE" : "FALSE";
 			}
-			else if(subject == null)
+		}
+		else if(typeof subject == "undefined")
+		{
 			{
-				{
-					str= "NULL!";
-				}
-			}	
-			str+="\n";
-		}//end loop all arguments
+				str+= "undefined";
+			}
+		}
+		else if(subject == null)
+		{
+			{
+				str+= "NULL!";
+			}
+		}	
+	
+	} //end showSubject
+
 	alert(str);
 }
 

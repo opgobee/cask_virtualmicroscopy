@@ -690,12 +690,31 @@ function stopMove()
  * return object with keys x and y holding the coords (in fractions of the image)
  */
 function getImgCoords(cursorX,cursorY)	
-	{var imgCoords={};
+	{testMath(cursorY)
+	var imgCoords={};
 	imgCoords.x = Math.round(((cursorX - stripPx(elem.innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000;
 	imgCoords.y = Math.round(((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
-	
+
+/*
+ * testing javascript number handling
+ */
+function testMath(cursorY)
+{
+	str= "y:" + cursorY +"<br>";
+	str+= "elem.innerDiv.style.top:" + elem.innerDiv.style.top +"<br>";
+	str+= "stripPx(elem.innerDiv.style.top):" + stripPx(elem.innerDiv.style.top)  +"<br>";
+	str+= "cursorY - stripPx(elem.innerDiv.style.top):" + (cursorY - stripPx(elem.innerDiv.style.top)) +"<br>";
+	str+= "imgHeightMaxZoom:" + imgHeightMaxZoom +"<br>";
+	str+= "Math.pow(2,gTierCount-1-zoom):" + Math.pow(2,gTierCount-1-zoom) +"<br>";
+	str+= "imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)):" + imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))  +"<br>";
+	str+= "(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000:" + (imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000 +"<br>";
+	var calc = (((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000));
+	str+= "((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000):" + calc +"<br>";
+	str+= "imgHeightPresentZoom=" + imgHeightPresentZoom;
+	ih(str);
+}
 /*
  * gets the width and height sizes of the 'complete image' at the present zoom level (be it within or outside viewport) 
  * @return object {o.width,o.height} with dimensions in pixels (without "px" suffix)
@@ -1568,7 +1587,7 @@ function createLabel(labelData)
 	jQ(label).append( jQ.parseHTML(labelText) );
 
 	//add tooltip
-	if(isSet(labelData.info))
+	if(isSet(labelData.tooltip))
 	{
 		//create element
 		var labelTooltip = document.createElement("div");
@@ -1576,7 +1595,7 @@ function createLabel(labelData)
 		labelTooltip.setAttribute("className", "tooltip"); //IE		
 		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
 		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
-		jQ(labelTooltip).append( jQ.parseHTML(labelData.info) );
+		jQ(labelTooltip).append( jQ.parseHTML(labelData.tooltip) );
 	}
 	
 	//position the label
@@ -1713,7 +1732,7 @@ function placeTestLabel()
 	data.newLabels["NL0"].y= 0.443;
 }
 
-function testLabelPos()
+function testLabels()
 {
 
 	var str="";
@@ -1751,9 +1770,12 @@ function testLabelPos()
 	}
 	
 	ih(str);
-	debug(data.newLabels.NL0);
+	var merged= mergeObjects(data.labels,data.newLabels);
+	debug(merged);
 	
 }
+
+
 function focusOnLabel()
 {
 	if(focusLabel)
@@ -1778,7 +1800,7 @@ function makeNewLabel()
 	//create id. 'newLabelId' is used as key in the object newLabels (with value= data-object for this new label)
 	var newLabelId =  "NL" + index; 
 	//Create data object for the new label and add it to the global data.newLabels
-	var newLabel = {"id":newLabelId,"x":null,"y":null,"text":"","tooltip":null}; //container for the data of the new label
+	var newLabel = {"id":newLabelId,"x":null,"y":null,"label":"","tooltip":null}; //container for the data of the new label
 	data.newLabels[newLabelId] = newLabel;
 	
 	//DOM creation
@@ -1798,8 +1820,8 @@ function makeNewLabel()
 	jQ( "#"+newLabelTextAreaId ).autosize({append: "\n"}); 
 	//Continuously get the entered text and store it in the data of the newlabel
 	jQ( "#"+newLabelTextAreaId ).keyup(function () {
-		data.newLabels[newLabelId].text = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
-		//ih(data.newLabels[newLabelId].text)
+		data.newLabels[newLabelId].label = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
+		//ih(data.newLabels[newLabelId].label)
 		}); 
 		
 	//buttons to open the tooltip textarea
@@ -1821,7 +1843,7 @@ function makeNewLabel()
 	//Continuously get the entered text and store it in the data of the newlabel
 	jQ( "#"+newLabelTooltipId ).keyup(function () {
 		data.newLabels[newLabelId].tooltip = ref(newLabelTooltipId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
-		//ih(data.newLabels[newLabelId].text)
+		//ih(data.newLabels[newLabelId].tooltip)
 		}); 
 	
 
@@ -1953,15 +1975,17 @@ function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input
  * Get present view settings
  * Is called by the navframe to create an url that calls the present view
  */
-function getPresentViewSettings()
+function getDataForUrl()
 {
 	var o ={}; //container
 	o["slideName"] = slideName;
 	o["zoom"] = zoom;
 	//get the position on the image at the center of the viewport 
 	var center = getImgCoords(viewportWidth/2,viewportHeight/2);
-	o["cX"] = center.x;
-	o["cY"] = center.y;
+	o["x"] = center.x;
+	o["y"] = center.y;
+	var mergedLabels = mergeObjects(data.labels,data.newLabels);
+	o["labels"] = mergedLabels;
 	
 	return o;	
 }
@@ -2415,76 +2439,6 @@ function ih(txt)
 function resetlog() 
 	{logwin.innerHTML="";}
 
-/*
- * creates alert with debuginfo
- * @param one or more argumnets to be shown
- */ 
-function debug(subjects)
-{
-	var str="";
-	
-	for(var i=0;i<arguments.length;i++)
-		{
-			var subject = arguments[i]; 	
-					
-			if(typeof subject == "object" && subject instanceof Array)
-			{	
-				str+= "[Array]\n";
-				if (subject.length == 0) {str+= "EMPTY";}
-				else
-					{
-					for(var i=1;i<subject.length;i++)
-						{
-							str+= i + " : " + subject[i] + "\n";
-						}
-					}	
-			}
-			else if(typeof subject == "object" )
-			{	
-				str+= "[Object]\n";
-				counter= 0;
-				for(prop in subject)
-				{
-					str+= prop + " : " + subject[prop]  + "\n";;
-					counter++;
-				}
-				if(counter==0){str+= "EMPTY"}
-				
-			}	
-			else if(typeof subject == "string")
-			{
-				{
-					str= "[string] " + subject;
-				}
-			}
-			else if(typeof subject == "number")
-			{
-				{
-					str= "[number] " + subject;
-				}
-			}
-			else if(typeof subject == "boolean")
-			{
-				{
-					str= "[boolean] " + subject? "TRUE" : "FALSE";
-				}
-			}
-			else if(typeof subject == "undefined")
-			{
-				{
-					str= "undefined";
-				}
-			}
-			else if(subject == null)
-			{
-				{
-					str= "NULL!";
-				}
-			}	
-			str+="\n";
-		}//end loop all arguments
-	alert(str);
-}
 
 
 	
