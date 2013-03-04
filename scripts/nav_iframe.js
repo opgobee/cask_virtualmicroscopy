@@ -800,7 +800,7 @@ function showUrl()
 		url = getUrl();
 		jQ("#urlString").html(url);
 		jQ("#urlBar").show();
-		window.viewerFrame.showSizeIndicators()
+		window.viewerFrame.showSizeIndicators();
 		}
 	else
 		{
@@ -819,10 +819,22 @@ function closeUrlBar()
 	jQ("#urlBar").hide();
 	if(window.viewerFrame && window.viewerFrame.hideSizeIndicators)
 	{
-		window.viewerFrame.hideSizeIndicators()
+		window.viewerFrame.hideSizeIndicators();
 	}
 }
 
+function showSetLabelPanel()
+{
+	//for now to start just a direct transfer to function in main
+	if(window.viewerFrame && window.viewerFrame.makeNewLabel)
+	{
+		window.viewerFrame.makeNewLabel();
+	}
+	else
+	{
+		showWarningChromeLocal();
+	}
+}
 
 function showWarningChromeLocal()
 {

@@ -225,12 +225,18 @@ function init()
 	recheckTilesTimer=setInterval("checkTiles()", 5000); //because regularly 'loses' updating tiles eg at viewport scroll, resize 
 
 	//Signal 'loaded slide' to the possible containing nav page 
+	
+	try
+	{
 	if(parent && parent.slideIsLoaded) /*Chrome on local drive incorrectly regards accessing the main frame as cross-domain*/
 		{
 		parent.slideIsLoaded();
 		}
+	}
+	catch(e)
+	{}
 	
-	makeNewLabel();
+//	makeNewLabel();
 	
 }//eof init()
 
@@ -385,8 +391,6 @@ function showInitialView()
 
 	imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 	imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
-	
-	setLabelOffsetHeight();
 	
 //ih("init-winsize");
 	winsize();//do after onload for IE
@@ -800,8 +804,6 @@ function ZoomIn()
 		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
 		//ih("ZOOMIN to zoom: "+zoom+"<br>");
-		setLabelOffsetHeight();
-		
 		
 		//remove present tiles
 		deleteTiles();
@@ -809,15 +811,14 @@ function ZoomIn()
 		//load with new tiles
 		checkTiles();
 		
-		//reposition labels
-		repositionLabels();
+		//reposition and resize labels
+		repositionAndResizeLabels()
 
 		resizeBackgroundDiv();	
 		keepInViewport();
 		updateLengthBar();	
 		moveViewIndicator();
 		//lowZoomHideLabels();
-		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMIN done<br>")
 	}	
@@ -861,8 +862,6 @@ function ZoomOut()
 		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
 		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
 		//ih("ZOOMOUT to zoom: "+zoom+"<br>");
-		setLabelOffsetHeight();
-		
 		
 		//remove present tiles
 		deleteTiles();
@@ -870,15 +869,14 @@ function ZoomOut()
 		//load with new tiles
 		checkTiles(); 
 		
-		//reposition labels
-		repositionLabels();
+		//reposition and resize labels
+		repositionAndResizeLabels()
 		
 		resizeBackgroundDiv(); 
 		keepInViewport(); 
 		updateLengthBar(); 
 		moveViewIndicator();
 		// lowZoomHideLabels();
-		resizeLabels();
 		if(isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMOUT done<br>")
 	}
@@ -1535,7 +1533,7 @@ function renderLabels()
 	//attaches handlers to labels that shows the tooltips
 	initTooltips();
 	//neccessary because the page may be initialized via a deep link directly at a certain zoom level
-	resizeLabels();
+	repositionAndResizeLabels();
 	//possibly focus on a specific label
 	focusOnLabel();
 	//set global booleans
@@ -1610,7 +1608,7 @@ function positionLabel(labelData)
 	var labelId  = labelData.id;
 	var labelPos = calculateLabelPosition(labelData);
 	jQ("#"+labelId).css({"left": labelPos.x + "px", "top": (labelPos.y + settings["labelOffsetHeight"]) + "px"});
-	if( labelId=="NL0")
+/*	if( labelId=="NL0")
 	{
 		var fontSize= jQ("#NLTextArea0").css("font-size");
 		var lineHeight= jQ("#NLTextArea0").css("line-height");
@@ -1622,6 +1620,14 @@ function positionLabel(labelData)
 		
 		//ih("<br>Position "+labelId+" to: left="+labelPos.x+"px ["+labelData.x+"FR], top="+labelPos.y+ settings["labelOffsetHeight"]+"px, ["+labelData.y+"FR]<br />");
 	}
+*/	
+}
+
+function repositionAndResizeLabels()
+{
+	//first resize as that resizes font-size > line-height > labelOffsetHeight (and that is used in positioning label)
+	resizeLabels(); 
+	repositionLabels();
 }
 
 /*
@@ -1656,6 +1662,7 @@ function resizeLabels()
 	//Note 2: used max-width instead of width so that the actual width (esp. the tooltip area!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
 	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth});
 
+	setLabelOffsetHeight();
 	positionCrossHairs()
 	
 	//adapt width of newLabels
@@ -1672,11 +1679,13 @@ function resizeLabels()
 }
 
 /*
- * gets the current font-size of labels, is read from the hiddenLabel, is used to determine the labelOffset
+ * gets the current font-size of the requested elem
+ * @param string elemId
+ * @return floating number - font-size
  */
-function getCurrentLabelLineHeight()
+function getUserAgentFontSize(elemId)
 {
-	return stripPx(jQ("#hiddenLabel").css("line-height"));
+	return parseFloat(stripPx(jQ("#"+elemId).css("font-size")));
 }
 
 /*
@@ -1685,7 +1694,8 @@ function getCurrentLabelLineHeight()
  */
 function setLabelOffsetHeight()
 {
-	var labelLineHeight= getCurrentLabelLineHeight();
+	var uaFontSize = getUserAgentFontSize("hiddenLabel"); //is read from the hiddenLabel
+	var labelLineHeight= uaFontSize * 1.2; // 1.2 = average multiplication factor see CSS Definitive Guide Eric Meyer 3rd ed, p135
 	settings["labelOffsetHeight"] = - (labelLineHeight/2);
 	//ih("LabelLineHeight="+labelLineHeight + ", SET labelOffsetHeight= "+ settings["labelOffsetHeight"]+"<br>");
 }
@@ -1707,21 +1717,41 @@ function testLabelPos()
 {
 
 	var str="";
-	str+= "Innerdiv-left:" +jQ("#innerDiv").css("left") +", Innerdiv-top:" +jQ("#innerDiv").css("top")+"<br>";
+/*	str+= "Innerdiv-left:" +jQ("#innerDiv").css("left") +", Innerdiv-top:" +jQ("#innerDiv").css("top")+"<br>";
 	str+= "Dep-left:" +jQ("#L4").css("left") +" ["+data.labels["L4"].x+"FR]<br>";
 	str+= "Dep-top:"  +jQ("#L4").css("top")  +" ["+data.labels["L4"].y+"FR]<br>";
 	str+= "Dep-line-height:" +jQ("#L4").css("line-height") +"<br>";
 	str+= "Dep-font-size:" +jQ("#L4").css("font-size") +"<br>";
-
+*/
+	if(data.newLabels.NL0)
+	{
 	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
 	str+= "NL0-left:" +jQ("#NL0").css("left") +" ["+data.newLabels["NL0"].x+"FR]<br>";
 	str+= "NL0-top:"  +jQ("#NL0").css("top")  +" ["+data.newLabels["NL0"].y+"FR]<br>";
-	str+= "NLTextArea0-left:" +jQ("#NLTextArea0").css("left") +"<br>";
-	str+= "NLTextArea0-top:"  +jQ("#NLTextArea0").css("top")  +"<br>";	
-	str+= "NLTextArea0-line-height:" +jQ("#NLTextArea0").css("line-height") +"<br>";
-	str+= "NLTextArea0-font-size:" +jQ("#NLTextArea0").css("font-size") +"<br>";
+//	str+= "NLTextArea0-left:" +jQ("#NLTextArea0").css("left") +"<br>";
+//	str+= "NLTextArea0-top:"  +jQ("#NLTextArea0").css("top")  +"<br>";	
+//	str+= "NLTextArea0-line-height:" +jQ("#NLTextArea0").css("line-height") +"<br>";
+//	str+= "NLTextArea0-font-size:" +jQ("#NLTextArea0").css("font-size") +"<br>";
+	}
+	if(data.newLabels.NL1)
+	{
+	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
+	str+= "Label 1<br>"
+	str+= "NL1-left:" +jQ("#NL1").css("left") +" ["+data.newLabels["NL1"].x+"FR]<br>";
+	str+= "NL1-top:"  +jQ("#NL1").css("top")  +" ["+data.newLabels["NL1"].y+"FR]<br>";
+//	str+= "NLTextArea1-line-height:" +jQ("#NLTextArea1").css("line-height") +"<br>";
+//	str+= "NLTextArea1-font-size:" +jQ("#NLTextArea1").css("font-size") +"<br>";
+	}
+	if(data.newLabels.NL2)
+	{
+	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
+	str+= "Label 2<br>"
+	str+= "NL2-left:" +jQ("#NL2").css("left") +" ["+data.newLabels["NL2"].x+"FR]<br>";
+	str+= "NL2-top:"  +jQ("#NL2").css("top")  +" ["+data.newLabels["NL2"].y+"FR]<br>";
+	}
 	
 	ih(str);
+	debug(data.newLabels.NL0);
 	
 }
 function focusOnLabel()
@@ -1827,12 +1857,15 @@ function makeNewLabel()
 			//ui.position.left and top are px positions related to left top of image
 			data.newLabels[newLabelId].x = ui.position.left / imgWidthPresentZoom; //@TODO? add border correction of 1?
 			data.newLabels[newLabelId].y = (ui.position.top - settings["labelOffsetHeight"]) / imgHeightPresentZoom; //apparently border seems no effect on top???? so dont correct
-			var str="<br>Container moved to left: "+ui.position.left+"px, top: "+ui.position.top+"px<br>";
-			str+="labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
-			str+="Stored position left: "+data.newLabels[newLabelId].x+"FR, top: "+data.newLabels[newLabelId].y+"FR<br>";
+			//var str="<br>Container moved to left: "+ui.position.left+"px, top: "+ui.position.top+"px<br>";
+			//str+="labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
+			//str+="Stored position left: "+data.newLabels[newLabelId].x+"FR, top: "+data.newLabels[newLabelId].y+"FR<br>";
 			//ih(str);	
 		}
 	});
+	
+	//try
+	repositionAndResizeLabels();
 	
 	//set focus on new label
 	jQ( "#"+newLabelTextAreaId ).focus();
