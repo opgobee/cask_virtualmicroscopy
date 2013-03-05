@@ -99,54 +99,49 @@ Display additional credit information:
 */
 
 //alert("load main page");
-//defaults
-var tileSize = 256; 
-//var center = 0; 
-var res = 0.2325; //micrometers/ pixel 
-var resunits = "&micro;m";
-var zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
+
 var labelsPathInSlidesFolder = "labels.js"; //the default path (fileName) of the file with labels in the slides folder
 
 var settings= {}; //container object for settings
-settings["showCoordinatesPanel"] = false; //default dont show coords panel
-settings["wheelZoomInDirection"] = -1; //determines zoomin/out direction of wheel; 1= up, -1= down
-settings["hasLabels"] = false; 
-settings["labelOffsetHeight"] = null; //amount of pixels that label is shown higher/lower related to the exact spot on the picture where it is placed - to allow the text (with a certain height to stand exactly next to the spot)
+settings.slideName = null;
+settings.zoom = null;
+settings.x = null;
+settings.y = null;
+settings.res = 0.2325; //micrometers/ pixel 
+settings.showCoordinatesPanel = false; //default dont show coords panel
+settings.wheelZoomInDirection = -1; //determines zoomin/out direction of wheel; 1= up, -1= down
+settings.showLabel = null; //label that will be shown on the requested x, y spot
+settings.focusLabel  = null; //labelText and id of label that will be shown automatically on its own location
+settings.hasLabels = false; 
+settings.labelOffsetHeight = null; //amount of pixels that label is shown higher/lower related to the exact spot on the picture where it is placed - to allow the text (with a certain height to stand exactly next to the spot)
 settings.crosshairHeight = 16; //pixelsize of crosshairimage
 settings.crosshairWidth = 16; //pixelsize of crosshairimage
-
-//stuff to be moved to the settings object
-var wheelmode = 0; //0 = wheel zooms, 1 = wheel goes to next/prev image (for stacks of images (not yet implemented)
-var slidePointer = 0; //nr of the slide in a stack of slides [not yet implemented completely]
-var zoom = 2; //start zoom level
-var hideThumb = false;
-var cX = cY = null;
-var showLabel = null; //label that will be shown on the requested x, y spot
-var focusLabel = focusLabelId = null; //labelText and id of label that will be shown automatically on its own location
+settings.wheelmode = 0; //0 = wheel zooms, 1 = wheel goes to next/prev image (for stacks of images (not yet implemented)
+settings.slidePointer = 0; //nr of the slide in a stack of slides [not yet implemented completely]
+settings.hideThumb = false;
+settings.zoomCenterUnlockThreshold= 3;//nr of pixels move needed to unlock a zoomCenterLock
 
 var elem = {}; //global containing references to DOM elements in the connected html page, wiil be initialized in function setGlobalReferences()
 
 var data = {}; // global container for data
-data.slides = {};
 data.labels = {}; //object with data of the labels
 data.newLabels = {}; //object with data of live created labels
-data.currentImageWidth = null; //width of complete image at the current zoom level
-data.currentImageHeight = null; //height of complete image at the current zoom level
 
-var status = {}; //global object to keep data that needs to be kept track of
-status.numberLabels = 0;
-status.renderingLabels = false; //busy creating labels.
-status.labelsRendered = false;
-
+var now = {}; //global object to keep data that needs to be kept track of
+now.numberLabels = 0;
+now.renderingLabels = false; //busy creating labels.
+now.labelsRendered = false;
+now.zoom = 2 ;// start zoom level
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
+var tileSize = 256; 
 var path = null; //may be defined in html page (then overwrites the null value set here)
 var rawPath = null; //as read from html page or query
 var imgPath = null; //path as used in program
 var height = null, width = null; //may be defined in html page (then overwrites the null values set here)
 var imgWidthMaxZoom = null, imgHeightMaxZoom= null; //width/height of max size image, Note: may be string as read from html page, query or xhr
-var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[zoom]
+var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[now.zoom]
 var loadedXML=0; //used in xhr loading of XML and JSON files
 var labelsPath=null, labelTimer;
 var creditsPath=null; //path to .js file with additional credits to display
@@ -251,13 +246,19 @@ function readDataToSettings()
 	//set or adapt globals with query information
 	readQueryToGlobals();
 
+	//copy a possible initial zoom setting to the life value in object 'now'
+	if(settings.zoom)
+	{
+		now.zoom = settings.zoom;
+	}
+	
 	//checks 1
-	if(!slideName)
+	if(!settings.slideName)
 		{
 		showNoSlideRequestedWarning();
 		return;
 		}
-	if(typeof slides == "undefined"  || !slides[slideName])
+	if(typeof slides == "undefined"  || !slides[settings.slideName])
 		{
 		showRequestedSlideNotPresentWarning();
 		return;
@@ -274,7 +275,7 @@ function readDataToSettings()
 	}
 	else {showNoPathWarning(); return;}
 	//if there are labels, construct the path to the file with the labels-data
-	if(settings["hasLabels"])
+	if(settings.hasLabels)
 	{
 		labelsPath = rawPath + labelsPathInSlidesFolder;
 	}
@@ -328,17 +329,16 @@ function readQueryToGlobals()
 	//get variables from query in URL
 	var queryArgs= getQueryArgs();
 	
-	if (queryArgs.start){ slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
-	if (queryArgs.slide) {slideName = queryArgs.slide;}
-	if (queryArgs.showcoords) {settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false;} 
+	if (queryArgs.start){ settings.slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
+	if (queryArgs.slide) {settings.slideName = queryArgs.slide;}
+	if (queryArgs.showcoords) {settings.showCoordinatesPanel = (queryArgs.showcoords == 1)? true : false;} 
 	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
-	if (queryArgs.resunits) {resunits = queryArgs.resunits;} 
-	if (queryArgs.zoom){ zoom = Number(queryArgs.zoom);}
-	if (queryArgs.x) { cX = Number(queryArgs.x);}
-	if (queryArgs.y) { cY = Number(queryArgs.y);}
-	if (queryArgs.label) { showLabel = queryArgs.label;}
-	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
-	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
+	if (queryArgs.zoom){ settings.zoom = Number(queryArgs.zoom);}
+	if (queryArgs.x) { settings.x = Number(queryArgs.x);}
+	if (queryArgs.y) { settings.y = Number(queryArgs.y);}
+	if (queryArgs.label) { settings.showLabel = queryArgs.label;}
+	if (queryArgs.focus) { settings.focusLabel = queryArgs.focus;}
+	if (queryArgs.hidethumb) {settings.hideThumb = queryArgs.hidethumb;}; 
 }
 
 /*
@@ -348,12 +348,12 @@ function readslideDataToGlobals()
 {
 	if(!window.slides) {return;}
 	//here the global var 'slides' is read!!
-	slideData = slides[slideName];
+	slideData = slides[settings.slideName];
 	if (slideData.path) {rawPath = slideData.path;} 
 	if (slideData.width) {imgWidthMaxZoom = slideData.width;} 
 	if (slideData.height) {imgHeightMaxZoom = slideData.height;} 
-	if (slideData.res)	{res = slideData.res;}
-	if (slideData.hasLabels) {settings["hasLabels"] = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
+	if (slideData.res)	{settings.res = slideData.res;}
+	if (slideData.hasLabels) {settings.hasLabels = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
 	if (slideData.credits) {creditsPath = slideData.credits;} 	
 
 }
@@ -389,8 +389,8 @@ function showInitialView()
 	gTierWidth= o.gTierWidth; //unpack the return object and set the globals
 	gTierHeight= o.gTierHeight;
 
-	imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
-	imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
+	imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
+	imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
 	
 //ih("init-winsize");
 	winsize();//do after onload for IE
@@ -401,14 +401,13 @@ function showInitialView()
 	
 	//center on a requested x and y
 	//Note: the zoom level is handled by setting the correct position in centerOn() or centerMap() and next by loading the correct images by checkTiles()
-	if (cX && cY)
+	if (settings.x && settings.y)
 		{//ih("init-cXCenter, cX="+cX);
-			//center=1; 
-			centerOn(cX,cY);
+			centerOn(settings.x,settings.y);
 			//and show the requested label
-			if(showLabel)
+			if(settings.showLabel)
 			{
-				createLabel({"label": showLabel,  "x": cX, "y": cY});
+				createLabel({"label": settings.showLabel,  "x": settings.x, "y": settings.y});
 			}
 		}
 	//center on middle of image
@@ -419,13 +418,13 @@ function showInitialView()
 	
 		
 	//load labels
-	if (settings["hasLabels"]) 
+	if (settings.hasLabels) 
 		{
 		loadLabels(labelsPath);
 		} 
 
 //ih("init-showThumb");
-	if (!hideThumb) 	{showThumb();}
+	if (!settings.hideThumb) 	{showThumb();}
 		
 //ih("init-updateDiverse");
 	//resizeBackgroundDiv(); 
@@ -525,10 +524,10 @@ function winsize()
 function handle(delta) 
 { 
 	zoomCenterOnCursor= true;
-	delta = delta * (-settings["wheelZoomInDirection"]); 
+	delta = delta * (-settings.wheelZoomInDirection); 
 	if (delta < 0)
 	{
-		if (wheelmode==0) 
+		if (settings.wheelmode==0) 
 		{ 
 			ZoomIn();
 		}
@@ -539,7 +538,7 @@ function handle(delta)
 	}
 	else
 	{ 
-		if (wheelmode==0) 
+		if (settings.wheelmode==0) 
 		{ 
 			ZoomOut();
 		}
@@ -619,7 +618,7 @@ function handleMouseMove(event)
 
 	if(lockedZoomCenterX)
 		{//unlock if present cursorposition is further away than threshold from cursorpos at lock 
-		if( (Math.abs(cursorX - lockedZoomCursorX) > zoomCenterUnlockThreshold) || (Math.abs(cursorY - lockedZoomCursorY) > zoomCenterUnlockThreshold) )
+		if( (Math.abs(cursorX - lockedZoomCursorX) > settings.zoomCenterUnlockThreshold) || (Math.abs(cursorY - lockedZoomCursorY) > settings.zoomCenterUnlockThreshold) )
 			{lockedZoomCenterX = lockedZoomCenterY = lockedZoomCursorX = lockedZoomCursorY = null; //unlock	
 			}
 		}
@@ -652,7 +651,7 @@ function processMove(event)
 	if (!event){ event = window.event;}
 	
 	//display current mouse coordinates in coordinates panel
-	if (settings["showCoordinatesPanel"])  
+	if (settings.showCoordinatesPanel)  
 	{
 		var imgCoords= getImgCoords(cursorX,cursorY);	
 		coordX = imgCoords.x;
@@ -690,10 +689,10 @@ function stopMove()
  * return object with keys x and y holding the coords (in fractions of the image)
  */
 function getImgCoords(cursorX,cursorY)	
-	{testMath(cursorY)
+	{
 	var imgCoords={};
-	imgCoords.x = Math.round(((cursorX - stripPx(elem.innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000;
-	imgCoords.y = Math.round(((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
+	imgCoords.x = Math.round(((cursorX - stripPx(elem.innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
+	imgCoords.y = Math.round(((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
 
@@ -707,11 +706,11 @@ function testMath(cursorY)
 	str+= "stripPx(elem.innerDiv.style.top):" + stripPx(elem.innerDiv.style.top)  +"<br>";
 	str+= "cursorY - stripPx(elem.innerDiv.style.top):" + (cursorY - stripPx(elem.innerDiv.style.top)) +"<br>";
 	str+= "imgHeightMaxZoom:" + imgHeightMaxZoom +"<br>";
-	str+= "Math.pow(2,gTierCount-1-zoom):" + Math.pow(2,gTierCount-1-zoom) +"<br>";
-	str+= "imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)):" + imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom))  +"<br>";
-	str+= "(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000:" + (imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000 +"<br>";
-	var calc = (((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000));
-	str+= "((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)))*10000):" + calc +"<br>";
+	str+= "Math.pow(2,gTierCount-1-now.zoom):" + Math.pow(2,gTierCount-1-now.zoom) +"<br>";
+	str+= "imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)):" + imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))  +"<br>";
+	str+= "(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000:" + (imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000 +"<br>";
+	var calc = (((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000));
+	str+= "((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000):" + calc +"<br>";
 	str+= "imgHeightPresentZoom=" + imgHeightPresentZoom;
 	ih(str);
 }
@@ -723,8 +722,8 @@ function testMath(cursorY)
 function getCurrentImageSizes()
 {
 	var o={};
-	o.width  = imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom));
-	o.height = imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	o.width  = imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom));
+	o.height = imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom));
 	return o;
 }
 
@@ -751,8 +750,8 @@ function getVisibleImgCenter()
 	
 //	ih("visLeft="+visLeft+",visRight="+visRight+", imgCenter.x="+imgCenter.x+"visTop="+visTop+",visBottom="+visBottom+", imgCenter.y="+imgCenter.y)
 //	ih("imgCenter.x="+imgCenter.x+", imgCenter.y="+imgCenter.y+"<br>")	 
-//	imgCenter.x = Math.round( stripPx(elem.innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-zoom) ) );
-//	imgCenter.y = Math.round( stripPx(elem.innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-zoom) ) );
+//	imgCenter.x = Math.round( stripPx(elem.innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
+//	imgCenter.y = Math.round( stripPx(elem.innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
 	return imgCenter;
 	}
 	
@@ -784,10 +783,10 @@ function btZoomOut()
 	}
 
 function ZoomIn() 
-{ //ih("in zoomin, zoom="+zoom);
+{ //ih("in zoomin, zoom="+now.zoom);
 	//ih(", gTierCount-1="+(gTierCount-1)+"<br>");
 	
-	if (zoom!=gTierCount-1)
+	if (now.zoom!=gTierCount-1)
 	{
 		var imgTop = stripPx(elem.innerDiv.style.top); 
 		var imgLeft = stripPx(elem.innerDiv.style.left); 
@@ -819,10 +818,10 @@ function ZoomIn()
 		setInnerDiv(newX,newY);
 		
 		//ih("AFTER: elem.innerDiv.style.left="+elem.innerDiv.style.left+", elem.innerDiv.style.top="+elem.innerDiv.style.top)		
-		zoom=zoom+1; 
-		imgWidthPresentZoom= gTierWidth[zoom]; //shortcut
-		imgHeightPresentZoom= gTierHeight[zoom]; //shortcut
-		//ih("ZOOMIN to zoom: "+zoom+"<br>");
+		now.zoom=now.zoom+1; 
+		imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
+		imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
+		//ih("ZOOMIN to zoom: "+now.zoom+"<br>");
 		
 		//remove present tiles
 		deleteTiles();
@@ -846,7 +845,7 @@ function ZoomIn()
 
 function ZoomOut() 
 { 
-	if (zoom!=0)
+	if (now.zoom!=0)
 	{
 		var imgTop = stripPx(elem.innerDiv.style.top); 
 		var imgLeft = stripPx(elem.innerDiv.style.left); 
@@ -877,10 +876,10 @@ function ZoomOut()
 
 		//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
-		zoom=zoom-1; 
-		imgWidthPresentZoom= gTierWidth[zoom]; // shortcut
-		imgHeightPresentZoom= gTierHeight[zoom]; // shortcut
-		//ih("ZOOMOUT to zoom: "+zoom+"<br>");
+		now.zoom=now.zoom-1; 
+		imgWidthPresentZoom= gTierWidth[now.zoom]; // shortcut
+		imgHeightPresentZoom= gTierHeight[now.zoom]; // shortcut
+		//ih("ZOOMOUT to zoom: "+now.zoom+"<br>");
 		
 		//remove present tiles
 		deleteTiles();
@@ -904,7 +903,7 @@ function ZoomOut()
 
 //hide labels at low zoom, because then the labels appear to be offset, probably due to Zoomify inaccuracies at high size reductions (=low zoom)
 function lowZoomHideLabels()
-	{if(zoom<=1) {elem.imageLabels.style.display="none";}
+	{if(now.zoom<=1) {elem.imageLabels.style.display="none";}
 	else {elem.imageLabels.style.display="block";}
 	}
 	
@@ -919,7 +918,7 @@ function autoZoomOut()
 		//ih(" 1ST time timer SET= "+zoomOutTimer+"  ");
 		return;
 		}	
-	else if(zoom>0)
+	else if(now.zoom>0)
 		{clearZoomOutTimer()
 		dragging = false;
 		autoZooming=true;
@@ -1064,8 +1063,8 @@ function setInnerDiv(xPosition,yPosition)
  */
 function centerOn(xcoord,ycoord)
 {
-	var x = viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom));
-	var y = viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom));
+	var x = viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom));
+	var y = viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom));
 	setInnerDiv(x,y);
 }
 
@@ -1076,7 +1075,6 @@ function centerMap()
 		var x = viewportWidth /2 - imgWidthPresentZoom /2;
 		var y = viewportHeight/2 - imgHeightPresentZoom/2;
 		setInnerDiv(x,y);
-		//center=1;
 		//ih("in centerMap2");
 		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", elem.innerDiv="+elem.innerDiv+", elem.innerDiv.style="+elem.innerDiv.style+", elem.innerDiv.style.left="+elem.innerDiv.style.left)
 	}	
@@ -1107,29 +1105,29 @@ function keepInViewport()
 	if (imgTop > limitBottom) {innerStyle.top = limitBottom; corrected = true;}
 	
 /*	
-	if (gTierWidth[zoom] > viewportWidth) 
+	if (gTierWidth[now.zoom] > viewportWidth) 
 		{if (imgLeft > 0)
 			{imgLeft = innerStyle.left = 0; corrected = true;} //correct left side margin inside viewport
-		if ( (imgLeft + gTierWidth[zoom]) < viewportWidth )	
-			{innerStyle.left = viewportWidth - gTierWidth[zoom]; corrected=true;} //correct right side margin inside viewport
+		if ( (imgLeft + gTierWidth[now.zoom]) < viewportWidth )	
+			{innerStyle.left = viewportWidth - gTierWidth[now.zoom]; corrected=true;} //correct right side margin inside viewport
 		}
 	else
 		{if (imgLeft < 0)
 			{imgLeft = innerStyle.left = 0; corrected = true;}//correct left side outside viewport
-		if ((imgLeft + gTierWidth[zoom]) > viewportWidth )		
-			{innerStyle.left = viewportWidth - gTierWidth[zoom]; corrected=true;} //correct right side outside viewport
+		if ((imgLeft + gTierWidth[now.zoom]) > viewportWidth )		
+			{innerStyle.left = viewportWidth - gTierWidth[now.zoom]; corrected=true;} //correct right side outside viewport
 		}	
-	if (gTierHeight[zoom] > viewportHeight) 
+	if (gTierHeight[now.zoom] > viewportHeight) 
 		{if (imgTop > 0)
 			{imgTop = innerStyle.top = 0; corrected = true;} //correct top side margin inside viewport
-		if ( (imgTop + gTierHeight[zoom]) < viewportHeight )
-			{innerStyle.top = viewportHeight - gTierHeight[zoom]; corrected = true;} //correct bottom margin inside viewport
+		if ( (imgTop + gTierHeight[now.zoom]) < viewportHeight )
+			{innerStyle.top = viewportHeight - gTierHeight[now.zoom]; corrected = true;} //correct bottom margin inside viewport
 		}
 	else
 		{if (imgTop < 0)
 			{imgTop = innerStyle.top = 0; corrected = true;} //correct top outside viewport
-		if ((imgTop + gTierHeight[zoom]) > viewportHeight )
-			{innerStyle.top = viewportHeight - gTierHeight[zoom]; corrected = true;} //correct bottom outside viewport
+		if ((imgTop + gTierHeight[now.zoom]) > viewportHeight )
+			{innerStyle.top = viewportHeight - gTierHeight[now.zoom]; corrected = true;} //correct bottom outside viewport
 		}
 */				
 	if (corrected)	
@@ -1166,25 +1164,23 @@ function checkTiles()
 	var visibleTilesMap = {}; 
 	for (i = 0; i < visibleTiles.length; i++)  //each entry is a tile, contains an array [x,y], number of tiles that would fit in the viewport
 		{ var tileArray = visibleTiles[i]; //for this tile
-
-		//if (!center) {centerMap();} //???
 		
-//ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-zoom))) +"viewportWidth="+viewportWidth+"<br>");
+//ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))) +"viewportWidth="+viewportWidth+"<br>");
 		pCol=tileArray[0]; 
 		pRow=tileArray[1]; 
 //ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels there are far more pCol and pRow than actually called (and available) pictures
 
 		//determine tilegroupnum, each tilegroup contains 256 images, theoffset is sequential num of img
-		tier=zoom; 
+		tier=now.zoom; 
 		var theOffset=parseFloat(pRow*gTileCountWidth[tier]+pCol); //is this parseFloat doing sthing?
 		for (var theTier=0; theTier<tier; theTier++) theOffset += gTileCountWidth[theTier]*gTileCountHeight[theTier]; 
 		_tileGroupNum=Math.floor(theOffset/256.0); 
 		
-//ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
+//ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
 
 
-		if (pCol<gTileCountWidth[zoom] && pRow<gTileCountHeight[zoom])
-			{var tileName = "TileGroup" + _tileGroupNum + "/" + zoom + "-" + pCol + "-" + pRow + ".jpg";
+		if (pCol<gTileCountWidth[now.zoom] && pRow<gTileCountHeight[now.zoom])
+			{var tileName = "TileGroup" + _tileGroupNum + "/" + now.zoom + "-" + pCol + "-" + pRow + ".jpg";
 //ih("TILENAME CREATED</br>");
 			}
 
@@ -1353,8 +1349,8 @@ function stopThumb(event)
 				}
 */		
 		//reposition the main image according to how the viewIndicator was set by user
-		elem.innerDiv.style.left= (viewportWidth/2  - gTierWidth[zoom]  * fractionLR) +"px";
-		elem.innerDiv.style.top = (viewportHeight/2 - gTierHeight[zoom] * fractionTB) +"px";
+		elem.innerDiv.style.left= (viewportWidth/2  - gTierWidth[now.zoom]  * fractionLR) +"px";
+		elem.innerDiv.style.top = (viewportHeight/2 - gTierHeight[now.zoom] * fractionTB) +"px";
 		keepInViewport();
 		checkTiles();
 		
@@ -1370,15 +1366,15 @@ function moveViewIndicator()
 	//ih("moveViewIndicator()"+moveViewIndicator.caller);
 	innerDivLeft = stripPx(elem.innerDiv.style.left);
 	innerDivTop  = stripPx(elem.innerDiv.style.top);
-	viewIndicatorWidth  = viewportWidth/Math.pow(2,zoom);
-	viewIndicatorHeight = viewportHeight/Math.pow(2,zoom); 
+	viewIndicatorWidth  = viewportWidth/Math.pow(2,now.zoom);
+	viewIndicatorHeight = viewportHeight/Math.pow(2,now.zoom); 
 
-	elem.viewIndicator.style.left   = elem.viewIndicatorSenser.style.left   =  -innerDivLeft/(Math.pow(2,zoom)) +"px"; 
-	elem.viewIndicator.style.top    = elem.viewIndicatorSenser.style.top    =  -innerDivTop/(Math.pow(2,zoom))  +"px";
+	elem.viewIndicator.style.left   = elem.viewIndicatorSenser.style.left   =  -innerDivLeft/(Math.pow(2,now.zoom)) +"px"; 
+	elem.viewIndicator.style.top    = elem.viewIndicatorSenser.style.top    =  -innerDivTop/(Math.pow(2,now.zoom))  +"px";
 	elem.viewIndicator.style.width  = elem.viewIndicatorSenser.style.width  =  viewIndicatorWidth + "px";
 	elem.viewIndicator.style.height = elem.viewIndicatorSenser.style.height =  viewIndicatorHeight + "px";
 
-//ih("Math.pow(2,zoom)="+Math.pow(2,zoom)+", viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+", viewIndicator.style.width="+viewIndicator.style.width+", viewIndicator.style.height="+viewIndicator.style.height+", innerDivLeft="+innerDivLeft+", innerDivTop="+innerDivTop+", viewIndicator.style.left="+viewIndicator.style.left+", viewIndicator.style.top="+viewIndicator.style.top+"<br>");
+//ih("Math.pow(2,now.zoom)="+Math.pow(2,now.zoom)+", viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+", viewIndicator.style.width="+viewIndicator.style.width+", viewIndicator.style.height="+viewIndicator.style.height+", innerDivLeft="+innerDivLeft+", innerDivTop="+innerDivTop+", viewIndicator.style.left="+viewIndicator.style.left+", viewIndicator.style.top="+viewIndicator.style.top+"<br>");
 	}
 
 	
@@ -1393,9 +1389,9 @@ function moveViewIndicator()
 
 
 function updateLengthBar() 
-{//res = um/px
+{//settings.res = um/px
 //you want a bar between 50 and 125px long
-var um50 = Math.pow(2,gTierCount-1-zoom)*res*50; // micrometers equiv. with 50 px
+var um50 = Math.pow(2,gTierCount-1-now.zoom)*settings.res*50; // micrometers equiv. with 50 px
 var um125 = um50 * 2.5; // micrometers equiv. with 100 px
 
 var step=[1,2,5];
@@ -1428,12 +1424,13 @@ ref("bar_mid").style.width = barWidth +"px";
 ref("bar_right").style.left = (barLeftPos + barWidth) +"px";
 
 //set resunits to um, mm or cm.
+var resunits ="";
 if 		(pow10  < 1000) 	{resunits= "&micro;m";}
 else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
 else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
 
 // display bar-length
-var txt= barUm + "  " + resunits + "<br />zoom level: " + zoom + "/" + (gTierCount-1);
+var txt= barUm + "  " + resunits + "<br />zoom level: " + now.zoom + "/" + (gTierCount-1);
 ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
 
 }
@@ -1485,7 +1482,7 @@ function checkLabelsLoaded()
 	{
 	//isLoaded= (window.labels)? "loaded":"NOTloaded";
 	//ih(isLoaded);
-	if(window.labels && !status.labelsRendered ) //js file should state labels= {...}
+	if(window.labels && !now.labelsRendered ) //js file should state labels= {...}
 		{
 		//ih("lblFromJs");
 		
@@ -1529,16 +1526,16 @@ function renderLabels()
 	}	
 	
 	//prevent duplicate creation. Because checkLabelsLoaded(), and thus renderLabels() may be called by a timeOut()  	
-	if(status.renderingLabels)
+	if(now.renderingLabels)
 		{return;}
 	//set switch: busy!
-	status.renderingLabels = true;	
+	now.renderingLabels = true;	
 	//ih("renderLabels1");
 
-	//remove any old labels and reset counter and status
+	//remove any old labels and reset counter and now status
 	jQ(elem.imageLabels).empty();
-	status.numberLabels = 0;
-	status.labelsRendered = false;
+	now.numberLabels = 0;
+	now.labelsRendered = false;
 	
 	//ih("renderLabels2");
 	//debug(data.labels);
@@ -1556,8 +1553,8 @@ function renderLabels()
 	//possibly focus on a specific label
 	focusOnLabel();
 	//set global booleans
-	status.renderingLabels = false;
-	status.labelsRendered = true;
+	now.renderingLabels = false;
+	now.labelsRendered = true;
 }
 
 /*
@@ -1568,7 +1565,7 @@ function renderLabels()
 function createLabel(labelData)
 {
 	//debug(labelData);
-	var index = status.numberLabels + 1;
+	var index = now.numberLabels + 1;
 	
 	//ih("Creating:"+labelData.label+", createLabel.index="+index+"<br>");
 	
@@ -1602,7 +1599,7 @@ function createLabel(labelData)
 	positionLabel(labelData);
 	
 	//increment the global counter
-	status.numberLabels++;	
+	now.numberLabels++;	
 }
 
 /*
@@ -1613,8 +1610,8 @@ function createLabel(labelData)
 function calculateLabelPosition(labelData)
 {
 	var o = {};
-	o.x = labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-zoom)); 
-	o.y = labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-zoom)); 
+	o.x = labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom)); 
+	o.y = labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)); 
 	return o;	
 }
 
@@ -1626,18 +1623,18 @@ function positionLabel(labelData)
 {
 	var labelId  = labelData.id;
 	var labelPos = calculateLabelPosition(labelData);
-	jQ("#"+labelId).css({"left": labelPos.x + "px", "top": (labelPos.y + settings["labelOffsetHeight"]) + "px"});
+	jQ("#"+labelId).css({"left": labelPos.x + "px", "top": (labelPos.y + settings.labelOffsetHeight) + "px"});
 /*	if( labelId=="NL0")
 	{
 		var fontSize= jQ("#NLTextArea0").css("font-size");
 		var lineHeight= jQ("#NLTextArea0").css("line-height");
 		var str="Positioning. Stored position left: "+labelData.x+"FR, top: "+labelData.y+"FR<br>"
-		str+="font-size: "+fontSize+", line-height: "+lineHeight+", labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
-		str+="Container set to left: "+labelPos.x+"px, top: "+(labelPos.y + settings["labelOffsetHeight"])+"px<br>";;
+		str+="font-size: "+fontSize+", line-height: "+lineHeight+", labelOffsetHeight: "+ settings.labelOffsetHeight+"px<br>";
+		str+="Container set to left: "+labelPos.x+"px, top: "+(labelPos.y + settings.labelOffsetHeight)+"px<br>";;
 		//ih(str);	
 
 		
-		//ih("<br>Position "+labelId+" to: left="+labelPos.x+"px ["+labelData.x+"FR], top="+labelPos.y+ settings["labelOffsetHeight"]+"px, ["+labelData.y+"FR]<br />");
+		//ih("<br>Position "+labelId+" to: left="+labelPos.x+"px ["+labelData.x+"FR], top="+labelPos.y+ settings.labelOffsetHeight+"px, ["+labelData.y+"FR]<br />");
 	}
 */	
 }
@@ -1670,7 +1667,7 @@ function repositionLabels()
  */
 function resizeLabels() 
 {	
-	var sizeFactor  = parseFloat( (zoom/(gTierCount-1)) * 3 );
+	var sizeFactor  = parseFloat( (now.zoom/(gTierCount-1)) * 3 );
 	var sizeProcent = (sizeFactor * 100) + "%";  //100pct
 	var labelWidth  = (sizeFactor * 100) + "px"; //100px is original width
 	var newLabelTooltipWidth = ((sizeFactor * 100) -8 ) + "px"; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding 
@@ -1715,8 +1712,8 @@ function setLabelOffsetHeight()
 {
 	var uaFontSize = getUserAgentFontSize("hiddenLabel"); //is read from the hiddenLabel
 	var labelLineHeight= uaFontSize * 1.2; // 1.2 = average multiplication factor see CSS Definitive Guide Eric Meyer 3rd ed, p135
-	settings["labelOffsetHeight"] = - (labelLineHeight/2);
-	//ih("LabelLineHeight="+labelLineHeight + ", SET labelOffsetHeight= "+ settings["labelOffsetHeight"]+"<br>");
+	settings.labelOffsetHeight = - (labelLineHeight/2);
+	//ih("LabelLineHeight="+labelLineHeight + ", SET labelOffsetHeight= "+ settings.labelOffsetHeight+"<br>");
 }
 
 
@@ -1732,6 +1729,9 @@ function placeTestLabel()
 	data.newLabels["NL0"].y= 0.443;
 }
 
+/*
+ * 
+ */
 function testLabels()
 {
 
@@ -1769,20 +1769,24 @@ function testLabels()
 	str+= "NL2-top:"  +jQ("#NL2").css("top")  +" ["+data.newLabels["NL2"].y+"FR]<br>";
 	}
 	
-	ih(str);
-	var merged= mergeObjects(data.labels,data.newLabels);
-	debug(merged);
+	//ih(str);
+	//var merged= mergeObjects(data.labels,data.newLabels);
+	//debug(merged);
+	var testnr = 100.123456789;
+	var testnr = 100.987654321;
+	var trkd = truncate(testnr,5);
+	alert(trkd)
 	
 }
 
 
 function focusOnLabel()
 {
-	if(focusLabel)
+	if(settings.focusLabel)
 	{
-		//alert("focussing on "+focusLabel)
-		var x = data.labels[focusLabel].x
-		var y = data.labels[focusLabel].y;
+		//alert("focussing on "+settings.focusLabel)
+		var x = data.labels[settings.focusLabel].x
+		var y = data.labels[settings.focusLabel].y;
 		centerOn(x,y);
 		//alert("centered on x="+x+", y="+y)
 	}
@@ -1800,7 +1804,7 @@ function makeNewLabel()
 	//create id. 'newLabelId' is used as key in the object newLabels (with value= data-object for this new label)
 	var newLabelId =  "NL" + index; 
 	//Create data object for the new label and add it to the global data.newLabels
-	var newLabel = {"id":newLabelId,"x":null,"y":null,"label":"","tooltip":null}; //container for the data of the new label
+	var newLabel = {"id":newLabelId,"x":null,"y":null,"label":"","tooltip":""}; //container for the data of the new label
 	data.newLabels[newLabelId] = newLabel;
 	
 	//DOM creation
@@ -1878,9 +1882,9 @@ function makeNewLabel()
 		{		
 			//ui.position.left and top are px positions related to left top of image
 			data.newLabels[newLabelId].x = ui.position.left / imgWidthPresentZoom; //@TODO? add border correction of 1?
-			data.newLabels[newLabelId].y = (ui.position.top - settings["labelOffsetHeight"]) / imgHeightPresentZoom; //apparently border seems no effect on top???? so dont correct
+			data.newLabels[newLabelId].y = (ui.position.top - settings.labelOffsetHeight) / imgHeightPresentZoom; //apparently border seems no effect on top???? so dont correct
 			//var str="<br>Container moved to left: "+ui.position.left+"px, top: "+ui.position.top+"px<br>";
-			//str+="labelOffsetHeight: "+ settings["labelOffsetHeight"]+"px<br>";
+			//str+="labelOffsetHeight: "+ settings.labelOffsetHeight+"px<br>";
 			//str+="Stored position left: "+data.newLabels[newLabelId].x+"FR, top: "+data.newLabels[newLabelId].y+"FR<br>";
 			//ih(str);	
 		}
@@ -1899,7 +1903,7 @@ function makeNewLabel()
 function positionCrossHairs()
 {
 	var left = - settings.crosshairWidth/2;
-	var top  = - settings.crosshairHeight/2 - settings["labelOffsetHeight"];
+	var top  = - settings.crosshairHeight/2 - settings.labelOffsetHeight;
 
 	//set crosshair at middle of (first-line) line-height
 	jQ(".newLabelCrosshair").css({ "left": left +"px", "top": top +"px"});
@@ -1942,33 +1946,33 @@ function displayCredits()
  */
 function setWheelZoomInDirection(zoomInDirection)
 {
-	settings["wheelZoomInDirection"] = (zoomInDirection == "up")? 1 : ((zoomInDirection == "down")? -1 : settings["wheelZoomInDirection"]);
+	settings.wheelZoomInDirection = (zoomInDirection == "up")? 1 : ((zoomInDirection == "down")? -1 : settings.wheelZoomInDirection);
 }
 
 
 /*
  * shows or hides the little panel at the top of the page displaying the coords
  * @param boolean showOrHide : true = show, false = hide
- * if not given, it uses the settings["showCoordinatesPanel"] 
+ * if not given, it uses the settings.showCoordinatesPanel 
  */
 function showHideCoordinatesPanel(showOrHide)
 {
-	//if a setting is passed, set 'settings["showCoordinatesPanel"]' that determines the showing to this value, else keep the default one  
-	settings["showCoordinatesPanel"] = (typeof showOrHide == "boolean")? showOrHide : settings["showCoordinatesPanel"];
-	//ih("in viewerframe showHideCoordinatesPanel, settings["showCoordinatesPanel"] ="+ settings["showCoordinatesPanel"])
+	//if a setting is passed, set 'settings.showCoordinatesPanel' that determines the showing to this value, else keep the default one  
+	settings.showCoordinatesPanel = (typeof showOrHide == "boolean")? showOrHide : settings.showCoordinatesPanel;
+	//ih("in viewerframe showHideCoordinatesPanel, settings.showCoordinatesPanel ="+ settings.showCoordinatesPanel)
 	//show coords panel
-	ref("coordsPane").style.display = (settings["showCoordinatesPanel"])? "block" : "none";
+	ref("coordsPane").style.display = (settings.showCoordinatesPanel)? "block" : "none";
 	//then hide the name panel, as this overlaps, when shown it must be inline-block to have the centering and dynamic width work
-	ref("namePanel").style.display = (settings["showCoordinatesPanel"])?  "none" : "inline-block";
+	ref("namePanel").style.display = (settings.showCoordinatesPanel)?  "none" : "inline-block";
 }
 
 
 /*
  * wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
  */
-function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=0;}
+function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; settings.wheelmode=0;}
 
-function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" checked  onClick="wheelMode2()" >&nbsp;Next/Prev'; wheelmode=1;}
+function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" checked  onClick="wheelMode2()" >&nbsp;Next/Prev'; settings.wheelmode=1;}
 
 
 /*
@@ -1978,8 +1982,8 @@ function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input
 function getDataForUrl()
 {
 	var o ={}; //container
-	o["slideName"] = slideName;
-	o["zoom"] = zoom;
+	o["slideName"] = settings.slideName;
+	o["zoom"] = now.zoom;
 	//get the position on the image at the center of the viewport 
 	var center = getImgCoords(viewportWidth/2,viewportHeight/2);
 	o["x"] = center.x;
@@ -2235,15 +2239,15 @@ function panMap(dir)
 
 function slideNext(){ 
 	return; //temp disabled
-	if (slidePointer<JSONnum-1){ slidePointer++;}else{ slidePointer=0;}
-rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
+	if (settings.slidePointer<JSONnum-1){ settings.slidePointer++;}else{ settings.slidePointer=0;}
+rawPath = JSONout.slides[settings.slidePointer].path; imgWidthMaxZoom = JSONout.slides[settings.slidePointer].width; imgHeightMaxZoom = JSONout.slides[settings.slidePointer].height; if (JSONout.slides[settings.slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[settings.slidePointer].labelspath; loadLabels();}else{labelsPath="";}
 init0(); refreshTiles(); checkTiles();moveViewIndicator()}
 
 
 function slidePrev(){
 	return; //temp disabled
-	if (slidePointer>0){ slidePointer--;}else{ slidePointer=JSONnum-1;}
-rawPath = JSONout.slides[slidePointer].path; imgWidthMaxZoom = JSONout.slides[slidePointer].width; imgHeightMaxZoom = JSONout.slides[slidePointer].height; if (JSONout.slides[slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[slidePointer].labelspath; loadLabels();}else{labelsPath="";}
+	if (settings.slidePointer>0){ settings.slidePointer--;}else{ settings.slidePointer=JSONnum-1;}
+rawPath = JSONout.slides[settings.slidePointer].path; imgWidthMaxZoom = JSONout.slides[settings.slidePointer].width; imgHeightMaxZoom = JSONout.slides[settings.slidePointer].height; if (JSONout.slides[settings.slidePointer].labelspath!=undefined){ labelsPath=JSONout.slides[settings.slidePointer].labelspath; loadLabels();}else{labelsPath="";}
 init0(); refreshTiles(); checkTiles();moveViewIndicator()}
 
 

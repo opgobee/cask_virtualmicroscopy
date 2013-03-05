@@ -104,45 +104,14 @@ function readDataToSettings()
 }
 
 /*
- * reads query and stores the data in settings
+ * sets a property in the local associative array 'settings' 
  */
-function readQueryToSettings()
+function setLocalSetting(name, value)
 {
-	//read query from URL of parent (the frameset)
-	//get variables from query in URL
-	var queryArgs= getQueryArgs();
-	
-	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
-	if (queryArgs.showcoords) 			{ settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false; } 
-	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
-//	if (queryArgs.resunits) 			{ resunits = queryArgs.resunits; } 
-	if (queryArgs.zoom)					{ settings["zoom"] = Number(queryArgs.zoom); }
-	if (queryArgs.x) 					{ settings["cX"] = Number(queryArgs.x); }
-	if (queryArgs.y) 					{ settings["cY"]  = Number(queryArgs.y); }
-	if (queryArgs.label) 				{ settings["label"] = queryArgs.label;}
-//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
-//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
-
-	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
-	//querySettings = mergeObjects(querySettings,queryArgs);
-
+	settings[name]=value;
 }
 
 
-
-function setWheelZoomInDirection(zoomInDirection)
-{
-	switch(zoomInDirection)
-	{
-	case "up":
-		settings["wheelZoomInDirection"] = "up";
-		break;
-	case "down":
-	default:
-		settings["wheelZoomInDirection"] = "down";
-		break;
-	}	
-}
 
 function setHandlers()
 {
@@ -155,8 +124,6 @@ function setHandlers()
 	initTooltips();
 	slidesCont = ref("slidesCont");
 }	
-
-
 
 /*
  * In the options menus, checks the options according to the present settings
@@ -172,12 +139,14 @@ function checkChosenOptions()
 		jQ("#optWheelDown").attr('checked','checked'); 
 	} 
 	ref("checkBoxShowCoords").checked = (settings["showCoordinatesPanel"])? true :false;
-
 }
+
+
+
 
 //////////////////////////////////////////
 //
-// 	Scripts for the pop-out menu panel with slidesets
+// 	MENU'S
 //
 ////////////////////////////////////////////	
 
@@ -234,7 +203,7 @@ function createSlideSetsMenu(slideSetMenuName)
  *	]
  */
 function createSlideSetsMenuHtml(slideSetMenuName)
-	{
+{
 	var entry;
 	loadedSlideSetMenuNames[loadedSlideSetMenuNames.length] = slideSetMenuName;
 	var slideSetsMenuData = slideSetsMenus[slideSetMenuName];
@@ -267,9 +236,7 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 	str+= "</div>";	
 
 	return str;
-	}//end function	
-
-	
+}//end function	
 
 
 /*
@@ -333,7 +300,7 @@ function hideAllSlideSetMenus()
 
 ////////////////////////////////////////////
 //
-//	Scripts that handle the forming of the clickable images in the nav pane
+//	CREATE SLIDE-THUMBS
 //
 /////////////////////////////////////////////
 
@@ -570,39 +537,13 @@ function checkFit()
 	}	
 
 
+
 //////////////////////////////////////////////////////////////////////
 //
 // LOADING VIRTUAL SLIDE IN MAIN PANEL
 //
 /////////////////////////////////////////////////////////////////////
 
-/*
- * reloads the with the present settings (slide requested, showCoords etc) of querySettings 
- * Note: if there was not yet a slide requested in the query, it will add a slide request, if there was already a (previous) slide requested in the query, it will replace it.
- * @param boolean clean TRUE if you want only the slide plus user preferences remaining and the rest cleaned from querySettings
- * @deprecated not used anymore
- */
-/*
-function reload(clean)
-{
-	//read URL parts of parent (the frameset)
-	//gets the non-query part of the URL e.g. 'http://www.microscopy.org/viewer/full.html'
-	baseUrlPart = getBaseUrlPart("parent");
-	//gets the queryparts in an associative array/object
-	queryArgs= getQueryArgs();
-	//add or replace the requested properties 
-	querySettings = mergeObjects(queryArgs,querySettings);
-	if(clean)
-		{
-			cleanQuerySettings();
-		}
-	//re-create URL and reload
-	var query = createQuery(querySettings);
-	var URL = baseUrlPart + query;
-	//alert("reloading  with URL= '"+URL+"'");
-	window.location = URL;	
-}
-*/
 
 /*
  * loads the slide requested in the settings into the main panel
@@ -627,93 +568,15 @@ function loadVirtualSlide(slideName)
 		}
 	}
 	
-/*
- * cleans the query settings from all but the requested slide
- */
-/*
-function cleanQuerySettings()
-{
-	for(prop in querySettings)
-	{
-		if(prop == "slide") 
-			{continue;}
-		else 
-			{delete(querySettings[prop]);};
-	};
-}
-*/
 
 /*
- * this function is called by the document in veiwerframe when that is loaded
+ * this function is called by the document in viewerframe when that is loaded
  * from this function you can call things that should be done after the slide is loaded
  * for now that is: applying any settings to the slide that are not passed via the url 
  */
 function slideIsLoaded()
 {
 	applySettings();
-}
-
-//////////////////////////////////////////
-//
-// 	Functions handling user settings
-//
-////////////////////////////////////////////	
-
-/*
- * sets a property in the global associative array querySettings, which is used to load the virtual slide with the required settings 
- */
-/*function setQuerySetting(name, value)
-{
-	querySettings[name]=value;
-}
-*/
-
-/*
- * sets a property in the local associative array 'settings' 
- */
-function setLocalSetting(name, value)
-{
-	settings[name]=value;
-}
-
-/*
- * sets the scroll direction to zoom in or out on scroll (up or down)
- */
-function setWheelZoomDirection()
-{
-
-	var wheelZoomInDirection = readradio("settingsForm","wheelZoomDir");
-	//ensure correct setting
-	wheelZoomInDirection = (wheelZoomInDirection == "up")? "up" : (wheelZoomInDirection == "down")? "down" : wheelZoomInDirection;
-	//store it for placing in the URL query
-	setLocalSetting("wheelZoomInDirection", wheelZoomInDirection);
-	//effectuate it: push it to viewerframe
-	if(window.viewerFrame.setWheelZoomInDirection)
-	{
-		window.viewerFrame.setWheelZoomInDirection(wheelZoomInDirection);
-	}
-	else
-	{
-		showWarningChromeLocal();
-	}
-} 
-
-	
-function showHideCoordsPanel()
-{
-	//read checkbox
-	var bShowCoordinates = (ref("checkBoxShowCoords").checked)? true : false;
-	//store it
-	setLocalSetting("showCoordinatesPanel",bShowCoordinates);		
-	//effectuate it: push it to viewerframe
-	if(window.viewerFrame.showHideCoordinatesPanel)
-	{
-		window.viewerFrame.showHideCoordinatesPanel(bShowCoordinates);
-	}	
-	else
-	{
-		showWarningChromeLocal();
-	}
 }
 
 /*
@@ -734,9 +597,161 @@ function applySettings()
 	}	
 }
 
+//////////////////////////////////////////
+//
+// 	USER SETTINGS AND TOOLS
+//
+////////////////////////////////////////////	
+
+/*
+ * shows the panel that allows user to create labels
+ * for now to start it is only a direct transfer to function in main -later on hoepfully add ability to make stars
+ */
+function showSetLabelPanel()
+{
+	if(window.viewerFrame && window.viewerFrame.makeNewLabel)
+	{
+		window.viewerFrame.makeNewLabel();
+	}
+	else
+	{
+		showWarningChromeLocal();
+	}
+}
+
+/*
+ * shows/hides settings panel
+ */
+function showHideSettings()
+{
+	//for some reason the prop 'display' from the linked .css file, even though in effect, doesn't seem to be read [also jQuery gives 'undefined'). Workaround: if it is empty "", also show.
+	if ( ref("settingsDiv").style.display == "none" || ref("settingsDiv").style.display == "") 
+	{
+		showSettings();
+	}
+	else 
+	{ 
+		hideSettings();
+	}
+}
+
+function showSettings()
+{ref("settingsDiv").style.display="block";	
+}
+
+function hideSettings()
+{ref("settingsDiv").style.display="none";	
+}
+
+/*
+ * sets wheelzoomdirection programmatically, eg from URL
+ */
+function setWheelZoomInDirection(zoomInDirection)
+{
+	switch(zoomInDirection)
+	{
+	case "up":
+		settings["wheelZoomInDirection"] = "up";
+		break;
+	case "down":
+	default:
+		settings["wheelZoomInDirection"] = "down";
+		break;
+	}	
+}
+
+/*
+ * applies setting (scroll direction to zoom in) to viewerframe
+ */
+function setWheelZoomDirection()
+{
+
+	var wheelZoomInDirection = readradio("settingsForm","wheelZoomDir");
+	//ensure correct setting
+	wheelZoomInDirection = (wheelZoomInDirection == "up")? "up" : (wheelZoomInDirection == "down")? "down" : wheelZoomInDirection;
+	//store it for placing in the URL query
+	setLocalSetting("wheelZoomInDirection", wheelZoomInDirection);
+	//effectuate it: push it to viewerframe
+	if(window.viewerFrame.setWheelZoomInDirection)
+	{
+		window.viewerFrame.setWheelZoomInDirection(wheelZoomInDirection);
+	}
+	else
+	{
+		showWarningChromeLocal();
+	}
+} 
+
+/*
+ * applies setting (show Coordinates panel) to viewerframe
+ */	
+function showHideCoordsPanel()
+{
+	//read checkbox
+	var bShowCoordinates = (ref("checkBoxShowCoords").checked)? true : false;
+	//store it
+	setLocalSetting("showCoordinatesPanel",bShowCoordinates);		
+	//effectuate it: push it to viewerframe
+	if(window.viewerFrame.showHideCoordinatesPanel)
+	{
+		window.viewerFrame.showHideCoordinatesPanel(bShowCoordinates);
+	}	
+	else
+	{
+		showWarningChromeLocal();
+	}
+}
+
+
+
+function showWarningChromeLocal()
+{
+	if(!window.viewerFrame.document)
+	{
+		jQ("#chromeLocalWarning").show().fadeOut(5000);
+	}
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+//
+// URL handling
+//
+/////////////////////////////////////////////////////////////////////
+
+/*
+ * reads query and stores the data in settings
+ */
+function readQueryToSettings()
+{
+	//read query from URL of parent (the frameset)
+	//get variables from query in URL
+	var queryArgs= getQueryArgs();
+	
+	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
+	if (queryArgs.showcoords) 			{ settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false; } 
+	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
+//	if (queryArgs.resunits) 			{ resunits = queryArgs.resunits; } 
+	if (queryArgs.zoom)					{ settings["zoom"] = Number(queryArgs.zoom); }
+	if (queryArgs.x) 					{ settings["cX"] = Number(queryArgs.x); }
+	if (queryArgs.y) 					{ settings["cY"]  = Number(queryArgs.y); }
+	if (queryArgs.label) 				{ settings["label"] = queryArgs.label;}
+//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
+//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
+
+	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
+	//querySettings = mergeObjects(querySettings,queryArgs);
+
+}
+
+/*
+ * Gets and shows url in url-bar and shows sizeindicators in main window
+ */
 function showUrl()
 {
-	
+
 	if(jQ("#urlBar").css("display") == "block")
 		{
 		closeUrlBar();
@@ -755,12 +770,19 @@ function showUrl()
 		}
 }
 
+/*
+ * updates url in url-bar
+ */
 function updateUrl()
 {
 	var url = createUrl();
 	jQ("#urlString").html(url);
 }
 
+/*
+ * closes url-bar
+ *  and hides size indicators in mian window
+ */
 function closeUrlBar()
 {
 	jQ("#urlBar").hide();
@@ -778,19 +800,11 @@ function createUrl()
 {
 	var baseUrl = getBaseUrlPart();
 	
-//NOte; busy here: you want to get it from viewerframe settings instead of from the url
-	//debug(getQueryArgs("viewerFrame"));
+	//get data on present view, labels, from the viewerframe
 	var presentViewSettings = (window.viewerFrame.getDataForUrl)? window.viewerFrame.getDataForUrl() : {};
-	//debug("presentViewSettings",presentViewSettings);
 	var combinedSettings = mergeObjects(settings,presentViewSettings);
-	//debug("combinedSettings",combinedSettings);
 	var query = createQuery(combinedSettings);
-
-	//var imgCenter = getVisibleImgCenter();
-//	url+= "&x=" + imgCenter.x;
-//	url+= "&y=" + imgCenter.y;
 	return baseUrl+query;
-
 }
 
 /*
@@ -806,24 +820,21 @@ function createQuery(params)
 		return "";	
 	}
 	var qSlide = 		(isSet(params["slideName"]))? 				"slide=" + params["slideName"] : "";
-	var qShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
-	var qZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
+//	var qShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
+//	var qZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
 	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
 	var qX =			(isSet(params["x"]))? 						"&x=" + params["x"] : "";
 	var qY =			(isSet(params["y"]))? 						"&y=" + params["y"] : "";
-	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
 	var qLabels =		(isSet(params["labels"]))? 					"&labels="+ createQueryPartLabels(params["labels"]) : "";
+	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
 	
-//	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
-//	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
-	
-	var query = "?" + qSlide + qZoom + qX + qY + qLabel + qZoomInDir + qShowCoords;
+	var query = "?" + qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
 	//alert(query)
 	return query ;	
 }
 
 /*
- * creates query translation of labeldata for one of more labels 
+ * creates query holding info about labels 
  */
 function createQueryPartLabels(labels)
 {
@@ -836,44 +847,23 @@ function createQueryPartLabels(labels)
 }
 
 /*
- * creates query translation of labeldata 
+ * creates query part for one label
  */
 function createQueryPartLabel(labelData)
 {
-	var str="(";
-	for(prop in labelData)
+	//only if there is text in the label or in the tooltip use it, else discard it
+	if(labelData.label != ""  || labelData.tooltip != "" )
 	{
-		//only 
-		if(labelData.label != "")
-		{
+		var qX 		 =	(labelData.x)? 			(truncate(labelData.x,4))  		: "";
+		var qY 		 =	(labelData.y)? 			(truncate(labelData.y,4))  		: "";
+		var qLabel 	 =	(labelData.label)? 		urlEncode(labelData.label) 		: "";
+		var qTooltip =	(labelData.tooltip)? 	urlEncode(labelData.tooltip) 	: "";
 		
-		}
-		//str+=	(prop=="x")? 	
+		return   "(" + qX + "$" + qY + "$" + qLabel + "$" +qTooltip +")" ;
 	}
-	str+=")";
-	return str;
+	return "";
 }
 
-function showSetLabelPanel()
-{
-	//for now to start just a direct transfer to function in main
-	if(window.viewerFrame && window.viewerFrame.makeNewLabel)
-	{
-		window.viewerFrame.makeNewLabel();
-	}
-	else
-	{
-		showWarningChromeLocal();
-	}
-}
-
-function showWarningChromeLocal()
-{
-	if(!window.viewerFrame.document)
-	{
-		jQ("#chromeLocalWarning").show().fadeOut(5000);
-	}
-}
 
 
 
@@ -936,19 +926,7 @@ function cancelClose()
 	{clearTimeout(settingsCloseTimer);
 	}
 
-function showHideSettings()
-	{//for some reason the prop 'display' from the linked .css file, even though in effect, doesn't seem to be read [also jQuery gives 'undefined'). Workaround: if it is empty "", also show.
-	if ( ref("settingsDiv").style.display == "none" || ref("settingsDiv").style.display == "") 
-		{showSettings();}
-	else { hideSettings();}
-	}
 
-function showSettings()
-	{ref("settingsDiv").style.display="block";	
-	}
-function hideSettings()
-	{ref("settingsDiv").style.display="none";	
-	}
 	
 
 	

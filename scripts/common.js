@@ -8,6 +8,14 @@
 
 function ref(i) { return document.getElementById(i);}
 
+/*
+ * strips trailing character
+ */
+function stripChar(str,character)
+{
+	return (str.slice(-1)==character)? str.slice(0,-1) : str;
+}
+
 function exists(subject) //
 {
 	return (typeof subject != "undefined")? true : false;
@@ -48,6 +56,22 @@ function mergeObjects(obj1,obj2)
     return obj3;
 }
 
+/*
+ * Trunks and rounds, as good as 
+ * Note: JavaScript has floating point issues at high numbers see diverse online: 
+ * http://stackoverflow.com/questions/1379934/large-numbers-erroneously-rounded-in-javascript?rq=1
+ * http://stackoverflow.com/questions/4912788/truncate-not-round-off-decimal-numbers-in-javascript
+ * but if not too high numbers , seems to work
+ * @param number number - the number you want truncated
+ * @param number decimals - the number of decimals you want
+ * 
+ */
+function truncate(number,decimals)
+{
+	multiplier = Math.pow(10,decimals);
+	return Math.round(number*multiplier)/multiplier;
+}
+
 //////////////////////////////////////////////////////////////////////
 //
 // DOM scripting 
@@ -64,6 +88,61 @@ function makeElement(type,id,className)
 	return el;
 }
 
+//////////////////////////////////////////////////////////////////////
+//
+// URL handling 
+//
+/////////////////////////////////////////////////////////////////////
+
+/*
+ * URL encoding method, that seems to adhere to 2005 RFC3986 - http://tools.ietf.org/html/rfc3986
+ * Source: http://phpjs.org/functions/urlencode/ 
+ * Also see: http://en.wikipedia.org/wiki/Percent-encoding#Types_of_URI_characters
+ * Basically it is encodeURIComponent, 	PLUS encoding: !  '  (  ) *  
+ * 										PLUS changes encoding of space: original: space becomes %20 (is changed to '+' in this method)
+ */
+function urlEncode (str) {
+	  // http://kevin.vanzonneveld.net
+	  // +   original by: Philip Peterson
+	  // +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+	  // +      input by: AJ
+	  // +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+	  // +   improved by: Brett Zamir (http://brett-zamir.me)
+	  // +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+	  // +      input by: travc
+	  // +      input by: Brett Zamir (http://brett-zamir.me)
+	  // +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+	  // +   improved by: Lars Fischer
+	  // +      input by: Ratheous
+	  // +      reimplemented by: Brett Zamir (http://brett-zamir.me)
+	  // +   bugfixed by: Joris
+	  // +      reimplemented by: Brett Zamir (http://brett-zamir.me)
+	  // %          note 1: This reflects PHP 5.3/6.0+ behavior
+	  // %        note 2: Please be aware that this function expects to encode into UTF-8 encoded strings, as found on
+	  // %        note 2: pages served as UTF-8
+	  // *     example 1: urlencode('Kevin van Zonneveld!');
+	  // *     returns 1: 'Kevin+van+Zonneveld%21'
+	  // *     example 2: urlencode('http://kevin.vanzonneveld.net/');
+	  // *     returns 2: 'http%3A%2F%2Fkevin.vanzonneveld.net%2F'
+	  // *     example 3: urlencode('http://www.google.nl/search?q=php.js&ie=utf-8&oe=utf-8&aq=t&rls=com.ubuntu:en-US:unofficial&client=firefox-a');
+	  // *     returns 3: 'http%3A%2F%2Fwww.google.nl%2Fsearch%3Fq%3Dphp.js%26ie%3Dutf-8%26oe%3Dutf-8%26aq%3Dt%26rls%3Dcom.ubuntu%3Aen-US%3Aunofficial%26client%3Dfirefox-a'
+	  str = (str + '').toString();
+
+	  // Tilde should be allowed unescaped in future versions of PHP (as reflected below), but if you want to reflect current
+	  // PHP behavior, you would need to add ".replace(/~/g, '%7E');" to the following.
+	  return encodeURIComponent(str).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
+	  replace(/\)/g, '%29').replace(/\*/g, '%2A').replace(/%20/g, '+');
+	}
+
+/*
+ * decoder, based on:
+ * http://unixpapa.com/js/querystring.html
+ */
+function urlDecode (str)
+{
+	str = str.replace(/\+/g,' ')
+	return decodeURIComponent(str);	
+}
 
 //////////////////////////////////////////////////////////////////////
 //
