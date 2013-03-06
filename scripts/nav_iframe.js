@@ -90,7 +90,10 @@ function init()
 		{
 		loadVirtualSlide(settings["slideName"]); 
 		}
+	
 	}
+
+
 
 /*
  * Reads data from different inputs and sets settings from these data
@@ -726,18 +729,19 @@ function showWarningChromeLocal()
  */
 function readQueryToSettings()
 {
-	//read query from URL of parent (the frameset)
 	//get variables from query in URL
-	var queryArgs= getQueryArgs();
+	//without uri-decoding for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
 	
 	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
 	if (queryArgs.showcoords) 			{ settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false; } 
 	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
 //	if (queryArgs.resunits) 			{ resunits = queryArgs.resunits; } 
 	if (queryArgs.zoom)					{ settings["zoom"] = Number(queryArgs.zoom); }
-	if (queryArgs.x) 					{ settings["cX"] = Number(queryArgs.x); }
-	if (queryArgs.y) 					{ settings["cY"]  = Number(queryArgs.y); }
+	if (queryArgs.x) 					{ settings["x"] = Number(queryArgs.x); }
+	if (queryArgs.y) 					{ settings["y"]  = Number(queryArgs.y); }
 	if (queryArgs.label) 				{ settings["label"] = queryArgs.label;}
+	if (queryArgs.labels) 				{ settings["labels"] = queryArgs.labels;}
 //	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
 //	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
 
@@ -825,7 +829,7 @@ function createQuery(params)
 	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
 	var qX =			(isSet(params["x"]))? 						"&x=" + params["x"] : "";
 	var qY =			(isSet(params["y"]))? 						"&y=" + params["y"] : "";
-	var qLabels =		(isSet(params["labels"]))? 					"&labels="+ createQueryPartLabels(params["labels"]) : "";
+	var qLabels =		(isSet(params["labels"]))? 					"&labels="+ params["labels"] : "";
 	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
 	
 	var query = "?" + qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
@@ -833,36 +837,6 @@ function createQuery(params)
 	return query ;	
 }
 
-/*
- * creates query holding info about labels 
- */
-function createQueryPartLabels(labels)
-{
-	var str="";
-	for(label in labels)
-	{
-		str+= createQueryPartLabel(labels[label]);
-	}
-	return str;
-}
-
-/*
- * creates query part for one label
- */
-function createQueryPartLabel(labelData)
-{
-	//only if there is text in the label or in the tooltip use it, else discard it
-	if(labelData.label != ""  || labelData.tooltip != "" )
-	{
-		var qX 		 =	(labelData.x)? 			(truncate(labelData.x,4))  		: "";
-		var qY 		 =	(labelData.y)? 			(truncate(labelData.y,4))  		: "";
-		var qLabel 	 =	(labelData.label)? 		urlEncode(labelData.label) 		: "";
-		var qTooltip =	(labelData.tooltip)? 	urlEncode(labelData.tooltip) 	: "";
-		
-		return   "(" + qX + "$" + qY + "$" + qLabel + "$" +qTooltip +")" ;
-	}
-	return "";
-}
 
 
 

@@ -6,16 +6,8 @@
 //
 /////////////////////////////////////////////////////////////////////
 
-function ref(i) { return document.getElementById(i);}
-
-/*
- * strips trailing character
- */
-function stripChar(str,character)
-{
-	return (str.slice(-1)==character)? str.slice(0,-1) : str;
-}
-
+//TESTING
+	
 function exists(subject) //
 {
 	return (typeof subject != "undefined")? true : false;
@@ -26,6 +18,54 @@ function isSet(subject) //
 	return ((typeof subject != undefined) && (subject != null))? true : false;
 }
 
+
+//MATH
+/*
+ * Trunks and rounds, as good as 
+ * Note: JavaScript has floating point issues at high numbers see diverse online: 
+ * http://stackoverflow.com/questions/1379934/large-numbers-erroneously-rounded-in-javascript?rq=1
+ * http://stackoverflow.com/questions/4912788/truncate-not-round-off-decimal-numbers-in-javascript
+ * but if not too high numbers , seems to work
+ * @param number number - the number you want truncated
+ * @param number decimals - the number of decimals you want
+ * 
+ */
+function truncate(number,decimals)
+{
+	multiplier = Math.pow(10,decimals);
+	return Math.round(number*multiplier)/multiplier;
+}
+
+
+//STRINGS
+/*
+ * strips trailing character
+ */
+function stripChar(str,character)
+{
+	return (str.slice(-1)==character)? str.slice(0,-1) : str;
+}
+
+
+//ARRAYS
+
+/*
+ * searches a certain value in a regular array
+ * @param (regular) Array arr - the array to search in
+ * @param mixed needle - the thing to search for
+ * @return index of the position in array where found or -1 if NOT found.
+ */
+function searchArray(arr,needle)
+{
+	var i=0;
+	for(i;i<arr.length;i++)
+	{
+		if(arr[i] === needle) return i;
+	}
+	return -1;
+}
+
+//OBJECTS
 /*
  * Counts the number of properties in an object
  * Neccessary because 'length' is not a native property of a javascript object, like it is of an Array.
@@ -56,27 +96,14 @@ function mergeObjects(obj1,obj2)
     return obj3;
 }
 
-/*
- * Trunks and rounds, as good as 
- * Note: JavaScript has floating point issues at high numbers see diverse online: 
- * http://stackoverflow.com/questions/1379934/large-numbers-erroneously-rounded-in-javascript?rq=1
- * http://stackoverflow.com/questions/4912788/truncate-not-round-off-decimal-numbers-in-javascript
- * but if not too high numbers , seems to work
- * @param number number - the number you want truncated
- * @param number decimals - the number of decimals you want
- * 
- */
-function truncate(number,decimals)
-{
-	multiplier = Math.pow(10,decimals);
-	return Math.round(number*multiplier)/multiplier;
-}
 
 //////////////////////////////////////////////////////////////////////
 //
 // DOM scripting 
 //
 /////////////////////////////////////////////////////////////////////
+
+function ref(i) {return document.getElementById(i);}
 
 
 function makeElement(type,id,className)
@@ -137,10 +164,11 @@ function urlEncode (str) {
 /*
  * decoder, based on:
  * http://unixpapa.com/js/querystring.html
+ * and inverse matched the encoder above
  */
 function urlDecode (str)
 {
-	str = str.replace(/\+/g,' ')
+	str = str.replace(/%21/g, '!').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2A/g, '*').replace(/\+/g,' ')
 	return decodeURIComponent(str);	
 }
 
@@ -154,13 +182,38 @@ function urlDecode (str)
 /*
  * gets variables from the query in the URL
  * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
- * @param string whichWindow "self", "viewerFrame". If not specified, it will take this window self
+ * adapted:
+ * @param  map @params [optional] Possible options:
+ * "window" 		: "self" / ... (windowName)	//read query from another window or frame 
+ * "decode" 		: true / false			  	//dont decode at all
+ * "dontDecodeKey" 	: "keyName"				  	//one specific key not to decode
+ * "dontDecodeKeys" : ["keyNameA","keyNameB"] 	//(more than one) specific keys not to decode (specify key names in a regular array)
+ * @return map {key:value,key:value..}
  */
-function getQueryArgs(whichWindow)
+function getQueryArgs(params)
 {
 	var pos,argName,argValue;
+	var mode={
+			"window": 			"self",  	//default window self
+			"decode": 			true,		//default DO decode 
+			"dontDecodeKeys":	[]			//default no exceptions
+	};
+	if(params != undefined)
+	{
+		mode.window  = (params.window != undefined)? params.window : mode.window; 
+		mode.decode  = (params.decode != undefined)? params.decode : mode.decode;
+		if(params.dontDecodeKey != undefined)
+		{
+			mode.dontDecodeKeys[mode.dontDecodeKeys.length] = params.dontDecodeKey;
+		}
+		if(params.dontDecodeKeys != undefined)
+		{
+			mode.dontDecodeKeys.concat(params.dontDecodeKeys);
+		}
+
+	}
 	var args = new Object();
-	var oLocation =  getLocationOfRequestedWindow(whichWindow);
+	var oLocation =  getLocationOfRequestedWindow(mode.window);
 	var query = oLocation.search.substring(1);
 	//split query in arg/value pairs
 	var pairs = query.split("&"); 
@@ -169,9 +222,12 @@ function getQueryArgs(whichWindow)
 	{
 		pos=pairs[i].indexOf("=");
 		if(pos == -1) {continue;}
-		argName = pairs[i].substring(0,pos); //get name
+		argName = pairs[i].substring(0,pos);  //get name
 		argValue = pairs[i].substring(pos+1); //get value
-		argValue = decodeURIComponent(argValue);
+		if(mode.decode && (searchArray(mode.dontDecodeKeys,argName) == -1 ))
+		{
+			argValue = decodeURIComponent(argValue);
+		}
 		//a bit cleaning...
 		argValue = preventXss(argValue);
 		//alert("argName= "+argName+",argValue= "+argValue)
@@ -206,11 +262,21 @@ function getLocationOfRequestedWindow(whichWindow)
  */
 function preventXss(input)
 {
-	//remove < and > JavaScript Def Guide 5th ed. Flanagan. p. 268 
-	var output = input.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-	//remove 'eval(', and 'javascript:'  http://weblogs.java.net/blog/gmurray71/archive/2006/09/preventing_cros.html
-	output = output.replace(/eval\(/, "").replace(/javascript\:/, "")
-	return output;
+	//remove <script> and </script> tags. Second line: also remove url-encoded forms of <script> and </script>
+	input = input.replace(/<[.]*?script[.]*?>/g, "").replace(/<\/[.]*?script[.]*?>/g, "");;
+	input = input.replace(/%3C[.]*?script[.]*?%3E/g, "").replace(/%3C\/[.]*?script[.]*?%3E/g, "");
+	
+	//remove < and > JavaScript Def Guide 5th ed. Flanagan. p. 268. Second line: also remove url-encoded forms of < and > 
+	input = input.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	input = input.replace(/%3C/g, "").replace(/%3E/g, "");
+	
+	//remove 'eval(', and 'javascript:'  http://weblogs.java.net/blog/gmurray71/archive/2006/09/preventing_cros.html.. 
+	//Second line: also remove url-encoded form of eval()
+	input = input.replace(/eval[\s]*?\(/, "").replace(/javascript\:/, "");
+	input = input.replace(/eval%28/, ""); //
+	
+	//debug(input)
+	return input;
 }
 
 
@@ -276,7 +342,7 @@ function debug(subjects)
 			}
 			else
 			{
-				for(var i=1;i<subject.length;i++)
+				for(var i=0;i<subject.length;i++)
 				{
 					if(typeof subject[i] == "object")
 					{
