@@ -6,7 +6,7 @@ var slideSetsMenus= {
 			"header":{showText:"CardioVascular System",infoText:"",slides:""},
 			"sets":[
 				{showText:"Elastic arteries",infoText:"",slides:"120a_aorta_fetus_human_he,120b_aorta_fetus_human_azan,120b_aorta_fetus_human_azan_01,120c_aorta_fetus_human_rf,120d_aorta_fetus_human_vwf,120e_aorta_fetus_human_1a4,120f_aorta_fetus_human_s100,121a_aorta_adult_human_he,121c_aorta_adult_human_rf,121d_aorta_adult_human_vwf,121e_aorta_adult_human_1a4,121f_aorta_adult_human_s100"},
-				{showText:"Muscular arteries",infoText:"",slides:"carotid_atherosclerosis,carotid_atherosclerosis_with_labels,119a_muscular_artery_human_he,119b_muscular_artery_human_azan,119c_muscular_artery_human_rf,119d_muscular_artery_human_vwf,119e_muscular_artery_human_1a4,119f_muscular_artery_human_s100"},
+				{showText:"Muscular arteries",infoText:"",slides:"carotid_atherosclerosis&view=carotis1,119a_muscular_artery_human_he,119b_muscular_artery_human_azan,119c_muscular_artery_human_rf,119d_muscular_artery_human_vwf,119e_muscular_artery_human_1a4,119f_muscular_artery_human_s100"},
 				{showText:"Large veins",infoText:"",slides:"122a_vena_cava_inferior_human_he,122c_vena_cava_inferior_human_rf,122d_vena_pulmonalis_human_vwf,122e_vena_pulmonalis_human_1a4,122f_vena_pulmonalis_human_s100"}
 				]
 		},

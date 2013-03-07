@@ -184,24 +184,27 @@ function urlDecode (str)
  * src: JavaScript Defin. Guide. Danny Goodman, O'Reilly, 5th ed. p272
  * adapted:
  * @param  map @params [optional] Possible options:
- * "window" 		: "self" / ... (windowName)	//read query from another window or frame 
- * "decode" 		: true / false			  	//dont decode at all
- * "dontDecodeKey" 	: "keyName"				  	//one specific key not to decode
- * "dontDecodeKeys" : ["keyNameA","keyNameB"] 	//(more than one) specific keys not to decode (specify key names in a regular array)
+ * "window" 		 	: "self" / ... (windowName)					//read query from another window or frame 
+ * "decode" 			: true / false			  					//dont decode at all
+ * "dontDecodeKey" 		: "keyName"				  					//one specific key not to decode
+ * "dontDecodeKeys" 	: ["keyNameA","keyNameB"] 					//(more than one) specific keys not to decode (specify key names in a regular array)
+ * "alternativeQuery" 	: "slide=....&x=..&y=..&labels=(...)(...)" 	//a view : in fact this is a stored query string	
  * @return map {key:value,key:value..}
  */
 function getQueryArgs(params)
 {
 	var pos,argName,argValue;
 	var mode={
-			"window": 			"self",  	//default window self
-			"decode": 			true,		//default DO decode 
-			"dontDecodeKeys":	[]			//default no exceptions
+			"window"			: 	"self",  	//default window self
+			"decode"			: 	true,		//default DO decode 
+			"dontDecodeKeys"	:	[],			//default no exceptions
+			"alternativeQuery"	:	null		//default no alternativequery
 	};
 	if(params != undefined)
 	{
-		mode.window  = (params.window != undefined)? params.window : mode.window; 
-		mode.decode  = (params.decode != undefined)? params.decode : mode.decode;
+		mode.window  			= (params.window != undefined)? params.window : mode.window; 
+		mode.decode  			= (params.decode != undefined)? params.decode : mode.decode;
+		mode.alternativeQuery 	= (params.alternativeQuery != undefined)? params.alternativeQuery : mode.alternativeQuery;
 		if(params.dontDecodeKey != undefined)
 		{
 			mode.dontDecodeKeys[mode.dontDecodeKeys.length] = params.dontDecodeKey;
@@ -210,14 +213,24 @@ function getQueryArgs(params)
 		{
 			mode.dontDecodeKeys.concat(params.dontDecodeKeys);
 		}
-
 	}
-	var args = new Object();
-	var oLocation =  getLocationOfRequestedWindow(mode.window);
-	var query = oLocation.search.substring(1);
+	
+	var query;
+	//use the query that was passed as a parameter (a view : in fact this is a stored query string)
+	if(mode.alternativeQuery != null)
+	{
+		query= mode.alternativeQuery;
+	}
+	//or read the query from the URL
+	else
+	{
+		var oLocation =  getLocationOfRequestedWindow(mode.window);
+		query = oLocation.search.substring(1);
+	}
+	
 	//split query in arg/value pairs
 	var pairs = query.split("&"); 
-	
+	var args = new Object();
 	for(var i=0; i < pairs.length ; i++)
 	{
 		pos=pairs[i].indexOf("=");
@@ -294,7 +307,8 @@ function stripPx(value)
  * Tooltip:
  * 1. add class 'hastooltip' to the thing that you wnat the tooltip to work on   <img class="hastooltip" src=""/>
  * 2. add a html element directly after that element and give it class 'tooltip' <div class="tooltip">this wil appear when you hover over the image</div>
- * 3. have class 'tooltip' in your css with display: none and for the rest custom tooltip styling   
+ * 3. have class 'tooltip' in your css with display: none and for the rest custom tooltip styling 
+ *   
  * 
  */
 function initTooltips()

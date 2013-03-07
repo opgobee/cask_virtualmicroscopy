@@ -23,20 +23,21 @@
     
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
-var initialSlideSet = "carotid_atherosclerosis_with_labels,brain"; //slideSet to load opening //@TODO: put this in the menus.js file
+var initialSlideSet = "carotid_atherosclerosis&view=carotis1,brain"; //slideSet to load opening //@TODO: put this in the menus.js file
 var urlViewerFile = "../html/main.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
 var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides
 
-//Local Settings in nav  
+//Local Settings in nav - Note: the settings are listed here for clarity, but they are always reset in function resetSettings()  
 settings = {}; 
 settings["slideName"] = null; //slideName (the code-slidename)
+settings["viewName"] = null; //a specific view on the slide
 settings["wheelZoomInDirection"] = "down"; //user-option: zoomin/out direction of wheel, default wheeldown = zoomin
 settings["showCoordinatesPanel"] = false; //user-option: default hide coords panel
 settings["zoom"] = null;
-settings["cX"] = null; //the x coordinate (fraction of image) to center on
-settings["cY"] = null; //the y coordinate (fraction of image) to center on
+settings["x"] = null; //the x coordinate (fraction of image) to center on
+settings["y"] = null; //the y coordinate (fraction of image) to center on
 settings["label"] = null; // a single label to be set on the center x,y location
 //Variable declarations
 
@@ -70,12 +71,15 @@ var slideSetsMenuData = Array();
 
 
 function init()
-	{
+{
 	//debugging
 	logwin=document.getElementById("log");
 	
-	//reads data from different inputs (at present only yet from the URL)
-	readDataToSettings();
+	//at a reload reset the settings
+	resetSettings();
+	
+	//reads data from the URL
+	readQueryToSettings();
 	
 	winsize();//do after onload for IE
 	setHandlers();
@@ -85,25 +89,25 @@ function init()
 	createSlideSetsMenus();
 	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
-	//if a slide is requested in the URL, load the requested slide in the main panel
-	if(settings["slideName"] != null) //loads the slide that is requested in the query : e.g. '...?slide=carotis'
-		{
+	//If a slide is requested in the URL (e.g. '...?slide=carotis'), load the requested slide in the main panel
+	//Note 1: all additional specific requests in the URL (e.g. view, zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
+	//Note 2: a slide may also be loaded by a click on one of the slides-thumbs in the menus
+	if(settings["slideName"] != null)  
+	{
 		loadVirtualSlide(settings["slideName"]); 
-		}
-	
 	}
+}
 
-
-
-/*
- * Reads data from different inputs and sets settings from these data
- */
-function readDataToSettings()
+function resetSettings()
 {
-	//set or adapt globals with query information
-	readQueryToSettings();
-	//possible other data sources here
-	//Note: slides data remain in var 'slides' and are read from there
+	settings["slideName"] = null; //slideName (the code-slidename)
+	settings["viewName"] = null; //a specific view on the slide
+	settings["wheelZoomInDirection"] = "down"; //user-option: zoomin/out direction of wheel, default wheeldown = zoomin
+	settings["showCoordinatesPanel"] = false; //user-option: default hide coords panel
+	settings["zoom"] = null;
+	settings["x"] = null; //the x coordinate (fraction of image) to center on
+	settings["y"] = null; //the y coordinate (fraction of image) to center on
+	settings["label"] = null; // a single label to be set on the center x,y location
 }
 
 /*
@@ -178,7 +182,7 @@ function createSlideSetsMenus()
  * 15-2-2012 CHG made it to retry with a timeout if the file with the slideSetsMenuData has not yet loaded - first it simply exited
 */
 function createSlideSetsMenu(slideSetMenuName)
-	{
+{
 	//create SlideSetsMenu
 	var slideSetsMenuHtml = createSlideSetsMenuHtml(slideSetMenuName); 
 	//insert the html
@@ -186,7 +190,7 @@ function createSlideSetsMenu(slideSetMenuName)
 	//set accordion behaviour
 	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7
 	jQ(".slideSetsMenu").accordion({collapsible:true,active:false,autoHeight:false});
-	}
+}
 
 
 /*
@@ -320,10 +324,9 @@ function loadSlideSet(stringSlideNames)
 	}
 	
 	currentSlideSetSlideNames = stringSlideNames.split(",");
-	loadSlides();
+	loadSlideThumbs();
 	
 	setTimeout("hideSlideSetsMenuPane()",100);
-
 }
 
 
@@ -331,9 +334,9 @@ function loadSlideSet(stringSlideNames)
 * Creates and shows a set of clickable slides (thumb projected on a slide image) in the slide selection panel (=this page)
 * @needs global var slides
 */
-function loadSlides()
+function loadSlideThumbs()
 {
-	var slideName;
+	var slideRequest, slideName, viewName;
 	
 	//first remove any existing slides
 	removeSlides();
@@ -341,42 +344,52 @@ function loadSlides()
 	//load only the slides of a specific SlideSet if that is defined
 	if(currentSlideSetSlideNames.length != 0) 
 	{
-			//debug showNames
-			//showNames = currentSlideSetSlideNames.join();
-				
+		//debug showNames
+		//debug(currentSlideSetSlideNames);
 
 		for(var i=0;i<currentSlideSetSlideNames.length;i++)
 		{
-			slideName = currentSlideSetSlideNames[i];
+			//slideRequest may be only a slideName, or a slideName plus an attached '&view=....' 
+			//split it to slideName and possible viewName
+			slideRequest 	= currentSlideSetSlideNames[i];
+			slideRequest 	= slideRequest.split("&");
+			slideName 		= slideRequest[0];
+			viewName		= (isSet(slideRequest[1]))? slideRequest[1].replace("view=","") : null;
 			
 			if(slideName == "ALL")
 			{
-				//load ALL available slides
-				for(slideName in slides)
-				{			
-					createSlide(slideName);
-				}
+				loadAllSlides();
 			}
-			//alert("Testing Is slide  with name: '" + slides[i].name + "' amongst: "+ showNames);
-			//check if this slide's name is amongst the currentSlideSet-SlideNames
+			//alert("Testing Is slide  with name: '" + slides[i].name + "' present amongst: "+ showNames);
+			//create thumb if this requested slide exists amongst the available slides //here the global var slides is read!!
+			else if(slides[slideName] && isSet(viewName)) 
+			{
+				//alert("Creating slide with name:"+slideName+ " and viewName "+viewName);
+				createSlide(slideName,viewName);			
+			}
 			else if(slides[slideName]) 
 			{
-				//here the global var slides is read!!
-				//alert("Creating slide with name:"+slideName;
-				createSlide(slideName);
-			}			
+				//alert("Creating slide with name:"+slideName);
+				createSlide(slideName);			
+			}
 		}	
 	}
 	//else simply load all slides (is used in this viewer's version without menus/collections)
 	//var slides is a global var defined in slides.js
 	else
 	{
+		loadAllSlides();
+	}
+
+	//load ALL available slides in the thumb menu
+	function loadAllSlides()
+	{
 		for(slideName in slides)
 		{
 			createSlide(slideName);		
-		}	
+		}			
 	}
-
+	
 	var timer1 = setTimeout("checkFit()",500);	
 	var timer2 = setTimeout("checkFit()",1000);	
 }
@@ -393,11 +406,12 @@ function removeSlides()
 * Creates a clickable slide (thumb projected on a slide image)
 * Technically: Creates DOM elements for a slide, and appends it to div with id 'slidescont'
 * @param string slideName
+* @param string viewName [optional]
 * @needs globar var 'slides' with the slide-info
 *
 */
-function createSlide(slideName)
-	{ 
+function createSlide(slideName,viewName)
+{ 
 	
 	//safety
 	if(typeof slides == "undefined" || ! slides[slideName])
@@ -428,14 +442,18 @@ function createSlide(slideName)
 	cont.appendChild(img);
 	//l("created:"+imgId)
 	
-	var caption=slideData.info;
+	var caption=slideData.title;
 	var captionNode= document.createTextNode(caption);
 	var div= document.createElement("div"); 
 	div.appendChild(captionNode);
 	div.setAttribute("class","caption");
 	div.setAttribute("className","caption"); //IE
 	cont.appendChild(div);
-
+	if(isSet(viewName))
+	{
+		jQ(div).append(", <em>view("+viewName+")</em>");
+	}
+	
 	var writtenNode= document.createTextNode(caption);
 	var div= document.createElement("div"); 
 	div.appendChild(writtenNode);
@@ -459,11 +477,18 @@ function createSlide(slideName)
 	
 	//closure
 	function loadIt()
-		{//setQuerySetting("slide",slideName);
+	{//setQuerySetting("slide",slideName);
 		//cleanQuerySettings(); //reset zoom and location on slide to default starting situation
-		loadVirtualSlide(slideName);
+		if(viewName != undefined)
+		{
+			loadVirtualSlide(slideName,viewName);
 		}
+		else
+		{
+			loadVirtualSlide(slideName);
+		}	
 	} 
+}
 
 /*
  * fits thumbnail of microscopy specimen onto image of empty glass slide
@@ -552,24 +577,35 @@ function checkFit()
  * loads the slide requested in the settings into the main panel
  * 
  */
-function loadVirtualSlide(slideName)
-	{	
-	//alert("loadVirtualSlide of" + slideName);
+function loadVirtualSlide(slideName,viewName)
+{	
+	//alert("loadVirtualSlide: " + slideName);
 	if(slides[slideName])
-		{
+	{
 		settings["slideName"] = slideName;
-		//creates URL aimed at the main window 
-		var query = createQuery(settings);
-		var URL = urlViewerFile + query;	
-		//alert("loading viewerFrame with URL= '"+URL+"'");
-		//load the URL with the sliderequest in the main (=view) window
-		window.viewerFrame.location= URL;
-		}
+	}	
 	else
-		{
-		alert("The requested slide: '"+ slideName + "' is not present in the repository.\nPlease check the name of the slide you requested.");
-		}
+	{
+		alert("The requested slide: '"+ slideName + "' is not present in the repository of slides (file slides.js in folder 'slides').\nPlease check the name of the slide you requested.");
+		return;
 	}
+	if(isSet(viewName) && isSet(views[viewName]))
+	{
+		settings.viewName = viewName;	
+	}
+	else
+	{
+		settings.viewName = null;
+	}
+	//creates URL aimed at the main window
+	//Note: all additional specific requests in the URL (e.g. view, zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
+	var query = createQuery(settings);
+	var URL = urlViewerFile + query;	
+	//alert("loading viewerFrame with URL= '"+URL+"'");
+	//load the URL with the sliderequest in the main (=view) window
+	window.viewerFrame.location= URL;
+
+}
 	
 
 /*
@@ -734,6 +770,7 @@ function readQueryToSettings()
 	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
 	
 	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
+	if (queryArgs.view) 				{ settings["viewName"] = queryArgs.view; }
 	if (queryArgs.showcoords) 			{ settings["showCoordinatesPanel"] = (queryArgs.showcoords == 1)? true : false; } 
 	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
 //	if (queryArgs.resunits) 			{ resunits = queryArgs.resunits; } 
@@ -767,6 +804,8 @@ function showUrl()
 		jQ("#urlString").html(url);
 		jQ("#urlBar").show();
 		window.viewerFrame.showSizeIndicators();
+		//let the textarea holding the url resize 
+		//jQ("#urlString").trigger('autosize'); //doesnt work yet
 		}
 	else
 		{
@@ -813,26 +852,35 @@ function createUrl()
 
 /*
  * creates the URL query from the settings
- * @param object params with format: ["name"= "value"] 
+ * @param object localSettings with format: ["name"= "value"] 
  * return  query e.g. "?name1=value1&name2=value2" 
  * 
  */
-function createQuery(params)
+function createQuery(localSettings)
 { 
-	if(!isSet(params))
+	if(!isSet(localSettings))
 	{
 		return "";	
 	}
-	var qSlide = 		(isSet(params["slideName"]))? 				"slide=" + params["slideName"] : "";
-//	var qShowCoords = 	(isSet(params["showCoordinatesPanel"]))? ((params["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
-//	var qZoomInDir = 	(isSet(params["wheelZoomInDirection"]))? ((params["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
-	var qZoom =			(isSet(params["zoom"]))? 					"&zoom=" + params["zoom"] : "";
-	var qX =			(isSet(params["x"]))? 						"&x=" + params["x"] : "";
-	var qY =			(isSet(params["y"]))? 						"&y=" + params["y"] : "";
-	var qLabels =		(isSet(params["labels"]))? 					"&labels="+ params["labels"] : "";
-	var qLabel =		(isSet(params["label"]))? 					"&label=" + params["label"] : "";
+	var qSlide = 			(isSet(localSettings["slideName"]))? 				"slide=" + localSettings["slideName"] : "";
+	var qView = 			(isSet(localSettings.viewName))?					"&view=" + localSettings.viewName : "";
+	//if a view is requested, that determines all the following, so these are not neccessary
+	if (qView == "") 
+	{
+		var qZoom = "", qX = "", qY = "", qLabels = "", qLabel = "";
+	}
+	else
+	{
+	//	var qShowCoords = 	(isSet(localSettings["showCoordinatesPanel"]))? ((localSettings["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
+	//	var qZoomInDir = 	(isSet(localSettings["wheelZoomInDirection"]))? ((localSettings["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
+		var qZoom =			(isSet(localSettings["zoom"]))? 					"&zoom=" + localSettings["zoom"] : "";
+		var qX =			(isSet(localSettings["x"]))? 						"&x=" + localSettings["x"] : "";
+		var qY =			(isSet(localSettings["y"]))? 						"&y=" + localSettings["y"] : "";
+		var qLabels =		(isSet(localSettings["labels"]))? 					"&labels="+ localSettings["labels"] : "";
+		var qLabel =		(isSet(localSettings["label"]))? 					"&label=" + localSettings["label"] : "";
+	}
 	
-	var query = "?" + qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
+	var query = "?" + qSlide + qView + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
 	//alert(query)
 	return query ;	
 }

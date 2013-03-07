@@ -464,9 +464,9 @@ function loadAndShowCredits()
  */
 function showSlideName()
 {
-	if(slideData.info != undefined && ref("namePanel"))
+	if(slideData.title != undefined && ref("namePanel"))
 	{
-		ref("namePanel").innerHTML = slideData.info;
+		ref("namePanel").innerHTML = slideData.title;
 	}
 	
 }

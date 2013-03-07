@@ -1,4 +1,4 @@
-<!DOCTYPE html >
+<!DOCTYPE html>
 
 <html style="height:100%;">
 <head>
@@ -77,8 +77,7 @@ div#coordsPane{
 	font-family:Arial,sans-serif;font-weight:bold;
 	color:black;text-shadow: 1px 1px 0px #ffffff;
 	font-size:80%;
-	max-width:100px;
-	cursor:pointer;
+	max-width:200px; /*used max-width instead of width to not trigger the tooltip at a place where there is no text*/
 	text-align:left; vertical-align:top;
 	padding: 0px;
 }
@@ -99,7 +98,7 @@ div#coordsPane{
 	/*left: -8px;	top: 0px; initial line-height=16px, crosshair=16px, each half-way,therafter dynamically set*/
 }
 .newLabelTextArea {
-	width:100px;height:20px;
+	height:20px;
 	padding:0px;margin:0px;
 	position:relative; /*to let the z-index work*/
 	z-index:10;
@@ -114,12 +113,11 @@ div#coordsPane{
 }
 .newLabelTooltip
 {
-	width:100px;
 	cursor:move;
 }
 .newLabelArw
 {
-	float:right;
+	float:left;
 	cursor: pointer;	
 }
 
@@ -218,6 +216,7 @@ div#namePanel{width:500px;} /*no min-width*/
 
 <!-- slides info -->
 <script src="../slides/slides.js" type="text/javascript"></script>
+<script src="../slides/views.js" type="text/javascript"></script>
 
 </head>
  

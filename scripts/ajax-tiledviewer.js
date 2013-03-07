@@ -133,6 +133,7 @@ now.numberLabels = 0;
 now.renderingLabels = false; //busy creating labels.
 now.labelsRendered = false;
 now.zoom = 2 ;// start zoom level
+now.newLabelTooltipIsOpen = {}; //holds ids of newlabletooltips that are open
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -157,7 +158,7 @@ var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoo
 var lockedZoomCursorX= null, lockedZoomCursorY= null; //
 var cursorX, cursorY; //continuously keeps track of cursorposition to enable scrolling with centerpoint cursorposition
 var downX=null,downY=null;//IE workaround for autozoomout
-var isDisplayingUrl = false; //boolean indictaing that urlBar with deeplink url is presently displayed
+var isDisplayingUrl = false; //boolean indicating that urlBar with deeplink url is presently displayed
 
 //controls and thumbnail
 var thumbContainerWidth, thumbContainerHeight, viewIndicatorWidth, viewIndicatorHeight; 
@@ -203,7 +204,6 @@ function init()
 	//Set event handlers
 	setHandlers();
 	
-	
 	//Specific settings
 	if (isMobile) {setMobileOn();}
 	//if (isiPad) {trackOrientation();}	
@@ -245,8 +245,14 @@ function readDataToSettings()
 	//set or adapt globals based on variables defined in html page
 	readSettingsInHtmlFileToGlobals();
 	//set or adapt globals with query information
-	readQueryToGlobals();
+	readQueryToSettings();
 
+	//test for a view request, if present, load data of the view
+	//var result = settings.slideName.match(/view\((.+?)\)/)	
+	if(settings.viewName)
+	{
+		loadViewData(settings.viewName);
+	}
 	//copy a possible initial zoom setting to the life value in object 'now'
 	if(settings.zoom)
 	{
@@ -255,26 +261,35 @@ function readDataToSettings()
 	
 	//checks 1
 	if(!settings.slideName)
-		{
+	{
 		showNoSlideRequestedWarning();
 		return;
-		}
-	if(typeof slides == "undefined"  || !slides[settings.slideName])
-		{
+	}
+	if(typeof slides == undefined)
+	{
+		showSlidesFileMissingWarning();
+		return;
+	}
+	if(slides[settings.slideName] == undefined)
+	{
 		showRequestedSlideNotPresentWarning();
 		return;
-		}
+	}
 	
 	//load slideData of requested slide
 	readslideDataToGlobals();
 
 	//checks 2
 	//check if path is provided
-	if(rawPath)	
+	if(rawPath == undefined)	
 	{
-		imgPath=rawPath;
+		showNoPathWarning(); 
+		return;
 	}
-	else {showNoPathWarning(); return;}
+	else //get path
+	{
+		imgPath=rawPath;		
+	}
 	
 	//if dimensions not yet known, try to read from ImageProperties.xml file
 	if (!imgWidthMaxZoom && !loadedXML ) 
@@ -332,16 +347,69 @@ function readSettingsInHtmlFileToGlobals()
 }
 
 /*
- * sets a number of globals from data in the URL query
+ * gets query and stores requests in  query in settings
+ * 
  */
-function readQueryToGlobals()
+function readQueryToSettings()
 {
 	//get variables from query in URL
-	//without uri-decoding for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+	//dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
 	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
+	//and store the results
+	queryArgsToSettings(queryArgs);
+}
+
+/*
+ * gets the data for a specific requested view from the file views.js
+ * @param string viewName = name of a specific view (view is in facted a stored query)
+ */
+function loadViewData(viewName)
+{
+	if(typeof views == undefined )
+	{
+		showViewsFileMissingWarning();
+		return false;
+	}
+	if(views[viewName] == undefined)
+	{
+		showRequestedViewNotPresentWarning();
+		return false;
+	}
+	//get the view (in fact a stored query)
+	var view = views[viewName];
 	
+	var params={
+			"dontDecodeKey"		: "labels", //dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+			"alternativeQuery"	: view		//use the view as query - in fact the view is a stored query
+		};
+	//get variables from query in URL
+	var queryArgs= getQueryArgs(params);
+	
+	//if the view belongs to this slide, store the settings as requested in the view
+	//settings.slideName 	= the slideName that was in the URL as 'slide=.....'
+	//queryArgs.slide		= the slideName that is in the view, (a stored query)
+	if(queryArgs.slide && queryArgs.slide == settings.slideName)
+	{
+		queryArgsToSettings(queryArgs);
+	}
+	else
+	{
+		alert("Warning. The requested view '" + viewName + "' does not belong to the requested slide '" + settings.slideName + "'. The view request is ignored.")
+	}
+}
+
+/*
+ * Stores data read from the query to the global object 'settings'
+ * Note: this function can be called by:  
+ * readQueryToSettings() 	- in this case the query data comes from a real query
+ * loadViewData()			- in this case the query data comes from the view (a stored query)
+ * @param object/map queryArgs
+ */
+function queryArgsToSettings(queryArgs)
+{
 	if (queryArgs.start){ settings.slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
 	if (queryArgs.slide) {settings.slideName = queryArgs.slide;}
+	if (queryArgs.view) {settings.viewName = queryArgs.view;}	
 	if (queryArgs.showcoords) {settings.showCoordinatesPanel = (queryArgs.showcoords == 1)? true : false;} 
 	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
 	if (queryArgs.zoom){ settings.zoom = Number(queryArgs.zoom);}
@@ -351,8 +419,6 @@ function readQueryToGlobals()
 	if (queryArgs.labels) { settings.labels = queryArgs.labels;}	
 	if (queryArgs.focus) { settings.focusLabel = queryArgs.focus;}
 	if (queryArgs.hidethumb) {settings.hideThumb = queryArgs.hidethumb;}; 
-	
-	
 }
 
 /*
@@ -361,13 +427,14 @@ function readQueryToGlobals()
 function readslideDataToGlobals()
 {
 	if(!window.slides) {return;}
+	
 	//here the global var 'slides' is read!!
 	slideData = slides[settings.slideName];
 	if (slideData.path) {rawPath = slideData.path;} 
 	if (slideData.width) {imgWidthMaxZoom = slideData.width;} 
 	if (slideData.height) {imgHeightMaxZoom = slideData.height;} 
 	if (slideData.res)	{settings.res = slideData.res;}
-	if (slideData.hasLabels) {settings.hasLabels = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
+	//if (slideData.hasLabels) {settings.hasLabels = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
 	if (slideData.credits) {creditsPath = slideData.credits;} 	
 
 }
@@ -478,9 +545,9 @@ function loadAndShowCredits()
  */
 function showSlideName()
 {
-	if(slideData.info != undefined && ref("namePanel"))
+	if(slideData.title != undefined && ref("namePanel"))
 	{
-		ref("namePanel").innerHTML = slideData.info;
+		ref("namePanel").innerHTML = slideData.title;
 	}
 	
 }
@@ -1590,8 +1657,8 @@ function createLabel(labelData)
 	label.style.position = "absolute";
 	label.style.zIndex = 1; 
 	label.setAttribute("id", labelData.id);
-	label.setAttribute("class", "label hastooltip"); 
-	label.setAttribute("className", "label hastooltip"); //IE
+	label.setAttribute("class", "label"); 
+	label.setAttribute("className", "label"); //IE
 	label = elem.imageLabels.appendChild(label);
 			
 	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
@@ -1609,6 +1676,8 @@ function createLabel(labelData)
 		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
 		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
 		jQ(labelTooltip).append( jQ.parseHTML(labelData.tooltip) );
+		//add hastooltip class to the label itself
+		jQ("#"+labelData.id).addClass("hastooltip");
 	}
 	
 	//position the label
@@ -1686,12 +1755,14 @@ function resizeLabels()
 	var sizeFactor  = parseFloat( (now.zoom/(gTierCount-1)) * 3 );
 	var sizeProcent = (sizeFactor * 100) + "%";  //100pct
 	var labelWidth  = (sizeFactor * settings.originalLabelWidth) + "px"; 
-	var newLabelTooltipWidth = ((sizeFactor * settings.originalLabelWidth) -8 ) + "px"; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding 
+	//var newLabelTooltipWidth = ((sizeFactor * settings.originalLabelWidth) -8 ) + "px"; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding
+	var newLabelTooltipWidth = ( 2*(sizeFactor * settings.originalLabelWidth) ) + "px"; //let the tooltip be twice as wide as the label
 	//ih(sizeProcent + ", "+ labelWidth);
 	
 	//adapt font-size and max-width of fixed labels 
-	//Note 1: this doesn't set width on newlabeltextareas despite they have class .label, as width is overruled by class .newlabeltextarea declared later in css
-	//Note 2: used max-width instead of width so that the actual width (esp. the tooltip area!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
+	//1st note OBSOLETE - all label widths now determined from the single width in class .label, but just keep for moment 
+	//Note 1: XXX this doesn't set width on newlabeltextareas despite they have class .label, as width is overruled by class .newlabeltextarea declared later in css
+	//Note 2: used max-width instead of width so that the actual width (esp. the width that triggers the tooltip!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
 	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth});
 
 	setLabelOffsetHeight();
@@ -1879,17 +1950,30 @@ function makeNewLabel()
 
 	//attach handlers to button (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
 	jQ("#newLabelArwDown"+index).click(function(){
-		jQ( "#"+newLabelTooltipId ).show(); //open tooltip text area
+		jQ( "#"+newLabelTooltipId ).show().css({"opacity":1}).focus(); //open tooltip text area, and put input on the tooltip area. 
+		now.newLabelTooltipIsOpen[newLabelTooltipId] = true;
 		jQ(this).hide(); //hide down arrow
 		jQ("#newLabelArwUp"+index).show(); //show up arrow
-	})
+	});
 
 	jQ("#newLabelArwUp"+index).click(function(){
 		jQ( "#"+newLabelTooltipId ).hide(); //hide tooltip text area
-		jQ(this).hide(); //hide up arrrow
+		now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
+		jQ(this).hide(); //hide up arrow
 		jQ("#newLabelArwDown"+index).show(); //show down arrow
-	})
-	
+		jQ( "#"+newLabelTextAreaId ).focus(); //put input back on the label text area		
+	});
+
+	jQ("#newLabelArwDown"+index).mouseover(function(){
+		jQ( "#"+newLabelTooltipId ).show().css({"opacity":0.6});	//give an impression of the tooltip at hover to quickly check content without having to open it
+	});
+	jQ("#newLabelArwDown"+index).mouseout(function(){
+		//hide only if the tooltip area was not deliberately opened (by click) by user
+		if(!now.newLabelTooltipIsOpen[newLabelTooltipId])
+		{
+			jQ( "#"+newLabelTooltipId ).hide();
+		}	
+	});	
 	//position new Label in the middle of viewport to start with
 	var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
 	data.newLabels[newLabelId].x = center.x; //store in the data object
@@ -1921,8 +2005,31 @@ function makeNewLabel()
 	//set focus on new label
 	jQ( "#"+newLabelTextAreaId ).focus();
 	//activate tooltips
-	initTooltips();
+	initNewLabelTooltips();
 	
+}
+
+
+/*
+ * variant on the general addTooltips function. This positions the tooltip differently to not overlap the textarea
+ * 
+ */
+function initNewLabelTooltips()
+{
+	jQ(".hastooltip" ).tooltip({
+		content: function() {
+			var data = jQ(this).next('.tooltip');
+			if(data.length)
+			{
+				return data.html();
+			}		
+		},
+		items: "img,div,span,a",
+		show: 100,
+		hide: false,
+		tooltipClass: "tooltip",
+		position: { my: "left-100% top"}
+	});
 }
 
 function positionCrossHairs()
@@ -2638,17 +2745,32 @@ function showNoSlideRequestedWarning()
 	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No slide requested. The slide should be requested by its name either in the URL-query or in the html page.";
 	ref("warning").style.display="block";	
 	}
+function showSlidesFileMissingWarning()
+{
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No slide-info file (slides.js) is present in the folder 'slides'.";
+	ref("warning").style.display="block";	
+}
 function showRequestedSlideNotPresentWarning()
 {
-	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No slide-info file (slides.js) is present or the requested slide is not present in the slide-info file.";
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: The requested slide is not present in the slide-info file (slides.js in folder 'slides').";
 	ref("warning").style.display="block";	
 }
 function showNoDimensionsWarning()
-	{if(!dimensionsKnown())
-		{ref("warning").innerHTML="Image cannot be displayed.<br />Reason: Width and Height of image not provided. The Width and Height should be provided either in the URL-query or in the html page."; 
-		ref("warning").style.display="block";
-		}
+{if(!dimensionsKnown())
+	{ref("warning").innerHTML="Image cannot be displayed.<br />Reason: Width and Height of image not provided. The Width and Height should be provided either in the URL-query or in the html page."; 
+	ref("warning").style.display="block";
 	}
+}
+function showViewsFileMissingWarning()
+{
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: No views-info file (views.js) is present in the folder 'slides'.";
+	ref("warning").style.display="block";	
+}
+function showRequestedViewNotPresentWarning()
+{
+	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: The requested view is not present in the views-info file (views.js in folder 'slides').";
+	ref("warning").style.display="block";	
+}
 
 function hideWarnings()
 	{ref("warning").innerHTML=""; 
