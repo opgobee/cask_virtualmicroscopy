@@ -133,7 +133,8 @@ now.numberLabels = 0;
 now.renderingLabels = false; //busy creating labels.
 now.labelsRendered = false;
 now.zoom = 2 ;// start zoom level
-now.newLabelTooltipIsOpen = {}; //holds ids of newlabletooltips that are open
+now.newLabelTooltipIsOpen = {}; //holds ids of newlabeltooltips that are open
+now.newLabelPreviewTooltipIsDisabled ={}; //holds ids of newlabeltooltips where user has not yet mouseouted the arw after closing tooltiptextarea
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -251,6 +252,8 @@ function readDataToSettings()
 	//var result = settings.slideName.match(/view\((.+?)\)/)	
 	if(settings.viewName)
 	{
+		//if a view is requested, use that, discard all other settings.
+		discardDetailSettings();
 		loadViewData(settings.viewName);
 	}
 	//copy a possible initial zoom setting to the life value in object 'now'
@@ -422,6 +425,24 @@ function queryArgsToSettings(queryArgs)
 }
 
 /*
+ * Discards settings for details settings: x, y, zoom, labels etc
+ * This is used when the URL request has both a 'view' request and x, y, zoom, labels etc requests (= details-requests) .
+ * Then the view request has precedence. To prevent possible unclarities, discard the settings caused by the details-requests.
+ */
+function discardDetailSettings()
+{
+	settings.zoom = null;
+	settings.x = null;
+	settings.y = null;
+	settings.labels = null;
+	settings.showCoordinatesPanel = false;
+	setWheelZoomInDirection("down");
+	settings.hideThumb = false;
+	//settings.label = null; //dont know if we want this one still
+	//settings.focus = null; //dont know if we want this one still	
+}
+
+/*
  * sets globals about the slide based on the slideData read from the global 'slides' 
  */
 function readslideDataToGlobals()
@@ -438,6 +459,7 @@ function readslideDataToGlobals()
 	if (slideData.credits) {creditsPath = slideData.credits;} 	
 
 }
+
 
 /*
  * Attaches event handlers
@@ -1753,24 +1775,27 @@ function repositionLabels()
 function resizeLabels() 
 {	
 	var sizeFactor  = parseFloat( (now.zoom/(gTierCount-1)) * 3 );
-	var sizeProcent = (sizeFactor * 100) + "%";  //100pct
-	var labelWidth  = (sizeFactor * settings.originalLabelWidth) + "px"; 
-	//var newLabelTooltipWidth = ((sizeFactor * settings.originalLabelWidth) -8 ) + "px"; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding
-	var newLabelTooltipWidth = ( 2*(sizeFactor * settings.originalLabelWidth) ) + "px"; //let the tooltip be twice as wide as the label
-	//ih(sizeProcent + ", "+ labelWidth);
+	var sizeProcent = (sizeFactor * 100) + "%";  //100pct	
+	var labelWidth  = (sizeFactor * settings.originalLabelWidth);
+	var newLabelMagnFactor = (now.zoom <= 2)? 2 : 1;
+	var newLabelCorrFactor = (newLabelMagnFactor == 1)? -8 : 0; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding
+	var newLabelTooltipWidth = ( newLabelMagnFactor *(sizeFactor * settings.originalLabelWidth) + newLabelCorrFactor ); //let the tooltip be twice as wide as the label
+
+	//ih(sizeProcent + ", "+ labelWidthPx);
 	
 	//adapt font-size and max-width of fixed labels 
 	//1st note OBSOLETE - all label widths now determined from the single width in class .label, but just keep for moment 
 	//Note 1: XXX this doesn't set width on newlabeltextareas despite they have class .label, as width is overruled by class .newlabeltextarea declared later in css
 	//Note 2: used max-width instead of width so that the actual width (esp. the width that triggers the tooltip!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
-	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth});
+	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth + "px"});
 
 	setLabelOffsetHeight();
-	positionCrossHairs()
+	positionCrossHairs();
+	positionNewLabelCloseButtons(labelWidth);
 	
 	//adapt width of newLabels
-	jQ(".newLabelTextArea").css({"width": labelWidth});
-	jQ(".newLabelTooltip").css({"width": newLabelTooltipWidth});	
+	jQ(".newLabelTextArea").css({"width": labelWidth + "px"});
+	jQ(".newLabelTooltip").css({"width": newLabelTooltipWidth + "px"});	
 	
 	//also activate autosize-resizing of the newlabeltextbox, to accomodate for the changed font-size 
 	//Note: doesn't seem to work when calling it by class, so call it by the textarea's id's: http://www.jacklmoore.com/autosize#comment-1324
@@ -1814,68 +1839,6 @@ function setLabelOffsetHeight()
 
 
 
-function placeTestLabel()
-{
-	var labelData={};
-	labelData.id="NL0";
-	labelData.x= 0.39;
-	labelData.y= 0.443;
-	positionLabel(labelData);
-	data.newLabels["NL0"].x= 0.39;
-	data.newLabels["NL0"].y= 0.443;
-}
-
-/*
- * 
- */
-function testLabels()
-{
-
-	var str="";
-/*	str+= "Innerdiv-left:" +jQ("#innerDiv").css("left") +", Innerdiv-top:" +jQ("#innerDiv").css("top")+"<br>";
-	str+= "Dep-left:" +jQ("#L4").css("left") +" ["+data.labels["L4"].x+"FR]<br>";
-	str+= "Dep-top:"  +jQ("#L4").css("top")  +" ["+data.labels["L4"].y+"FR]<br>";
-	str+= "Dep-line-height:" +jQ("#L4").css("line-height") +"<br>";
-	str+= "Dep-font-size:" +jQ("#L4").css("font-size") +"<br>";
-*/
-	if(data.newLabels.NL0)
-	{
-	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
-	str+= "NL0-left:" +jQ("#NL0").css("left") +" ["+data.newLabels["NL0"].x+"FR]<br>";
-	str+= "NL0-top:"  +jQ("#NL0").css("top")  +" ["+data.newLabels["NL0"].y+"FR]<br>";
-//	str+= "NLTextArea0-left:" +jQ("#NLTextArea0").css("left") +"<br>";
-//	str+= "NLTextArea0-top:"  +jQ("#NLTextArea0").css("top")  +"<br>";	
-//	str+= "NLTextArea0-line-height:" +jQ("#NLTextArea0").css("line-height") +"<br>";
-//	str+= "NLTextArea0-font-size:" +jQ("#NLTextArea0").css("font-size") +"<br>";
-	}
-	if(data.newLabels.NL1)
-	{
-	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
-	str+= "Label 1<br>"
-	str+= "NL1-left:" +jQ("#NL1").css("left") +" ["+data.newLabels["NL1"].x+"FR]<br>";
-	str+= "NL1-top:"  +jQ("#NL1").css("top")  +" ["+data.newLabels["NL1"].y+"FR]<br>";
-//	str+= "NLTextArea1-line-height:" +jQ("#NLTextArea1").css("line-height") +"<br>";
-//	str+= "NLTextArea1-font-size:" +jQ("#NLTextArea1").css("font-size") +"<br>";
-	}
-	if(data.newLabels.NL2)
-	{
-	str+= "NewLabels-left:" +jQ("#newLabels").css("left") +", NewLabels-top:" +jQ("#newLabels").css("top")+"<br>";
-	str+= "Label 2<br>"
-	str+= "NL2-left:" +jQ("#NL2").css("left") +" ["+data.newLabels["NL2"].x+"FR]<br>";
-	str+= "NL2-top:"  +jQ("#NL2").css("top")  +" ["+data.newLabels["NL2"].y+"FR]<br>";
-	}
-	
-	//ih(str);
-	//var merged= mergeObjects(data.labels,data.newLabels);
-	//debug(merged);
-	var testnr = 100.123456789;
-	var testnr = 100.987654321;
-	var trkd = truncate(testnr,5);
-	alert(trkd)
-	
-}
-
-
 function focusOnLabel()
 {
 	if(settings.focusLabel)
@@ -1893,7 +1856,7 @@ function focusOnLabel()
 /*
  * Creates a new label (for GUI label making), it is a draggable container with a textbox for the labeltext and a textbox for the tooltiptext  
  */
-function makeNewLabel()
+function createNewLabel()
 {
 	//Note: length property is not a native thing in a javascript object
 	var index= getObjectLength(data.newLabels); 
@@ -1909,7 +1872,7 @@ function makeNewLabel()
 	var newLabelContainerHtml = '<div id="'+newLabelContainerId+'" class="newLabelContainer" className="newLabelContainer"></div>';
 	jQ( "#newLabels").append(newLabelContainerHtml);
 	//The crosshair
-	jQ( "#"+newLabelContainerId ).append('<img src="../img/cursor_crosshair2.png" class="newLabelCrosshair hastooltip"/><div class="tooltip">The label will be affixed to this point.<br /><em><small>(This is at half the line-height of the label\'s text)</small></em>.</div>');
+	jQ( "#"+newLabelContainerId ).append('<img src="../img/cursor_crosshair2.png" class="newLabelCrosshair hastooltip" className="newLabelCrosshair hastooltip"/><div class="tooltip">The label will be affixed to this point.<br /><em><small>(This is at half the line-height of the label\'s text)</small></em>.</div>');
 	
 	//textarea for the labeltext
 	var newLabelTextAreaId = "NLTextArea" + index;
@@ -1932,6 +1895,10 @@ function makeNewLabel()
 	jQ( "#"+newLabelContainerId ).append(htmlArws);
 	//initially hide the up arrow
 	jQ("#newLabelArwUp"+index).hide();
+	//close-button
+	var closeButton='<img id="newLabelClose' + index + '" class="newLabelClose" classname="newLabelClose" src="../img/close_red.png">';
+	jQ( "#"+newLabelContainerId ).append(closeButton);
+	
 	
 	//textarea for the labeltext
 	var newLabelTooltipId = "NLTooltip" + index;
@@ -1945,35 +1912,49 @@ function makeNewLabel()
 		data.newLabels[newLabelId].tooltip = ref(newLabelTooltipId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
 		//ih(data.newLabels[newLabelId].tooltip)
 		}); 
-	
 
-
-	//attach handlers to button (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
+	//attach handlers to arw buttons (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
+	now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = false;
 	jQ("#newLabelArwDown"+index).click(function(){
 		jQ( "#"+newLabelTooltipId ).show().css({"opacity":1}).focus(); //open tooltip text area, and put input on the tooltip area. 
 		now.newLabelTooltipIsOpen[newLabelTooltipId] = true;
 		jQ(this).hide(); //hide down arrow
 		jQ("#newLabelArwUp"+index).show(); //show up arrow
 	});
-
 	jQ("#newLabelArwUp"+index).click(function(){
 		jQ( "#"+newLabelTooltipId ).hide(); //hide tooltip text area
 		now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
+		now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = true; //disable the preview showing of tooltip until user has mouseout-ed of arw
+		//ih("disabled preview of "+newLabelTooltipId)
 		jQ(this).hide(); //hide up arrow
 		jQ("#newLabelArwDown"+index).show(); //show down arrow
 		jQ( "#"+newLabelTextAreaId ).focus(); //put input back on the label text area		
-	});
-
+	});	
 	jQ("#newLabelArwDown"+index).mouseover(function(){
-		jQ( "#"+newLabelTooltipId ).show().css({"opacity":0.6});	//give an impression of the tooltip at hover to quickly check content without having to open it
+		if(!now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId])
+		{
+			jQ( "#"+newLabelTooltipId ).show().css({"opacity":0.6});	//give an impression of the tooltip at hover to quickly check content without having to open it
+		}
+		//ih("arwdown mouseover")
 	});
 	jQ("#newLabelArwDown"+index).mouseout(function(){
 		//hide only if the tooltip area was not deliberately opened (by click) by user
 		if(!now.newLabelTooltipIsOpen[newLabelTooltipId])
 		{
 			jQ( "#"+newLabelTooltipId ).hide();
-		}	
+		}
+		//ih("arwdown mouseout")
 	});	
+	jQ("#newLabelArwDown"+index).mouseout(function(event){ //note: only works if on arwDown
+		now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = false;	
+		//ih("enabled preview of "+newLabelTooltipId)
+	});
+	
+	//attach handler to close button
+	jQ("#newLabelClose"+index).mouseup(function(){
+		removeNewLabel(newLabelId);
+	});
+		
 	//position new Label in the middle of viewport to start with
 	var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
 	data.newLabels[newLabelId].x = center.x; //store in the data object
@@ -2039,9 +2020,20 @@ function positionCrossHairs()
 
 	//set crosshair at middle of (first-line) line-height
 	jQ(".newLabelCrosshair").css({ "left": left +"px", "top": top +"px"});
-
 }
 
+function positionNewLabelCloseButtons(labelWidth)
+{
+	labelWidth = labelWidth -14;
+	jQ(".newLabelClose").css({ "left": labelWidth +"px", "top": "-16px"});
+}
+
+function removeNewLabel(newLabelId)
+{
+	//alert("remove "+newLabelId)
+	jQ("#"+newLabelId).remove();
+	delete data.newLabels[newLabelId];
+}
 
 //adds additional credits into credit div
 function displayCredits()
@@ -2086,7 +2078,7 @@ function getDataForUrl()
 	o["y"] = center.y;
 	var mergedLabels = mergeObjects(data.labels,data.newLabels);
 	o["labels"] = createQueryPartLabels(mergedLabels); //create the URL string
-	
+//	debug("getDataForUrl",o);
 	return o;	
 }
 
@@ -2335,7 +2327,7 @@ function positionSizeIndicators()
 /*
  * shows and positions the sizeIndicators
  */
-function showSizeIndicators()
+function startUrlViewing()
 {
 	positionSizeIndicators();
 	jQ("#sizeIndicators").show();
@@ -2343,7 +2335,7 @@ function showSizeIndicators()
 }
 
 
-function hideSizeIndicators()
+function stopUrlViewing()
 {
 	jQ("#sizeIndicators").hide();
 	isDisplayingUrl = false;
@@ -2357,7 +2349,7 @@ function hideUrlBarAndSizeIndicators()
 {
 	if(isDisplayingUrl && parent.closeUrlBar)
 		{
-		parent.closeUrlBar();//this will also call hideSizeIndicators()
+		parent.closeUrlBar();//this will also call stopUrlViewing()
 		}	
 }
 

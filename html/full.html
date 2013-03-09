@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 
 <html style="height:100%;">
 <head>
@@ -8,17 +8,18 @@
 	<link rel="shortcut icon" href="../img/faviconcask.ico" >
 
 <link rel="stylesheet" href="../css/common.css" type="text/css" />
-<link rel="stylesheet" href="../css/nav_iframe.css" type="text/css" />
+<link rel="stylesheet" href="../css/full.css" type="text/css" />
 
 
 <!-- libs -->
 <script src="../scripts/libs/jquery-1.9.0.min.js" type="text/javascript" ></script>
 <script src="../scripts/libs/jquery_noconflict.js" type="text/javascript"></script>
 <script src="../scripts/libs/jquery-ui-1.10.1.custom.min.js" type="text/javascript"></script>
+<script src="../scripts/libs/jquery.autosize.js" type="text/javascript"></script>
 
 <!-- nav scripts -->
 <script src="../scripts/common.js" type="text/javascript"></script>
-<script src="../scripts/nav_iframe.js" type="text/javascript"></script>
+<script src="../scripts/full.js" type="text/javascript"></script>
 
 <!-- content-->
 <script src="../slides/menus.js" type="text/javascript" ></script>
@@ -44,10 +45,11 @@
 <div id="nav" class="column"> 
 <img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
 <a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
-<img id="setLabels" src="../img/flag3_24.png" class="hastooltip"  title="Add labels" onclick="showSetLabelPanel()">
-	<div class="tooltip">Add labels</div>
-<img id="link" src="../img/link.png" class="hastooltip"  title="Get link to present view" onclick="showUrl()">
-	<div class="tooltip">Get link to present view</div>
+<img id="setLabels" src="../img/flag3_24.png" class="hastooltip"  title="Add labels.When you have set all desired labels, click 'Get link' to get a link with the labels included." onclick="showSetLabelPanel()">
+	<div class="tooltip">Add label.<br /><br />When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</div>
+<img id="link" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view" onclick="showUrl()">
+	<div id ="tooltipGetLink" class="tooltip"><span id="tooltipGetLinkTextShowLink">Get a direct link (a URL) to the present view</span><span id="tooltipGetLinkTextHideLink">Hide the panel with the direct link</span></div>
+	<!--displayed text can be dynamically switched-->
 <img id="wrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings" onclick="showHideSettings()">
 	<div class="tooltip">Settings</div>
 <img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
@@ -72,6 +74,7 @@
 	</form> <!--end of radioform  -->			
 </div>
 
+<!--<button style="position:absolute; left:20px;top:800px; width:100px;height:20px" onclick="debug(settings)"></button>-->
 <div id="log"></div>
 
 </div> <!--eof all -->

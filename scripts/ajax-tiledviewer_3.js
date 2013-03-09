@@ -235,7 +235,7 @@ function init()
 	catch(e)
 	{}
 	
-//	makeNewLabel();
+//	createNewLabel();
 	
 }//eof init()
 
@@ -1799,7 +1799,7 @@ function focusOnLabel()
 /*
  * Creates a new label (for GUI label making), it is a draggable container with a textbox for the labeltext and a textbox for the tooltiptext  
  */
-function makeNewLabel()
+function createNewLabel()
 {
 	//Note: length property is not a native thing in a javascript object
 	var index= getObjectLength(data.newLabels); 

@@ -225,7 +225,7 @@ function init()
 		parent.slideIsLoaded();
 		}
 	
-	makeNewLabel();
+	createNewLabel();
 
 }//eof init()
 
@@ -1573,7 +1573,7 @@ function focusOnLabel()
 /*
  * Creates a new label (GUI label making), that is a draggable textbox  
  */
-function makeNewLabel()
+function createNewLabel()
 {
 	//Create data object fro the new label and add it to the global newLabels
 	var index= newLabels.length; 

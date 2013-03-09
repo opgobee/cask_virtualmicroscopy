@@ -120,6 +120,12 @@ div#coordsPane{
 	float:left;
 	cursor: pointer;	
 }
+.newLabelClose
+{
+	position:absolute;
+	cursor:pointer;
+	z-index:11;
+}
 
 /*screensizeindicators (displayed when requesting a direct URL)*/
 div#sizeIndicators {display:none;}
@@ -150,31 +156,12 @@ span.deemphasize {font-size: 80%; color:#a1a1a1}
 
 /*debug*/
 #test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
-div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
 div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
 span#signalj {display:none;}
-div#activate
-{
-	position:absolute;
-	left:225px;
-	top:125px;
-	width:50px;
-	height:50px;
-	background:red;
-	z-index:100;
-}
-div#position
-{
-	position:absolute;
-	left:200px;
-	top:100px;
-	width:50px;
-	height:50px;
-	background:green;
-	z-index:100;
-}
+
 </style>
 
 <!--[if IE]>
@@ -231,10 +218,6 @@ div#namePanel{width:500px;} /*no min-width*/
 <div id="log"></div>
 <div id="warning"></div>
 <div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
-
-<div id="position" onclick="placeTestLabel()" >PLACE</div>
-
-<div id="activate" onclick="testLabels()" >CLICK</div>
 
 <div id="barCont">
 <!-- Old bar images, keep a moment, might be necessary for old IE fallback that sometimes breaks the div version

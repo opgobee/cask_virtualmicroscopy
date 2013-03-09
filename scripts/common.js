@@ -18,6 +18,10 @@ function isSet(subject) //
 	return ((typeof subject != undefined) && (subject != null))? true : false;
 }
 
+function isEmpty(subject)
+{
+	return (!isSet(subject) || subject === "")? true : false;
+}
 
 //MATH
 /*
@@ -304,11 +308,10 @@ function stripPx(value)
 
 
 /*
- * Tooltip:
+ * Tooltip (how to)
  * 1. add class 'hastooltip' to the thing that you wnat the tooltip to work on   <img class="hastooltip" src=""/>
  * 2. add a html element directly after that element and give it class 'tooltip' <div class="tooltip">this wil appear when you hover over the image</div>
- * 3. have class 'tooltip' in your css with display: none and for the rest custom tooltip styling 
- *   
+ * 3. have class 'tooltip' in your css with display: none and for the rest custom tooltip styling   
  * 
  */
 function initTooltips()
@@ -329,6 +332,17 @@ function initTooltips()
 }
 
 
+/*
+ * updates the content shown in a tooltip 
+ * Note: assumes that the different possibilities are already there in the html like so:
+ * <div class=tooltip"><span id="text1">show bla bla</span><span id="text2">hide blabla</span></div>
+ * @TODO still find out how to let this also switch alrady displayed tooltip
+ */
+function switchTooltipContent(tooltipId,contentId)
+{
+	jQ("#"+tooltipId).children().hide();
+	jQ("#"+tooltipId +" #"+contentId).show();
+}
 
 /*
  * creates alert with debuginfo

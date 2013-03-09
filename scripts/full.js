@@ -23,7 +23,7 @@
     
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
-var initialSlideSet = "carotid_atherosclerosis&view=carotis1,brain"; //slideSet to load opening //@TODO: put this in the menus.js file
+var initialSlideSet = "P-2&view=carotis1,4qw_rot"; //slideSet to load opening //@TODO: put this in the menus.js file
 var urlViewerFile = "../html/main.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
@@ -39,6 +39,11 @@ settings["zoom"] = null;
 settings["x"] = null; //the x coordinate (fraction of image) to center on
 settings["y"] = null; //the y coordinate (fraction of image) to center on
 settings["label"] = null; // a single label to be set on the center x,y location
+
+//to hold track of actual things
+now= {}; 
+now.urlViewing = false;
+
 //Variable declarations
 
 /*
@@ -90,11 +95,12 @@ function init()
 	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
 	//If a slide is requested in the URL (e.g. '...?slide=carotis'), load the requested slide in the main panel
-	//Note 1: all additional specific requests in the URL (e.g. view, zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
+	//Note 1: all additional specific requests in the URL (e.g. zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
 	//Note 2: a slide may also be loaded by a click on one of the slides-thumbs in the menus
 	if(settings["slideName"] != null)  
 	{
-		loadVirtualSlide(settings["slideName"]); 
+		//mode= 'auto' - both a 'view' or 'details' request can be handled
+		loadVirtualSlide(settings,"auto"); 
 	}
 }
 
@@ -130,6 +136,9 @@ function setHandlers()
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	initTooltips();
 	slidesCont = ref("slidesCont");
+
+	//debug
+	jQ("#log").dblclick(function(){jQ(this).html("")});
 }	
 
 /*
@@ -362,7 +371,7 @@ function loadSlideThumbs()
 			}
 			//alert("Testing Is slide  with name: '" + slides[i].name + "' present amongst: "+ showNames);
 			//create thumb if this requested slide exists amongst the available slides //here the global var slides is read!!
-			else if(slides[slideName] && isSet(viewName)) 
+			else if(slides[slideName] && (viewName)) 
 			{
 				//alert("Creating slide with name:"+slideName+ " and viewName "+viewName);
 				createSlide(slideName,viewName);			
@@ -451,7 +460,7 @@ function createSlide(slideName,viewName)
 	cont.appendChild(div);
 	if(isSet(viewName))
 	{
-		jQ(div).append(", <em>view("+viewName+")</em>");
+		jQ(div).append(", <em>(view: "+viewName+")</em>");
 	}
 	
 	var writtenNode= document.createTextNode(caption);
@@ -477,16 +486,9 @@ function createSlide(slideName,viewName)
 	
 	//closure
 	function loadIt()
-	{//setQuerySetting("slide",slideName);
-		//cleanQuerySettings(); //reset zoom and location on slide to default starting situation
-		if(viewName != undefined)
-		{
-			loadVirtualSlide(slideName,viewName);
-		}
-		else
-		{
-			loadVirtualSlide(slideName);
-		}	
+	{
+		//load with mode 'view': that is only use slidName and (possible) viewName
+		loadVirtualSlide({"slideName":slideName,"viewName":viewName},"view"); 	
 	} 
 }
 
@@ -575,38 +577,69 @@ function checkFit()
 
 /*
  * loads the slide requested in the settings into the main panel
+ * @param map/object settings - {"slideName":"..","x": ".."} etc
+ * @param string mode, options are:
+ * 	"auto"		: - uses all settings (+ slideName) entered to create the query 
+ * 	"view"		: - uses viewName (+ slideName) and discards other details
+ * 	"details" 	: - uses the details (x, y, zoom, labels,..) (+ slideName) and discards viewName
  * 
  */
-function loadVirtualSlide(slideName,viewName)
+function loadVirtualSlide(settings, mode)
 {	
-	//alert("loadVirtualSlide: " + slideName);
-	if(slides[slideName])
-	{
-		settings["slideName"] = slideName;
-	}	
-	else
-	{
-		alert("The requested slide: '"+ slideName + "' is not present in the repository of slides (file slides.js in folder 'slides').\nPlease check the name of the slide you requested.");
-		return;
-	}
-	if(isSet(viewName) && isSet(views[viewName]))
-	{
-		settings.viewName = viewName;	
-	}
-	else
-	{
-		settings.viewName = null;
-	}
+	//debug("LoadVirtSlide1",settings);
+	
+	var settings = filterSettings(settings,mode);
 	//creates URL aimed at the main window
-	//Note: all additional specific requests in the URL (e.g. view, zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
-	var query = createQuery(settings);
+	var query = createQuery(settings,mode);
 	var URL = urlViewerFile + query;	
-	//alert("loading viewerFrame with URL= '"+URL+"'");
 	//load the URL with the sliderequest in the main (=view) window
+//	alert("loading viewerFrame with URL= '"+URL+"'");
 	window.viewerFrame.location= URL;
 
+	//debug("loadVirt2",settings);	
 }
+
+
+/*
+ * filters the 'settings' object according to mode
+ * @param map/object settings - {"slideName":"..","x": ".."} etc
+ * @param string mode, options are:
+ * 	"auto"		: - uses all settings (+ slideName) entered to create the query 
+ * 	"view"		: - uses viewName (+ slideName) and discards other details
+ * 	"details" 	: - uses the details (x, y, zoom, labels,..) (+ slideName) and discards viewName
+ */
+function filterSettings(settings,mode)
+{
+	//debug("filtersettings1",settings)
+	//if mode== view, use only the slideName and the viewName and discard all other settings. The view will define all these settings.
+	if(mode == "view")
+	{
+		var newSettings = {};
+		newSettings.slideName = settings.slideName;
+		newSettings.viewName = settings.viewName;
+	}
+	//if mode== "details", remove settings.viewName. The 'view' override the details settings.
+	else if (mode == "details")
+	{
+		var newSettings = {};
+		for(prop in settings) //note: it's more efficient to delete settings.viewName, but for now dont want side effect to the global object settings
+		{
+			if(prop != "viewName")
+			{
+				newSettings[prop] = settings[prop];
+			}
+		}
+	}
+	//else mode "auto" = default. Pass through everything unchanged
+	else
+	{
+		var newSettings = settings;
+	}
 	
+	//debug("filtersettings2",newSettings)
+	return newSettings;
+	
+}
 
 /*
  * this function is called by the document in viewerframe when that is loaded
@@ -623,6 +656,13 @@ function slideIsLoaded()
  */
 function applySettings()
 {
+	//to prevent user confusion, update url of a an urlbar that may still have been open
+	//alert("now.urlViewing="+now.urlViewing)
+	if(now.urlViewing && window.viewerFrame.startUrlViewing)
+	{
+		updateUrl();
+		window.viewerFrame.startUrlViewing();//and start url live updating
+	}
 	if(window.viewerFrame.setWheelZoomInDirection)
 	{	
 		window.viewerFrame.setWheelZoomInDirection(settings["wheelZoomInDirection"]);
@@ -648,9 +688,9 @@ function applySettings()
  */
 function showSetLabelPanel()
 {
-	if(window.viewerFrame && window.viewerFrame.makeNewLabel)
+	if(window.viewerFrame && window.viewerFrame.createNewLabel)
 	{
-		window.viewerFrame.makeNewLabel();
+		window.viewerFrame.createNewLabel();
 	}
 	else
 	{
@@ -784,28 +824,32 @@ function readQueryToSettings()
 
 	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
 	//querySettings = mergeObjects(querySettings,queryArgs);
-
 }
 
 /*
- * Gets and shows url in url-bar and shows sizeindicators in main window
+ * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
  */
 function showUrl()
 {
 
-	if(jQ("#urlBar").css("display") == "block")
+	if(now.urlViewing)
 		{
 		closeUrlBar();
+		now.urlViewing = false;
+		switchTooltipContent("tooltipGetLink","tooltipGetLinkTextShowLink");
 		return;
 		}
-	else if(window.viewerFrame && window.viewerFrame.showSizeIndicators)
+	else if(window.viewerFrame && window.viewerFrame.startUrlViewing)
 		{
 		var url = createUrl();
 		jQ("#urlString").html(url);
 		jQ("#urlBar").show();
-		window.viewerFrame.showSizeIndicators();
+		now.urlViewing = true;	
+		window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
+		switchTooltipContent("tooltipGetLink","tooltipGetLinkTextHideLink");
 		//let the textarea holding the url resize 
-		//jQ("#urlString").trigger('autosize'); //doesnt work yet
+		//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
+		//jQ("#urlString").trigger('autosize'); //doesnt work well yet
 		}
 	else
 		{
@@ -818,20 +862,24 @@ function showUrl()
  */
 function updateUrl()
 {
+	//debug("called updateUrl")
 	var url = createUrl();
 	jQ("#urlString").html(url);
 }
 
 /*
  * closes url-bar
- *  and hides size indicators in mian window
+ *  and hides size indicators in main window
  */
 function closeUrlBar()
 {
 	jQ("#urlBar").hide();
-	if(window.viewerFrame && window.viewerFrame.hideSizeIndicators)
+	//empty it
+	jQ("#urlString").html("");
+	//hide sizeIndicators in main
+	if(window.viewerFrame && window.viewerFrame.stopUrlViewing)
 	{
-		window.viewerFrame.hideSizeIndicators();
+		window.viewerFrame.stopUrlViewing();
 	}
 }
 
@@ -846,42 +894,55 @@ function createUrl()
 	//get data on present view, labels, from the viewerframe
 	var presentViewSettings = (window.viewerFrame.getDataForUrl)? window.viewerFrame.getDataForUrl() : {};
 	var combinedSettings = mergeObjects(settings,presentViewSettings);
-	var query = createQuery(combinedSettings);
+	//debug(combinedSettings)
+	//create Url in mode "details" - that is: show x, y, zoom, labels etc, evetyhring, but discard viewName 
+	var query = createQuery(combinedSettings,"details");
 	return baseUrl+query;
 }
 
 /*
  * creates the URL query from the settings
- * @param object localSettings with format: ["name"= "value"] 
+ * @param map/object settings - {"slideName":"..","x": ".."} etc
+ * @param string mode, options are:
+ * 	"auto"		: - uses all settings (+ slideName) entered to create the query 
+ * 	"view"		: - uses viewName (+ slideName) and discards other details
+ * 	"details" 	: - uses the details (x, y, zoom, labels,..) (+ slideName) and discards viewName
  * return  query e.g. "?name1=value1&name2=value2" 
  * 
  */
-function createQuery(localSettings)
+function createQuery(settings,mode)
 { 
-	if(!isSet(localSettings))
+	//debug("createQuery1",settings,mode)	
+	if(!isSet(settings))
 	{
 		return "";	
 	}
-	var qSlide = 			(isSet(localSettings["slideName"]))? 				"slide=" + localSettings["slideName"] : "";
-	var qView = 			(isSet(localSettings.viewName))?					"&view=" + localSettings.viewName : "";
-	//if a view is requested, that determines all the following, so these are not neccessary
-	if (qView == "") 
+	mode= (mode == undefined? "auto" : mode);
+	
+	var qSlide = 		(!isEmpty(settings.slideName))? 			"slide=" 	+ settings.slideName 	: "";
+	var qView = 		(!isEmpty(settings.viewName))?				"&view=" 	+ settings.viewName 	: "";
+//	var qShowCoords = 	(!isEmpty(settings.showCoordinatesPanel))? ((settings.showCoordinatesPanel)? "&showcoords=1" : "") : "";
+//	var qZoomInDir = 	(!isEmpty(settings.wheelZoomInDirection))? ((settings.wheelZoomInDirection == "up")? "&wheelzoomindirection=up" : "") : "";
+	var qZoom =			(!isEmpty(settings.zoom))? 				"&zoom=" 	+ settings.zoom 		: "";
+	var qX =			(!isEmpty(settings.x))? 					"&x=" 		+ settings.x 			: "";
+	var qY =			(!isEmpty(settings.y))? 					"&y=" 		+ settings.y 			: "";
+	var qLabels =		(!isEmpty(settings.labels))? 				"&labels="	+ settings.labels 		: "";
+	var qLabel =		(!isEmpty(settings.label))? 				"&label=" 	+ settings.label 		: "";
+
+	if(mode=="auto")
 	{
-		var qZoom = "", qX = "", qY = "", qLabels = "", qLabel = "";
+		var query = "?" + qSlide + qView + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
 	}
-	else
+	if(mode== "details")
 	{
-	//	var qShowCoords = 	(isSet(localSettings["showCoordinatesPanel"]))? ((localSettings["showCoordinatesPanel"])? "&showcoords=1" : "") : "";
-	//	var qZoomInDir = 	(isSet(localSettings["wheelZoomInDirection"]))? ((localSettings["wheelZoomInDirection"] == "up")? "&wheelzoomindirection=up" : "") : "";
-		var qZoom =			(isSet(localSettings["zoom"]))? 					"&zoom=" + localSettings["zoom"] : "";
-		var qX =			(isSet(localSettings["x"]))? 						"&x=" + localSettings["x"] : "";
-		var qY =			(isSet(localSettings["y"]))? 						"&y=" + localSettings["y"] : "";
-		var qLabels =		(isSet(localSettings["labels"]))? 					"&labels="+ localSettings["labels"] : "";
-		var qLabel =		(isSet(localSettings["label"]))? 					"&label=" + localSettings["label"] : "";
+		var query = "?" + qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords; //Note: no qView here!
+	}
+	if(mode== "view" )
+	{
+		var query = "?" + qSlide + qView ; //+ qZoomInDir + qShowCoords;
 	}
 	
-	var query = "?" + qSlide + qView + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
-	//alert(query)
+	//debug("createQuery2",settings,"created query=", query)
 	return query ;	
 }
 
