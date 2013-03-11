@@ -70,7 +70,7 @@ a
 div#container {padding-left:220px;height:100%;}
 div#nav {width:220px;}
 /* The iFrame with the viewer  */
-#viewerFrame {height:100%;width:100%;background-color:#FFFFFF;}
+#viewerFrame, #repairiPadiFrame {height:100%;width:100%;background-color:#FFFFFF;}
 /* The bar with the URL*/
 #urlBar{
 	display:none;position:absolute;top:0px;left:0px;right:0px;margin-left:220px;padding:3px;z-index:10; /*solution to let it dynamically fill out the space from 220px onward. The absolute positioning makes the trick with width 100% not work: ita takes 100% of the whole window.*/
@@ -167,7 +167,7 @@ div#slidesContOverlay
 }
 
 /* slides container */
-div#slidesCont {position:absolute;left:0px;top:282px;width:220px;overflow:auto;}
+div#slidesCont {position:absolute;left:0px;top:282px;width:220px;overflow-x:auto;overflow-y:scroll;}
 
 /* slide */
 .cont {position:relative;left:0px;top:20px;width:198px;height:125px;z-index:1;list-style-type:none}

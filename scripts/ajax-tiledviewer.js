@@ -481,10 +481,32 @@ function setHandlers()
 		window.onresize=winsize; //moved to here to prevent error on Chrome
 	}
 	
+	// Capture Apple Device Events
+	//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010   
+	outerDiv.ontouchstart = appleStartTouch;
+    outerDiv.ontouchend = appleMoveEnd;
+    outerDiv.ontouchmove = appleMoving;
+    outerDiv.ongesturestart = function (event) {
+        event.preventDefault();
+        gestureScale = event.scale;
+        parent.document.ontouchmove = function (event) {
+            event.preventDefault();
+        };
+    }
+    outerDiv.ongestureend = function (event) {
+        event.preventDefault();
+        if (event.scale > gestureScale) {
+            ZoomIn();
+        } else {
+            ZoomOut();
+        }
+        parent.document.ontouchmove = null;
+    };
+	
 	// Capture Apple Device Events / touchevents
 	//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
 	//modified to use xui in attempt to be better cross-platform Paul Gobee; 10 March 2013
-	x$('#outerDiv').touchstart(appleStartTouch); 
+/*	x$('#outerDiv').touchstart(appleStartTouch); 
 	x$('#outerDiv').touchend(appleMoveEnd); 
 	x$('#outerDiv').touchmove(appleMoving); 
 	x$('#outerDiv').gesturestart(function (event) {
@@ -505,7 +527,7 @@ function setHandlers()
         }
         parent.document.ontouchmove = null;
     }); 
- 	
+ */	
 	initTooltips();
 }
 
