@@ -206,7 +206,7 @@ function init()
 	setHandlers();
 	
 	//Specific settings
-	if (isMobile) {setMobileOn();}
+	if (isMobile && !isiPad) {setMobileOn();}
 	//if (isiPad) {trackOrientation();}	
 	//show slideName (the name shown to users) in the little panel at the top of the page
 	showSlideName();
@@ -473,7 +473,39 @@ function setHandlers()
 	//outerDiv.ontouchstart  = handleMouseDown; outerDiv.ontouchmove = handleMouseMove; outerDiv.ontouchup = handleMouseUp; //weird behaviour for now 
 	outerDiv.ondragstart = function() { return false;};
 
-	window.onresize=winsize; //moved to here to prevent error on Chrome
+	//Workaround for iPad feature/bug: on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
+	//prevent this from happening on iPad as on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
+	//http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/
+	if(!isiPad) 
+	{
+		window.onresize=winsize; //moved to here to prevent error on Chrome
+	}
+	
+	// Capture Apple Device Events / touchevents
+	//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
+	//modified to use xui in attempt to be better cross-platform Paul Gobee; 10 March 2013
+	x$('#outerDiv').touchstart(appleStartTouch); 
+	x$('#outerDiv').touchend(appleMoveEnd); 
+	x$('#outerDiv').touchmove(appleMoving); 
+	x$('#outerDiv').gesturestart(function (event) {
+		//ih("gesturestart")
+        event.preventDefault();
+        gestureScale = event.scale;
+        parent.document.ontouchmove = function (event) {
+            event.preventDefault();
+        };
+    }); 
+	x$('#outerDiv').gestureend(function (event) {
+		//ih("gestureend")
+        event.preventDefault();
+        if (event.scale > gestureScale) {
+            ZoomIn();
+        } else {
+            ZoomOut();
+        }
+        parent.document.ontouchmove = null;
+    }); 
+ 	
 	initTooltips();
 }
 
@@ -799,24 +831,7 @@ function getImgCoords(cursorX,cursorY)
 	return imgCoords;
 	}
 
-/*
- * testing javascript number handling
- */
-function testMath(cursorY)
-{
-	str= "y:" + cursorY +"<br>";
-	str+= "elem.innerDiv.style.top:" + elem.innerDiv.style.top +"<br>";
-	str+= "stripPx(elem.innerDiv.style.top):" + stripPx(elem.innerDiv.style.top)  +"<br>";
-	str+= "cursorY - stripPx(elem.innerDiv.style.top):" + (cursorY - stripPx(elem.innerDiv.style.top)) +"<br>";
-	str+= "imgHeightMaxZoom:" + imgHeightMaxZoom +"<br>";
-	str+= "Math.pow(2,gTierCount-1-now.zoom):" + Math.pow(2,gTierCount-1-now.zoom) +"<br>";
-	str+= "imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)):" + imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))  +"<br>";
-	str+= "(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000:" + (imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000 +"<br>";
-	var calc = (((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000));
-	str+= "((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000):" + calc +"<br>";
-	str+= "imgHeightPresentZoom=" + imgHeightPresentZoom;
-	ih(str);
-}
+
 /*
  * gets the width and height sizes of the 'complete image' at the present zoom level (be it within or outside viewport) 
  * @return object {o.width,o.height} with dimensions in pixels (without "px" suffix)
@@ -2533,7 +2548,8 @@ function stopAutoPan()
 	}	
 		
 function panMap(dir)
-	{var map= getElemPos(elem.innerDiv);
+	{
+	var map= getElemPos(elem.innerDiv);
 	if(dir=="up") 			{ elem.innerDiv.style.top  = (map.top  + 10) +"px"; }
 	else if(dir=="down") 	{ elem.innerDiv.style.top  = (map.top  - 10) +"px"; }
 	else if(dir=="left") 	{ elem.innerDiv.style.left = (map.left + 10) +"px"; }
@@ -2544,6 +2560,48 @@ function panMap(dir)
 	moveViewIndicator();
 	}		
 
+
+//*** START OF: Apple Device Event Handlers Block
+//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
+
+function appleStartTouch(event) {
+	//ih("starttouch");
+  if (event.touches.length == 1) {
+      touchIdentifier = event.touches[0].identifier;
+      dragStartLeft = event.touches[0].clientX;
+      dragStartTop = event.touches[0].clientY;
+      mTop = stripPx(innerDiv.style.top);
+      mLeft = stripPx(innerDiv.style.left);
+      
+      dragging = true;
+      return true;
+  }
+}
+
+function appleMoveEnd(event) {
+	//ih("moveend");
+	dragging = false;
+  appleMove(event);
+}
+
+function appleMove(event) {
+//	ih("applemove");
+  if ((event.changedTouches.length == 1) && (dragging == true) && (touchIdentifier == event.changedTouches[0].identifier)) {
+      innerDiv.style.top = mTop + (event.changedTouches[0].clientY - dragStartTop) + 'px';
+      innerDiv.style.left = mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px';
+      //dragging = false;
+  }
+  event.preventDefault();
+  checkTiles();
+}
+
+function appleMoving(event) {
+	//ih("appleMoving");
+  event.preventDefault();
+  appleMove(event);
+}
+//*** END OF: Apple Device Event Handlers Block
+	
 
 
 	

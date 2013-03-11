@@ -61,8 +61,8 @@ var slideSetsMenus= {
 	    {
 			"header":{showText:"LUMC - OA - Module 7 Buikchirurgie",infoText:"infoPrep",slides:""},
 			"sets":[
-				{showText:"Leeractiviteit 35 Zelfstudie-opdracht Anatomie maag, darm, lever",infoText:"",slides:"056_maag_mens_he,115_ileum_mens_he"},
-				{showText:"Leeractiviteit 36 Zelfstudie-opdracht nieren en urinewegen",infoText:"",slides:"090_nier_mens_adult_he_magn2"}		
+				{showText:"Leeractiviteit 35 Zelfstudie-opdracht Anatomie maag, darm, lever",infoText:"",slides:"056_maag_mens_he&vragen_maag_OA_module7,115_ileum_mens_he&vragen_ileum_OA_module7"},
+				{showText:"Leeractiviteit 36 Zelfstudie-opdracht nieren en urinewegen",infoText:"",slides:"090_nier_mens_adult_he_magn2&vragen_nier_OA_module7"}		
 				]	
 		}
 	]
