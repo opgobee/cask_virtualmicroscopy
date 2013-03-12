@@ -686,15 +686,46 @@ function applySettings()
  * shows the panel that allows user to create labels
  * for now to start it is only a direct transfer to function in main -later on hoepfully add ability to make stars
  */
-function showSetLabelPanel()
+function showAddLabelPanel()
 {
 	if(window.viewerFrame && window.viewerFrame.createNewLabel)
 	{
 		window.viewerFrame.createNewLabel();
+		
 	}
 	else
 	{
 		showWarningChromeLocal();
+	}
+}
+
+
+function switchLabelMode()
+{
+	if(!window.viewerFrame || !window.viewerFrame.getLabelMode)
+	{
+		showWarningChromeLocal();
+		return;
+	}
+	else
+	{
+		var labelMode= window.viewerFrame.getLabelMode();
+	}
+	
+	if(labelMode == "fixed")
+	{
+		if(window.viewerFrame.makeLabelsEditable)
+		{
+			window.viewerFrame.makeLabelsEditable();
+			showAddLabelPanel();
+		}
+	}
+	else if(labelMode == "edit")
+	{
+		if(window.viewerFrame.fixLabels)
+		{
+			//window.viewerFrame.fixLabels();
+		}
 	}
 }
 

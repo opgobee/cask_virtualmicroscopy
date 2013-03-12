@@ -135,6 +135,7 @@ now.labelsRendered = false;
 now.zoom = 2 ;// start zoom level
 now.newLabelTooltipIsOpen = {}; //holds ids of newlabeltooltips that are open
 now.newLabelPreviewTooltipIsDisabled ={}; //holds ids of newlabeltooltips where user has not yet mouseouted the arw after closing tooltiptextarea
+now.labelMode = "fixed"; //"edit" labels can be editable or fixed
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -1586,78 +1587,6 @@ ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
 //
 ///////////////////////////////////////////
 
-/*
-function loadLabels(pathToFile)
-{ 
-	
-	try
-	{// ih("loadLblwXhr-1");
-
-		// First try jQuery.getScript
-		// works from server, not local
-		jQ.getScript(pathToFile, checkLabelsLoaded);
-				
-		// if working from file, jQ.getScript doesn't work, and also doesn't call the callback, fallback to own method loadJs
-		// works, on Chrome, FF, IE, Saf, both local and on server
-		if(window.location.protocol == "file:")
-		{
-			loadJs(pathToFile, checkLabelsLoaded);
-		}
-
-		// store the pathtofile on the checkLabelsLoaded function, so that checkLabelsLoaded can also call loadJs() as fallback  
-		checkLabelsLoaded.pathToFile = pathToFile;
-	}	
-	 catch(e)
-	{
-		return;
-	}			
-}
-*/
-
-
-/*
- * Callback function called when the file labels.js has been loaded
- * checks that that the labels.js file is loaded and contains a variable 'labels'. 
- * If so, calls for the labels to be rendered, if not re-calls itself 
- */
-/*function checkLabelsLoaded()
-	{
-	//isLoaded= (window.labels)? "loaded":"NOTloaded";
-	//ih(isLoaded);
-	if(window.labels && !now.labelsRendered ) //js file should state labels= {...}
-		{
-		//ih("lblFromJs");
-		
-		//copy the labels to the internal object
-		//create labelIds, use these as key and also set it in the labelData self //@TODO change in array type for loop after the labels are changed from object to array - for now is a rename
-		var index = 0;
-		for(label in labels)
-		{
-			var LabelId = "L"+index;
-			//store labelData in the internal object by key labelId
-			data.labels[LabelId]= labels[label];
-			//also store the id in the data of the individual label (ie in the object that is value)
-			data.labels[LabelId].id = LabelId;
-			index++;
-		}
-		renderLabels();	
-		}
-	else
-		{if ( checkLabelsLoaded.counter < 10 ) //max 10 attempts
-			{clearTimeout(checkLabelsLoaded.timer);
-			checkLabelsLoaded.counter++;
-			var delay= checkLabelsLoaded.counter * 200; //each attempt longer delay for retry
-			checkLabelsLoaded.timer = setTimeout("checkLabelsLoaded()",delay);
-			
-			//also attempt the loadJs method
-			loadJs(checkLabelsLoaded.pathToFile,checkLabelsLoaded);
-			}
-		}	
-	}
-checkLabelsLoaded.counter=0;
-checkLabelsLoaded.timer="";
-checkLabelsLoaded.pathToFile=""; 
-*/
 	
 function renderLabels() 
 {
@@ -1892,11 +1821,14 @@ function focusOnLabel()
 
 /*
  * Creates a new label (for GUI label making), it is a draggable container with a textbox for the labeltext and a textbox for the tooltiptext  
+ * @param object - label : the data object for an existing (fixed) label that is to be made editable
+ * @return object - a reference to the newLabel object
  */
-function createNewLabel()
+function createNewLabel(label)
 {
+	//set new index or extract it from the id of an existing label passed in
 	//Note: length property is not a native thing in a javascript object
-	var index= getObjectLength(data.newLabels); 
+	var index= isSet(label)? label.id.substring(1) : getObjectLength(data.newLabels); 
 	//create id. 'newLabelId' is used as key in the object newLabels (with value= data-object for this new label)
 	var newLabelId =  "NL" + index; 
 	//Create data object for the new label and add it to the global data.newLabels
@@ -1913,7 +1845,8 @@ function createNewLabel()
 	
 	//textarea for the labeltext
 	var newLabelTextAreaId = "NLTextArea" + index;
-	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label"></textarea>');
+	newLabel.label = (isSet(label))? label.label : newLabel.label;
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label">' + newLabel.label + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
 	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();}) 
 	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
@@ -1939,7 +1872,8 @@ function createNewLabel()
 	
 	//textarea for the labeltext
 	var newLabelTooltipId = "NLTooltip" + index;
-	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip"></textarea>');
+	newLabel.tooltip = (isSet(label))? label.tooltip : newLabel.tooltip;
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip">' + newLabel.tooltip + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
 	jQ( "#"+newLabelTooltipId ).click(function(e){e.target.focus();}) 
 	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
@@ -1992,12 +1926,23 @@ function createNewLabel()
 		removeNewLabel(newLabelId);
 	});
 		
-	//position new Label in the middle of viewport to start with
-	var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
-	data.newLabels[newLabelId].x = center.x; //store in the data object
-	data.newLabels[newLabelId].y = center.y;
-	
+
+	//if it is an existing label tht must become editable, set the new label at the prosition of the existing one
+	if(isSet(label))
+	{
+		data.newLabels[newLabelId].x = label.x;
+		data.newLabels[newLabelId].y = label.y;
+	}
+	else
+	{
+		//position new Label in the middle of viewport to start with
+		var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
+		data.newLabels[newLabelId].x = center.x; //store in the data object
+		data.newLabels[newLabelId].y = center.y;
+	}
+
 	//position the new label
+	//KAN WEG????
 	positionLabel(data.newLabels[newLabelId]);
 	//var labelPos = calculateLabelPosition(data.newLabels[newLabelId]);
 	//ih("newLabelLeft="+labelPos.x+"px= "+data.newLabels[newLabelId].x+"FR, newLabelTop="+labelPos.y+"px= "+data.newLabels[newLabelId].y+"FR");
@@ -2024,6 +1969,9 @@ function createNewLabel()
 	jQ( "#"+newLabelTextAreaId ).focus();
 	//activate tooltips
 	initNewLabelTooltips();
+	
+	//return a reference to the newLabel object
+	return data.newLabels[newLabelId];
 	
 }
 
@@ -2072,6 +2020,50 @@ function removeNewLabel(newLabelId)
 	delete data.newLabels[newLabelId];
 }
 
+
+
+/*
+ * returns the present labelMode
+ * Is used by full page when add/edit label button is clicked
+ * @return "fixed" or "edit"
+ */
+function getLabelMode()
+{
+	return now.labelMode;
+}
+
+/*
+ * make existing labels editable
+ * converts the labels in data.labels and rendered as fixed label to labels in data.newLabels and rendered as new label
+ */
+function makeLabelsEditable()
+{
+	//make a new label for each existing (fixed) label
+	for(label in data.labels)
+	{
+		//create new label with the data of existing label
+		var newLabel = createNewLabel(data.labels[label]);
+	}
+
+	//empty object labels
+	data.labels= {};
+	//empty DOM of labels
+	jQ("#imageLabels").empty();
+
+	now.labelMode= "edit";
+}
+
+
+/*
+ * converts editable new labels to fixed labels
+ */
+function fixLabels()
+{
+	now.labelMode= "fixed";
+}
+
+
+
 //adds additional credits into credit div
 function displayCredits()
 	{displayCredits.timer="";
@@ -2093,6 +2085,7 @@ function displayCredits()
 			}
 		}	
 	}
+
 
 //////////////////////////////////////////////////////////////////////
 //
