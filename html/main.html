@@ -24,7 +24,7 @@ body {
 
 /*The large moving containers for the image tiles, labels*/
 div#outerDiv0 {position:absolute;left:0px;top:0px;width:100%;height:100%;overflow:hidden;}
-	div#outerDiv {position:absolute;width:100%;height:100%;border:1px solid black;overflow:hidden;}
+	div#outerDiv {position:absolute;width:100%;height:100%;left:0px;top:0px;border:1px solid black;overflow:hidden;}
 		div#nav {display:none;position:absolute;top:70px;left:20px;z-index:1}
 		div#divNext {position:absolute;top:0px;left:79px;}
 		div#wheelMode {display:none;position:absolute;left:10px;top:260px;overflow:hidden;font-size:11px;font-family:sans-serif;}
@@ -32,7 +32,7 @@ div#outerDiv0 {position:absolute;left:0px;top:0px;width:100%;height:100%;overflo
 		/*div#imageTiles styling is in the element itself*/
 		div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;} /*bgDiv= grey background*/
 		/*seems not neccessary?div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}*/
-		div#newLabels {position:absolute;top:0px;left:0px;width:0px;height:0px;overflow:visible;} /*to let it not overlap outerdiv that senses the events, but still keep the newLabels visible*/
+		div#newLabels {position:absolute;top:0px;left:0px;overflow:visible;} /*to let it not overlap outerdiv that senses the events, but still keep the newLabels visible*/
 
 /*thumbImageHolder control*/
 div#controlsContainer {position:absolute;right:10px;top:25px;width:200px;height:200px;z-index:1;} /*positions the container with all the controls*/
@@ -73,6 +73,10 @@ div#coordsPane{
 	text-align:center;}
 
 /* labels */
+.labelContainer {
+	position: absolute;
+	z-index: 1;
+}
 .label {
 	font-family:Arial,sans-serif;font-weight:bold;
 	color:black;text-shadow: 1px 1px 0px #ffffff;
@@ -80,6 +84,12 @@ div#coordsPane{
 	max-width:200px; /*used max-width instead of width to not trigger the tooltip at a place where there is no text*/
 	text-align:left; vertical-align:top;
 	padding: 0px;
+}
+.labelEditButton
+{
+	position:absolute;
+	left:-19px;
+	top:0px;
 }
 /* class .tooltip : see common.css*/
 /* new labels - inserted dynamically in GUI function to make labels*/
@@ -126,7 +136,12 @@ div#coordsPane{
 	cursor:pointer;
 	z-index:11;
 }
-
+.newLabelOkButton
+{
+	position:absolute;
+	left:0px;
+	top:-24px;
+}
 /*screensizeindicators (displayed when requesting a direct URL)*/
 div#sizeIndicators {display:none;}
 .sizeLabel {position:absolute; top:-20px; right:10px;font-family:Arial, Helvetica, sans-serif;font-size:0.9em; color:#808080}
@@ -155,8 +170,8 @@ span.deemphasize {font-size: 80%; color:#a1a1a1}
 #hiddenLabel {visibility: hidden;}
 
 /*debug*/
-#test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
 div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:440px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+#test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
 div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:center;padding:30px;border: red 5px solid;margin:auto;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
@@ -262,7 +277,7 @@ div#namePanel{width:500px;} /*no min-width*/
 		</div>
 		
 	</div> <!--eof outerdiv -->	
-	<div id="newLabels" ></div>
+	<div id="newLabels" ></div>	
 <br>
 </div> <!--eof outerdiv0 -->
 		

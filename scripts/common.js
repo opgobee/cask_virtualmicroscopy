@@ -439,7 +439,7 @@ function debug(subjects)
 	
 	} //end showSubject
 
-	alert(str);
+	ih(str);
 }
 
 

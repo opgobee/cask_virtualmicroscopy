@@ -129,6 +129,7 @@ data.labels = {}; //object with data of the labels
 data.newLabels = {}; //object with data of live created labels
 
 var now = {}; //global object to keep data that needs to be kept track of
+now.numberLabels = 0;
 now.renderingLabels = false; //busy creating labels.
 now.labelsRendered = false;
 now.zoom = 2 ;// start zoom level
@@ -305,19 +306,13 @@ function readDataToSettings()
 	
 	//extract the string read from the query with label data  
 	/*returns format:
-	 * extractedLabels = [
-	 * {id:"L0",x:..,y:..,label:..,tooltip:..},
-	 * {id:"L1",x:..,y:..,label:..,tooltip:..},
+	 * data.labels = {
+	 * "L0" : {id:"L0",x:..,y:..,label:..,tooltip:..},
+	 * "L1" : {id:"L1",x:..,y:..,label:..,tooltip:..},
 	 * etc
-	 * ]
+	 * }
 	 */
-	 var extractedLabels = extractLabelData(settings.labels);
-	 //create labelData objects with it that are stored in data.labels
-	 for(var i=0;i<extractedLabels.length;i++)
-	 {	
-		 createLabelObject(extractedLabels[i]);		 
-	 }
-	 
+	data.labels = extractLabelData(settings.labels);
 }
 
 
@@ -739,8 +734,6 @@ else{document.addEventListener("keypress",capturekey,true);}
 	
 function handleMouseDown(event)
 	{if(!event) {event=window.event;}
-	
-	if(eventIsOnNewLabel(event)) {return;}
 	//ih("mouseDown ");
 	clearZoomOutTimer();
 	downX=event.clientX;
@@ -755,20 +748,14 @@ function handleMouseDown(event)
 	}	
 
 function handleMouseUp(event)
-	{
-	if(eventIsOnNewLabel(event)) {return;}
-
-	//ih("mouseUp<br>");
+	{//ih("mouseUp<br>");
 	clearZoomOutTimer(); //cancel autozoomout
 	zoomCenterOnCursor= false;
 	stopMove(event);
 	}
 	
 function handleDblClick(event)
-	{
-	if(eventIsOnNewLabel(event)) {return;}
-
-	//ih("dblclick ");
+	{//ih("dblclick ");
 	clearZoomOutTimer(); //cancel autozoomout
 	zoomCenterOnCursor= true;
 	ZoomIn();
@@ -777,9 +764,6 @@ function handleDblClick(event)
 
 function handleMouseMove(event)
 	{if(!event) {event=window.event;}
-	
-	if(eventIsOnNewLabel(event)) {return;}
-
 	//ih("mouseMove, "+event.clientX+","+event.clientY+"; ");
 	
 	//keep track of cursorposition to enable cursorposition-centered zooming
@@ -800,20 +784,7 @@ function handleMouseMove(event)
 	clearZoomOutTimer(); //dragging, no autoZoomOut	
 	processMove(event);
 	}
-
-/*
- * determines whether an event happened on a new label
- * uses the fact that newlabels have an id "NL..."
- */
-function eventIsOnNewLabel(event)
-{
-   var targetId = event.target.id;
-  
-   return false;
-   var result = (targetId.substring(0,2) =="NL")? true : false;
-   //if(result) {ih("Cancelled from: "+targetId);}
-   return result;
-}
+	
 		
 //////////////////////////////////////////////////////////////////////
 //
@@ -1635,6 +1606,7 @@ function renderLabels()
 
 	//remove any old labels and reset counter and now status
 	jQ(elem.imageLabels).empty();
+	now.numberLabels = 0;
 	now.labelsRendered = false;
 	
 	//ih("renderLabels2");
@@ -1644,7 +1616,7 @@ function renderLabels()
 	for (labelId in data.labels)
 	{
 		var labelData = data.labels[labelId];
-		createLabelInDom(labelData);		
+		createLabel(labelData);		
 	}
 	//attaches handlers to labels that shows the tooltips
 	initTooltips();
@@ -1657,127 +1629,77 @@ function renderLabels()
 	now.labelsRendered = true;
 }
 
-
 /*
- * Creates a labelData object in data.labels and creates the label in the DOM
- * @param object labelData [optional] like so: {"id":...,"x":...,"y":...,"label":...,"tooltip":...}
- */
-function createLabel(labelData)
-{
-	var labelData = createLabelObject(labelData);
-	createLabelInDom(labelData);
-}
-
-/*
- * Creates a labelData object for a fixed Label and stores it in data.labels
- * @param object labelData - EITHER: was read from the URL via extractLabelData, OR is from a existing new label, that is to be converted to a (fixed) label
- * @return object labelData
- */
-function createLabelObject(labelData)
-{
-	//Create data object for the label 
-	var localLabelData = {"id":null,"x":null,"y":null,"label":"","tooltip":""}; 
-	
-	//the index will be the amount of present labels. Note: length property is not a native thing in a javascript object
-	var index			= 	getObjectLength(data.labels);
-	localLabelData.id 		= 	"L" + index;
-	
-	//If labelData was read from the URL it has no id set yet. Create one.
-/*	if(!isSet(labelData.id))
-	{
-		//the index will be the amount of present labels. Note: length property is not a native thing in a javascript object
-		var index			= 	getObjectLength(data.labels);
-		localLabelData.id 		= 	"L" + index;
-	}
-	//If labelData came from a new label, it has an id: "NLx" (x= an index). Create an equivalent id with "Lx" 
-	else
-	{
-		if(labelData.id.substring(0,2) != "NL")
-		{
-			alert("Error. Invalid labelId: '"+labelData.id+"' passed into function to create fixed label object."); 
-			return localLabelData;
-		}		
-		//convert "NLx" to "Lx" by slicing of the initial "N"
-		localLabelData.id 	= 	labelData.id.substring(1); 
-	}
-*/	
-	//copy the rest of the labelData
-	localLabelData.x 			= 	labelData.x;
-	localLabelData.y 			= 	labelData.y;
-	localLabelData.label		= 	labelData.label;
-	localLabelData.tooltip		= 	labelData.tooltip;
-
-	//store the label in the global store, use the id as key
-	data.labels[localLabelData.id] = localLabelData;
-	//and return it
-	return localLabelData;
-}
-
-
-/*
- * Creates a label in DOM from the given object labelData and appends the label into div imageLabels
+ * Creates a label from the given object oLabel and appends the label into div imageLabels
  * @param object labelData e.g. {"id": "L0", "label": "Source", "info": "Source: National Library of Medicine", "href": "http://images.nlm.nih.gov/pathlab9", "x": "0.038", "y": "0.0"}
  * @return nothing
  */
-function createLabelInDom(labelData)
+function createLabel(labelData)
 {
 	//debug(labelData);
 	if(!isSet(labelData))
 		{
 			return;
 		}
+	/* The entered labelData may EITHER:
+	 * 1. have an id: "Lx"  (x= an index). The labeldata was read from the URL. It was given its id in extractLabelData(). It is already stored in data.labels , OR
+	 * 2. have an id: "NLx" (x= an index). The labeldata is from a new label. It was given its id in createNewLabel(). It is stored in data.newLabels .
+
+	 * In case 1: leave id and data.labels unchanged
+	 * In case 2: create an equivalent id with "Lx" and place this in data.labels
+	 */
+	if(labelData.id.substring(0,2) == "NL")
+	{
+		var index= labelData.id.substring(2); 
+		//create id. 
+		var labelId =  "L" + index; 
+		//Create data object for the new label and add it to the global data.newLabels
+		var newLabel = {"id":newLabelId,"x":null,"y":null,"label":"","tooltip":""}; //container for the data of the new label
+		data.newLabels[newLabelId] = newLabel;
+
+	}
+	//set new index or extract it from the id of an existing label passed in
+	//If labelData is used it extracts index like so: "L1" becomes "1"
+	//If no labelData is present the index will be the amount of present newLabels plus 1. Note: length property is not a native thing in a javascript object
 	
-	//ih("Creating:"+labelData.label+",="+labelData.id+"<br>");
 	
-	var labelId = labelData.id;
-	//label itself
-	var labelHtml= "";
-	labelHtml+= '<div id="' + labelId + '" class="labelContainer" className="labelContainer">';
-	var classHasTooltip = (labelData.tooltip != "")? " hastooltip" : "";
-	labelHtml+= '<div id="' + labelId + 'Text" class="label' + classHasTooltip + '" className="label' + classHasTooltip + '"></div>';
-	//tooltip
-	labelHtml+= (labelData.tooltip != "")? '<div id="' + labelId + 'Tooltip" class="tooltip" className="tooltip"></div>' : "";
-	//Edit button
-	var classHidden = (now.labelMode == "fixed")? " hidden" : "";
-	labelHtml+= '<img id="' + labelId + 'Edit" class="labelEditButton' + classHidden + ' hastooltip" classname="labelEditButton' + classHidden + ' hastooltip" src="../img/edit.png">';
-	labelHtml+= '<div class="tooltip">Edit this label.</div>';
-	labelHtml+= '</div>';
-	jQ("#imageLabels").append(labelHtml);
+	//var index = now.numberLabels + 1;
 	
-	//create element	
-/*	var label = document.createElement("div"); 
+	//ih("Creating:"+labelData.label+", createLabel.index="+index+"<br>");
+	
+	//create element
+	var label = document.createElement("div"); 
 	label.style.position = "absolute";
 	label.style.zIndex = 1; 
-	label.setAttribute("id", labelId);
+	label.setAttribute("id", labelData.id);
 	label.setAttribute("class", "label"); 
 	label.setAttribute("className", "label"); //IE
 	label = elem.imageLabels.appendChild(label);
-*/			
+			
 	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
 	var labelText = labelData.label;
 	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
-	jQ("#"+labelId+"Text").append( jQ.parseHTML(labelText) );
+	jQ(label).append( jQ.parseHTML(labelText) );
 
 	//add tooltip
 	if(labelData.tooltip != "")
 	{
-/*		//create element
+		//create element
 		var labelTooltip = document.createElement("div");
 		labelTooltip.setAttribute("class", "tooltip"); 
 		labelTooltip.setAttribute("className", "tooltip"); //IE		
 		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
-*/		
 		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
-		jQ("#"+labelId+"Tooltip").append( jQ.parseHTML(labelData.tooltip) );
+		jQ(labelTooltip).append( jQ.parseHTML(labelData.tooltip) );
 		//add hastooltip class to the label itself
-		//jQ("#"+labelId).addClass("hastooltip");
+		jQ("#"+labelData.id).addClass("hastooltip");
 	}
-
-//	jQ("#"+labelId).append(editButton);
-	jQ("#"+labelId + "Edit").click(function(event){makeLabelEditable(labelId)});
+	
 	//position the label
-	repositionAndResizeLabels();
-	initTooltips();
+	positionLabel(labelData);
+	
+	//increment the global counter
+	now.numberLabels++;	
 }
 
 /*
@@ -1870,11 +1792,10 @@ function resizeLabels()
 	
 	//also activate autosize-resizing of the newlabeltextbox, to accomodate for the changed font-size 
 	//Note: doesn't seem to work when calling it by class, so call it by the textarea's id's: http://www.jacklmoore.com/autosize#comment-1324
-	var newLabelId, nrNewLabels = getObjectLength(data.newLabels); 
-	for(thisLabel in data.newLabels)
+	var nrNewLabels = getObjectLength(data.newLabels); 
+	for(var i=0;i < nrNewLabels;i++)
 	{
-		newLabelId = data.newLabels[thisLabel].id;
-		jQ("#"+newLabelId+"TextArea").trigger('autosize');
+		jQ("#NLTextArea"+i).trigger('autosize');
 	}
 }
 
@@ -1925,23 +1846,24 @@ function focusOnLabel()
 
 
 /*
- * Creates a newLabelData object in data.newLabels and creates the newlabel in the DOM
- * Can be called by surrounding page: user request to make new label. Then labelData is not given. The new label will be positioned at mid viewport
- * Or, can be called by setLabelsToEditMode. Then labelData of an existing (fixed) label is given. The fixed label is going to be converted to a (editable) new label 
- * @param object labelData [optional] like so: {"id":...,"x":...,"y":...,"label":...,"tooltip":...}
+ * Creates a new label.
+ * Either this an empty label at mid viewport
+ * Or, if labelData from an existing (fixed) label is given, it is an (now editable) new label made from the existing fixed label
+ * Creates the newLabelData object in data.newLabels and creates the newlabel in the DOM
  */
 function createNewLabel(labelData)
 {
 	var newLabelData = createNewLabelObject(labelData);
+	//store the new label in the global store, use the id as key
+	data.newLabels[newLabelData.id] = newLabelData;
 	createNewLabelInDom(newLabelData);
 }
 
+
 /*
- * Creates a labelData object for a new Label and stores it in data.newLabels
+ * Creates an object in data.newLabels
  * If no labelData is given it will become a new label with no text or tooltip in it, positioned at center of viewPort
  * If labelData is given (obtained from an existing fixed label), that labelData will be copied into the newLabel object
- * @param object labelData [optional] like so: {"id":...,"x":...,"y":...,"label":...,"tooltip":...}
- * @return object newLabelData
  */
 function createNewLabelObject(labelData)
 {
@@ -1953,8 +1875,8 @@ function createNewLabelObject(labelData)
 	{
 		if(labelData.id.charAt(0) != "L")
 		{
-			alert("Error. Invalid labelId: '"+newLabelData.id+"' passed into function to create new label object."); 
-			return newLabelData;
+			alert("Error. Invalid labelId: '"+labelData.id+"' passed into function to create new label object."); 
+			return;
 		}
 		//fixed label had id: "Lx", with x=index, new label gets id "NLx"
 		newLabelData.id 		= 	"N" + labelData.id;
@@ -1963,6 +1885,7 @@ function createNewLabelObject(labelData)
 		newLabelData.label  	=	labelData.label;
 		newLabelData.tooltip 	=	labelData.tooltip;		
 	}
+	//if no labelData given, it is truely a new label. Position it in the middle of the viewPort to start with
 	else
 	{
 		//the index will be the amount of present newLabels. Note: length property is not a native thing in a javascript object
@@ -1972,14 +1895,9 @@ function createNewLabelObject(labelData)
 		newLabelData.x 			= 	center.x; //store in the data object
 		newLabelData.y 			= 	center.y;
 	}
-
-	//store the new label in the global store, use the id as key
-	data.newLabels[newLabelData.id] = newLabelData;
-
 	//and return it
 	return newLabelData;	
 }
-
 
 /*
  * Creates a new label in DOM (for GUI label making), it is a draggable container with a textbox for the labeltext and a textbox for the tooltiptext  
@@ -1998,7 +1916,7 @@ function createNewLabelInDom(labelData)
 	var newLabelContainerHtml = '<div id="'+newLabelContainerId+'" class="newLabelContainer" className="newLabelContainer"></div>';
 	jQ( "#newLabels").append(newLabelContainerHtml);
 	//The crosshair
-	jQ( "#"+newLabelContainerId ).append('<img src="../img/cursor_crosshair_dbl.png" class="newLabelCrosshair hastooltip" className="newLabelCrosshair hastooltip"/><div class="tooltip">The label will be affixed to this point.<br /><em><small>(This is at half the line-height of the label\'s text)</small></em>.</div>');
+	jQ( "#"+newLabelContainerId ).append('<img src="../img/cursor_crosshair2.png" class="newLabelCrosshair hastooltip" className="newLabelCrosshair hastooltip"/><div class="tooltip">The label will be affixed to this point.<br /><em><small>(This is at half the line-height of the label\'s text)</small></em>.</div>');
 	
 	//textarea for the labeltext
 	var newLabelTextAreaId = newLabelId + "TextArea";
@@ -2021,20 +1939,13 @@ function createNewLabelInDom(labelData)
 	jQ( "#"+newLabelContainerId ).append(htmlArws);
 	//initially hide the up arrow
 	jQ("#"+ newLabelId + "ArwUp").hide();
-	
 	//close-button
-	var closeButton='<img id="' + newLabelId + 'Close" class="newLabelClose hastooltip" classname="newLabelClose hastooltip" src="../img/close2.png">';
-	closeButton+= '<div class="tooltip">Delete this label.</em></div>';
+	var closeButton='<img id="' + newLabelId + 'Close" class="newLabelClose" classname="newLabelClose" src="../img/close_red.png">';
 	jQ( "#"+newLabelContainerId ).append(closeButton);
 	
-	//ok-button
-	var okButton='<img id="' + newLabelId + 'Ok" class="newLabelOkButton hastooltip" classname="newLabelOkButton hastooltip" src="../img/check2.png">';
-	okButton+= '<div class="tooltip">Stop editing this label and fix it to this position.<br /><em>(You can always edit it again).</em></div>';
-	jQ( "#"+newLabelContainerId ).append(okButton);
-
 	//textarea for the labeltext
 	var newLabelTooltipId = newLabelId + "Tooltip";
-	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip">' + labelData.tooltip + '</textarea>');
+	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip">' + newLabel.tooltip + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
 	jQ( "#"+newLabelTooltipId ).click(function(e){e.target.focus();}) 
 	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
@@ -2087,12 +1998,12 @@ function createNewLabelInDom(labelData)
 		removeNewLabel(newLabelId);
 	});
 		
-
-	//attach handler to ok button
-	jQ("#"+ newLabelId + "Ok").mouseup(function(){
-		fixLabel(newLabelId);
-	});
-
+	//position the new label
+	//KAN WEG????
+	positionLabel(labelData);
+	//var labelPos = calculateLabelPosition(data.newLabels[newLabelId]);
+	//ih("newLabelLeft="+labelPos.x+"px= "+data.newLabels[newLabelId].x+"FR, newLabelTop="+labelPos.y+"px= "+data.newLabels[newLabelId].y+"FR");
+	
 	//make label draggable. At stopdrag get the textarea's value and update the position data in the data object of the newlabel
 	jQ( "#"+newLabelContainerId).draggable({
 		cancel: "input", //neccessary to make textarea draggable
@@ -2108,7 +2019,7 @@ function createNewLabelInDom(labelData)
 		}
 	});
 	
-	//position the new label (and others)
+	//try
 	repositionAndResizeLabels();
 	
 	//set focus on new label
@@ -2177,64 +2088,47 @@ function getLabelMode()
 
 /*
  * make existing labels editable
- * 
+ * converts the labels in data.labels and rendered as fixed label to labels in data.newLabels and rendered as new label
  */
-function setLabelsToEditMode()
+function makeLabelsEditable()
 {
 	//make a new label for each existing (fixed) label
 	for(label in data.labels)
 	{
-		var labelId= data.labels[label].id;
-		//show the dit buttons on the labels
-		jQ(".labelEditButton").removeClass("hidden");
-		//Note: creating editable labels for alle labels caused unsolvable problems with labels outside the viewport coming into view and moving outerdiv without any tractable change in debuggers
-		//createNewLabel(data.labels[label]);
+		//create new label with the data of existing label
+		createNewLabel(data.labels[label]);
 	}
+
+	//empty object labels
+	data.labels= {};
+	//empty DOM of labels
+	jQ("#imageLabels").empty();
+
 	now.labelMode= "edit";
 }
 
 
-function makeLabelEditable(labelId)
-{
-	createNewLabel(data.labels[labelId]);
-	jQ("#imageLabels #"+labelId).remove();
-	data.labels[labelId] ={};
-}
-
 /*
- * converts editable new labels to fixed labels, stops edit mode
+ * converts editable new labels to fixed labels
  */
 function fixLabels()
 {
 	//make a fixed label for each new label
-	for(thisLabel in data.newLabels)
+	for(newLabel in data.newLabels)
 	{
 		//create fixed label with the data of new label
-		createLabel(data.newLabels[thisLabel]);
+		createLabel(data.newLabels[newLabel]);
 	}
 
-	//neccessary because the labels have the original (non-zoom-corrected) size now still
-	resizeLabels()
-	jQ(".labelEditButton").addClass("hidden");
 	//empty object newLabels
 	data.newLabels= {};
 	//empty DOM of newLabels
 	jQ("#newLabels").empty();
-	now.labelMode= "fixed";
 	
+	now.labelMode= "fixed";
 }
 
-/*
- * converts editable new label to a fixed label
- */
-function fixLabel(newLabelId)
-{
-	//create fixed label with the data of new label
-	createLabel(data.newLabels[newLabelId]);
-	//remove the new Label from the data storage and from DOM
-	delete data.newLabels[newLabelId];
-	jQ("#"+newLabelId).remove();
-}
+
 
 //adds additional credits into credit div
 function displayCredits()
@@ -2316,16 +2210,16 @@ function createQueryPartLabel(labelData)
 }
 
 /*
- * extracts the data in the query part label data string to labeldata objects
+ * extracts the data in the query part label data string to a labeldata object
  * @param string querypart with labeldata
- * @return array holding labelData objects
+ * @return object labelData 
  */
 function extractLabelData(queryPartLabel)
 {	
 
 	//debug("extracting :"+queryPartLabel)
 	/*
-	 * EXAMPLE:
+	 * EXAMPLE
 	 * NOW WE HAVE queryPartLabel=
 	 * (0.9$0.7$labeltext$labeltooltip)(0.5$0.5004$%28this+text%29+is+between+parenthesis$) //note second label: text holds parenthesis, tooltip is empty
 	 */
@@ -2341,10 +2235,13 @@ function extractLabelData(queryPartLabel)
 	 */
 	
 	//Step 2, 3, 4: for each label: 
-	var thisLabel, labelId, labelData, extractedLabels= [];
+	var thisLabel, labelId, labelData, convertedLabels= {};
 	for(var i=0;i<labels.length;i++)
 	{
 		thisLabel = labels[i]; //for easier reading
+		
+		//create the labelId. This is used for addressing it in the DOM and will be the key-value by which the label is stored in convertedLabels--> and in the end in data.labels 
+		labelId = "L" + i;		
 		
 		//Step 2: split the string on the $ to get the individual properties
 		thisLabel = extractLabelDataStepSplitToProperties(thisLabel);
@@ -2371,8 +2268,8 @@ function extractLabelData(queryPartLabel)
 		 */			
 
 		//Step 4: place the values in the respective keys in object 'labelData' and convert x and y to numbers
-		labelData = extractLabelDataStepToObject(thisLabel)
-	//	labelData.id = labelId;
+		labelData = extractLabelDataStepConvertToObjectLabelData(thisLabel)
+		labelData.id = labelId;
 		//debug("STEP4. after placing in labelData, thisLabel["+i+"].labelData=",labelData)
 		/*
 		 * EXAMPLE
@@ -2396,24 +2293,24 @@ function extractLabelData(queryPartLabel)
 			{continue;}
 		
 		//Step 6: store in return object
-		extractedLabels[i] = labelData;
+		convertedLabels[labelId] = labelData;
 	}
 	
-	//debug("STEP 7 - READY: extractedLabels=", extractedLabels)
+	//debug("STEP 7 - READY: convertedLabels=", convertedLabels)
 	/*
 	 * EXAMPLE
 	 * NOW WE HAVE 
-	 * extractedLabels[0].x 			= 0.5   									[number]
-	 * extractedLabels[0].y 			= 0.5004									[number]
-	 * extractedLabels[0].label 		= (this text) is between parenthesis		[string]
-	 * extractedLabels[0].tooltip 		= 											[empty string]	 * 
-	 * extractedLabels[1].x 			= 0.5   									[number]
-	 * extractedLabels[1].y 			= 0.5004									[number]
-	 * extractedLabels[1].label 		= (this text) is between parenthesis		[string]
-	 * extractedLabels[1].tooltip 		= 											[empty string]
+	 * convertedLabels[0].x 			= 0.5   									[number]
+	 * convertedLabels[0].y 			= 0.5004									[number]
+	 * convertedLabels[0].label 		= (this text) is between parenthesis		[string]
+	 * convertedLabels[0].tooltip 		= 											[empty string]	 * 
+	 * convertedLabels[1].x 			= 0.5   									[number]
+	 * convertedLabels[1].y 			= 0.5004									[number]
+	 * convertedLabels[1].label 		= (this text) is between parenthesis		[string]
+	 * convertedLabels[1].tooltip 		= 											[empty string]
 	 */
 	
-	return extractedLabels;
+	return convertedLabels;
 }
 
 /*
@@ -2459,7 +2356,7 @@ function extractLabelDataStepUrlDecode(thisLabel)
 /*
  * place the values in the respective keys in object 'labelData' and convert x and y to numbers
  */
-function extractLabelDataStepToObject(thisLabel)
+function extractLabelDataStepConvertToObjectLabelData(thisLabel)
 {
 	var labelData= {};
 	labelData.x 		= parseFloat(thisLabel[0]);

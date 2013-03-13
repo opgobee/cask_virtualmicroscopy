@@ -134,6 +134,7 @@ function setHandlers()
 	ref("closeUrlBar").onclick = closeUrlBar;
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
+	jQ("#addLabelButton").click(addLabel);
 	initTooltips();
 	slidesCont = ref("slidesCont");
 
@@ -682,22 +683,7 @@ function applySettings()
 //
 ////////////////////////////////////////////	
 
-/*
- * shows the panel that allows user to create labels
- * for now to start it is only a direct transfer to function in main -later on hoepfully add ability to make stars
- */
-function showAddLabelPanel()
-{
-	if(window.viewerFrame && window.viewerFrame.createNewLabel)
-	{
-		window.viewerFrame.createNewLabel();
-		
-	}
-	else
-	{
-		showWarningChromeLocal();
-	}
-}
+
 
 
 function switchLabelMode()
@@ -714,19 +700,34 @@ function switchLabelMode()
 	
 	if(labelMode == "fixed")
 	{
-		if(window.viewerFrame.makeLabelsEditable)
+		if(window.viewerFrame.setLabelsToEditMode)
 		{
-			window.viewerFrame.makeLabelsEditable();
-			showAddLabelPanel();
+			window.viewerFrame.setLabelsToEditMode();
 		}
+		jQ("#setLabelPanel").show();
 	}
 	else if(labelMode == "edit")
 	{
 		if(window.viewerFrame.fixLabels)
 		{
-			//window.viewerFrame.fixLabels();
+			window.viewerFrame.fixLabels();
 		}
+		jQ("#setLabelPanel").hide();
 	}
+}
+
+
+function addLabel()
+{
+	if(window.viewerFrame && window.viewerFrame.createNewLabel)
+	{
+		window.viewerFrame.createNewLabel();
+		
+	}
+	else
+	{
+		showWarningChromeLocal();
+	}	
 }
 
 /*

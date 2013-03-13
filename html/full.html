@@ -46,7 +46,7 @@
 <img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
 <a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
 <img id="setLabels" src="../img/flag3_24.png" class="hastooltip"  title="Add labels.When you have set all desired labels, click 'Get link' to get a link with the labels included." onclick="switchLabelMode()">
-	<div class="tooltip">Add label.<br /><br />When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</div>
+	<div class="tooltip">Add or edit labels.</div>
 <img id="link" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view" onclick="showUrl()">
 	<div id ="tooltipGetLink" class="tooltip"><span id="tooltipGetLinkTextShowLink">Get a direct link (a URL) to the present view</span><span id="tooltipGetLinkTextHideLink">Hide the panel with the direct link</span></div>
 	<!--displayed text can be dynamically switched-->
@@ -61,6 +61,11 @@
 <div id="slidesContOverlay"></div>
 <div id="SlideSetsMenuPane"></div>
 
+<div id="setLabelPanel">
+	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><br /><p>When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</p></div>
+	<button id="addLabelButton">Add a label</button>
+
+</div>	
 
 <div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
 	<form id="settingsForm">
