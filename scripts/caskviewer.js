@@ -131,7 +131,10 @@ function setHandlers()
 	window.onresize=winsize; 
 	ref("nav").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
-	ref("closeUrlBar").onclick = closeUrlBar;
+	jQ("#buttonEditLabelsOn").click(setEditLabelsOn);
+	jQ("#buttonEditLabelsOff").click(setEditLabelsOff);
+	jQ("#showUrlBar").click(showUrlBar);
+	jQ("#closeUrlBar,#closeUrlBar2").click(closeUrlBar);
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	jQ("#addLabelButton").click(addLabel);
@@ -596,7 +599,6 @@ function loadVirtualSlide(settings, mode)
 	//load the URL with the sliderequest in the main (=view) window
 //	alert("loading viewerFrame with URL= '"+URL+"'");
 	window.viewerFrame.location= URL;
-
 	//debug("loadVirt2",settings);	
 }
 
@@ -675,6 +677,10 @@ function applySettings()
 		window.viewerFrame.showHideCoordinatesPanel(settings["showCoordinatesPanel"]);
 		//l("in showhidecoords set to <br>"+ settings["showCoordinatesPanel"]);
 	}	
+	if(now.labelMode = "edit")
+	{
+	setEditLabelsOn();
+	}
 }
 
 //////////////////////////////////////////
@@ -684,36 +690,33 @@ function applySettings()
 ////////////////////////////////////////////	
 
 
-
-
-function switchLabelMode()
+function setEditLabelsOn()
 {
-	if(!window.viewerFrame || !window.viewerFrame.getLabelMode)
+	if(window.viewerFrame.setLabelsToEditMode)
 	{
-		showWarningChromeLocal();
-		return;
+		window.viewerFrame.setLabelsToEditMode();
 	}
 	else
 	{
-		var labelMode= window.viewerFrame.getLabelMode();
+		showWarningChromeLocal();	
 	}
-	
-	if(labelMode == "fixed")
+	jQ("#setLabelPanel").show();
+	jQ("#buttonEditLabelsOn").hide();
+	jQ("#buttonEditLabelsOff").show();	
+	now.labelMode = "edit";
+}
+
+
+function setEditLabelsOff()
+{
+	if(window.viewerFrame.fixLabels)
 	{
-		if(window.viewerFrame.setLabelsToEditMode)
-		{
-			window.viewerFrame.setLabelsToEditMode();
-		}
-		jQ("#setLabelPanel").show();
+		window.viewerFrame.fixLabels();
 	}
-	else if(labelMode == "edit")
-	{
-		if(window.viewerFrame.fixLabels)
-		{
-			window.viewerFrame.fixLabels();
-		}
-		jQ("#setLabelPanel").hide();
-	}
+	jQ("#setLabelPanel").hide();
+	jQ("#buttonEditLabelsOn").show();
+	jQ("#buttonEditLabelsOff").hide();
+	now.labelMode = "fixed";
 }
 
 
@@ -729,6 +732,56 @@ function addLabel()
 		showWarningChromeLocal();
 	}	
 }
+
+/*
+ * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
+ */
+function showUrlBar()
+{
+	
+	if(window.viewerFrame && window.viewerFrame.startUrlViewing)
+	{
+	var url = createUrl();
+	jQ("#urlString").html(url);
+	jQ("#urlBar").show();
+	now.urlViewing = true;	
+	window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
+	jQ("#showUrlBar").hide();
+	jQ("#closeUrlBar").show();
+	//switchTooltipContent("tooltipGetLink","tooltipGetLinkTextHideLink");
+	//let the textarea holding the url resize 
+	//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
+	//jQ("#urlString").trigger('autosize'); //doesnt work well yet
+	}
+	else
+	{
+	showWarningChromeLocal();
+	}
+}
+
+
+
+/*
+ * closes url-bar
+ *  and hides size indicators in main window
+ */
+function closeUrlBar()
+{
+	jQ("#urlBar").hide();
+	//empty it
+	jQ("#urlString").html("");
+	jQ("#showUrlBar").show();
+	jQ("#closeUrlBar").hide();
+
+	//switchTooltipContent("tooltipGetLink","tooltipGetLinkTextShowLink");
+	//hide sizeIndicators in main
+	if(window.viewerFrame && window.viewerFrame.stopUrlViewing)
+	{
+		window.viewerFrame.stopUrlViewing();
+	}
+	now.urlViewing = false;
+}
+
 
 /*
  * shows/hides settings panel
@@ -858,36 +911,7 @@ function readQueryToSettings()
 	//querySettings = mergeObjects(querySettings,queryArgs);
 }
 
-/*
- * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
- */
-function showUrl()
-{
 
-	if(now.urlViewing)
-		{
-		closeUrlBar();
-		now.urlViewing = false;
-		switchTooltipContent("tooltipGetLink","tooltipGetLinkTextShowLink");
-		return;
-		}
-	else if(window.viewerFrame && window.viewerFrame.startUrlViewing)
-		{
-		var url = createUrl();
-		jQ("#urlString").html(url);
-		jQ("#urlBar").show();
-		now.urlViewing = true;	
-		window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
-		switchTooltipContent("tooltipGetLink","tooltipGetLinkTextHideLink");
-		//let the textarea holding the url resize 
-		//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
-		//jQ("#urlString").trigger('autosize'); //doesnt work well yet
-		}
-	else
-		{
-		showWarningChromeLocal();
-		}
-}
 
 /*
  * updates url in url-bar
@@ -897,22 +921,6 @@ function updateUrl()
 	//debug("called updateUrl")
 	var url = createUrl();
 	jQ("#urlString").html(url);
-}
-
-/*
- * closes url-bar
- *  and hides size indicators in main window
- */
-function closeUrlBar()
-{
-	jQ("#urlBar").hide();
-	//empty it
-	jQ("#urlString").html("");
-	//hide sizeIndicators in main
-	if(window.viewerFrame && window.viewerFrame.stopUrlViewing)
-	{
-		window.viewerFrame.stopUrlViewing();
-	}
 }
 
 /*

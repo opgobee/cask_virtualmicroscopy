@@ -1738,7 +1738,7 @@ function createLabelInDom(labelData)
 	//tooltip
 	labelHtml+= (labelData.tooltip != "")? '<div id="' + labelId + 'Tooltip" class="tooltip" className="tooltip"></div>' : "";
 	//Edit button
-	var classHidden = (now.labelMode == "fixed")? " hidden" : "";
+	var classHidden = (now.labelMode == "fixed")? " invisible" : "";
 	labelHtml+= '<img id="' + labelId + 'Edit" class="labelEditButton' + classHidden + ' hastooltip" classname="labelEditButton' + classHidden + ' hastooltip" src="../img/edit.png">';
 	labelHtml+= '<div class="tooltip">Edit this label.</div>';
 	labelHtml+= '</div>';
@@ -1756,7 +1756,7 @@ function createLabelInDom(labelData)
 	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
 	var labelText = labelData.label;
 	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
-	jQ("#"+labelId+"Text").append( jQ.parseHTML(labelText) );
+	jQ("#"+labelId+"Text").html( jQ.parseHTML(labelText) );
 
 	//add tooltip
 	if(labelData.tooltip != "")
@@ -2012,6 +2012,14 @@ function createNewLabelInDom(labelData)
 		data.newLabels[newLabelId].label = ref(newLabelTextAreaId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
 		//ih(data.newLabels[newLabelId].label)
 		}); 
+	jQ("#"+newLabelTextAreaId).keydown(function(e) 
+	{
+		if (e.which == 9) 
+		{
+	        e.preventDefault();
+	        openNewLabelTooltipTextArea( newLabelId);
+	    }
+	});
 		
 	//buttons to open the tooltip textarea
 	var htmlArws = '<br /><img id="' + newLabelId + 'ArwDown" class="newLabelArw hastooltip" classname="newLabelArw hastooltip" src="../img/bullet_arrow_down.png">';
@@ -2032,7 +2040,7 @@ function createNewLabelInDom(labelData)
 	okButton+= '<div class="tooltip">Stop editing this label and fix it to this position.<br /><em>(You can always edit it again).</em></div>';
 	jQ( "#"+newLabelContainerId ).append(okButton);
 
-	//textarea for the labeltext
+	//textarea for the tooltip
 	var newLabelTooltipId = newLabelId + "Tooltip";
 	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTooltipId+'" class="newLabelTooltip tooltip" classname="newLabelTooltip tooltip">' + labelData.tooltip + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
@@ -2044,23 +2052,27 @@ function createNewLabelInDom(labelData)
 		data.newLabels[newLabelId].tooltip = ref(newLabelTooltipId).value; //http://stackoverflow.com/questions/6153047/jquery-detect-changed-input-text-box
 		//ih(data.newLabels[newLabelId].tooltip)
 		}); 
-
+	jQ("#"+newLabelTooltipId).keydown(function(e) 
+	{
+		if (e.which === 9 && e.shiftKey)  {
+	        e.preventDefault();
+	        closeNewLabelTooltipTextArea( newLabelId);
+	    }
+	});
+	
 	//attach handlers to arw buttons (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
 	now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = false;
 	jQ("#"+ newLabelId + "ArwDown").click(function(){
-		jQ( "#"+newLabelTooltipId ).show().css({"opacity":1}).focus(); //open tooltip text area, and put input on the tooltip area. 
-		now.newLabelTooltipIsOpen[newLabelTooltipId] = true;
+		openNewLabelTooltipTextArea(newLabelTooltipId);
 		jQ(this).hide(); //hide down arrow
 		jQ("#"+ newLabelId + "ArwUp").show(); //show up arrow
 	});
 	jQ("#"+ newLabelId + "ArwUp").click(function(){
-		jQ( "#"+newLabelTooltipId ).hide(); //hide tooltip text area
-		now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
+		closeNewLabelTooltipTextArea(newLabelTooltipId)
 		now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = true; //disable the preview showing of tooltip until user has mouseout-ed of arw
 		//ih("disabled preview of "+newLabelTooltipId)
 		jQ(this).hide(); //hide up arrow
 		jQ("#newLabelArwDown"+index).show(); //show down arrow
-		jQ( "#"+newLabelTextAreaId ).focus(); //put input back on the label text area		
 	});	
 	jQ("#"+ newLabelId + "ArwDown").mouseover(function(){
 		if(!now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId])
@@ -2118,6 +2130,23 @@ function createNewLabelInDom(labelData)
 	
 }
 
+function  openNewLabelTooltipTextArea(newLabelId)
+{
+	newLabelTooltipId = newLabelId  +"Tooltip"; 
+	jQ( "#"+newLabelTooltipId).show().css({"opacity":1}).focus(); //open tooltip text area, and put input on the tooltip area. 
+	now.newLabelTooltipIsOpen[newLabelTooltipId] = true;
+	jQ( "#"+newLabelTooltipId).focus(); //put input back on the label text area	
+}
+
+function closeNewLabelTooltipTextArea(newLabelId)
+{
+	newLabelTooltipId = newLabelId  +"Tooltip"; 
+	jQ( "#"+newLabelTooltipId).hide(); //hide tooltip text area
+	now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
+	jQ( "#"+newLabelId +"TextArea" ).focus(); //put input back on the label text area		
+
+
+}
 
 /*
  * variant on the general addTooltips function. This positions the tooltip differently to not overlap the textarea
@@ -2186,7 +2215,7 @@ function setLabelsToEditMode()
 	{
 		var labelId= data.labels[label].id;
 		//show the dit buttons on the labels
-		jQ(".labelEditButton").removeClass("hidden");
+		jQ(".labelEditButton").removeClass("invisible");
 		//Note: creating editable labels for alle labels caused unsolvable problems with labels outside the viewport coming into view and moving outerdiv without any tractable change in debuggers
 		//createNewLabel(data.labels[label]);
 	}
@@ -2210,12 +2239,12 @@ function fixLabels()
 	for(thisLabel in data.newLabels)
 	{
 		//create fixed label with the data of new label
-		createLabel(data.newLabels[thisLabel]);
+		fixLabel(data.newLabels[thisLabel].id)
 	}
 
 	//neccessary because the labels have the original (non-zoom-corrected) size now still
 	resizeLabels()
-	jQ(".labelEditButton").addClass("hidden");
+	jQ(".labelEditButton").addClass("invisible");
 	//empty object newLabels
 	data.newLabels= {};
 	//empty DOM of newLabels
@@ -2229,8 +2258,11 @@ function fixLabels()
  */
 function fixLabel(newLabelId)
 {
-	//create fixed label with the data of new label
-	createLabel(data.newLabels[newLabelId]);
+	if(data.newLabels[newLabelId].label != "" || data.newLabels[newLabelId].tooltip != "")
+	{
+		//create fixed label with the data of new label
+		createLabel(data.newLabels[newLabelId]);
+	}
 	//remove the new Label from the data storage and from DOM
 	delete data.newLabels[newLabelId];
 	jQ("#"+newLabelId).remove();
