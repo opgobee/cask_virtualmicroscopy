@@ -173,7 +173,14 @@ function urlEncode (str) {
 function urlDecode (str)
 {
 	str = str.replace(/%21/g, '!').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2A/g, '*').replace(/\+/g,' ')
-	return decodeURIComponent(str);	
+	try
+	{
+		return decodeURIComponent(str);	
+	}
+	catch(e)
+	{
+		alert("It seems the URL you entered is misformed. Please try to correct it.\nError message:"+ e.message);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -343,6 +350,9 @@ function switchTooltipContent(tooltipId,contentId)
 	jQ("#"+tooltipId).children().hide();
 	jQ("#"+tooltipId +" #"+contentId).show();
 }
+
+
+
 
 /*
  * creates alert with debuginfo

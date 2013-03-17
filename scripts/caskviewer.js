@@ -131,13 +131,14 @@ function setHandlers()
 	window.onresize=winsize; 
 	ref("nav").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
-	jQ("#buttonEditLabelsOn").click(setEditLabelsOn);
-	jQ("#buttonEditLabelsOff").click(setEditLabelsOff);
+	jQ("#buttonEditLabelsOn").click(openSetLabelPanel);
+	jQ("#buttonEditLabelsOff").click(closeSetLabelPanel);
 	jQ("#showUrlBar").click(showUrlBar);
 	jQ("#closeUrlBar,#closeUrlBar2").click(closeUrlBar);
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	jQ("#addLabelButton").click(addLabel);
+	jQ("#closeLabelPanel").mouseup(closeSetLabelPanel);
 	initTooltips();
 	slidesCont = ref("slidesCont");
 
@@ -677,9 +678,9 @@ function applySettings()
 		window.viewerFrame.showHideCoordinatesPanel(settings["showCoordinatesPanel"]);
 		//l("in showhidecoords set to <br>"+ settings["showCoordinatesPanel"]);
 	}	
-	if(now.labelMode = "edit")
+	if(now.labelMode == "edit")
 	{
-	setEditLabelsOn();
+		openSetLabelPanel();
 	}
 }
 
@@ -690,7 +691,7 @@ function applySettings()
 ////////////////////////////////////////////	
 
 
-function setEditLabelsOn()
+function openSetLabelPanel()
 {
 	if(window.viewerFrame.setLabelsToEditMode)
 	{
@@ -707,7 +708,7 @@ function setEditLabelsOn()
 }
 
 
-function setEditLabelsOff()
+function closeSetLabelPanel()
 {
 	if(window.viewerFrame.fixLabels)
 	{

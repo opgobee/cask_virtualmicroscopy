@@ -133,7 +133,7 @@ now.renderingLabels = false; //busy creating labels.
 now.labelsRendered = false;
 now.zoom = 2 ;// start zoom level
 now.newLabelTooltipIsOpen = {}; //holds ids of newlabeltooltips that are open
-now.newLabelPreviewTooltipIsDisabled ={}; //holds ids of newlabeltooltips where user has not yet mouseouted the arw after closing tooltiptextarea
+now.newLabelPreviewTooltipEnabled ={}; //holds ids of newlabeltooltips where user has not yet mouseouted the arw after closing tooltiptextarea
 now.labelMode = "fixed"; //"edit" labels can be editable or fixed
 
 //image
@@ -197,6 +197,10 @@ var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
 function init() 
 {
 
+	//Give warning message if image loading is disabled
+	if( !automaticImageLoadingIsAllowed() )
+		{showAutomaticImageLoadingDisallowed();}
+ 		
 	//Load data
 	//set global references to DOM elements 
 	setGlobalReferences();
@@ -740,7 +744,8 @@ else{document.addEventListener("keypress",capturekey,true);}
 function handleMouseDown(event)
 	{if(!event) {event=window.event;}
 	
-	if(eventIsOnNewLabel(event)) {return;}
+	//still needed?
+	//if(eventIsOnNewLabel(event)) {return;}
 	//ih("mouseDown ");
 	clearZoomOutTimer();
 	downX=event.clientX;
@@ -756,7 +761,8 @@ function handleMouseDown(event)
 
 function handleMouseUp(event)
 	{
-	if(eventIsOnNewLabel(event)) {return;}
+	//still needed?
+//	if(eventIsOnNewLabel(event)) {return;}
 
 	//ih("mouseUp<br>");
 	clearZoomOutTimer(); //cancel autozoomout
@@ -766,7 +772,8 @@ function handleMouseUp(event)
 	
 function handleDblClick(event)
 	{
-	if(eventIsOnNewLabel(event)) {return;}
+	//still needed?
+//	if(eventIsOnNewLabel(event)) {return;}
 
 	//ih("dblclick ");
 	clearZoomOutTimer(); //cancel autozoomout
@@ -778,7 +785,8 @@ function handleDblClick(event)
 function handleMouseMove(event)
 	{if(!event) {event=window.event;}
 	
-	if(eventIsOnNewLabel(event)) {return;}
+	//still needed?
+	//if(eventIsOnNewLabel(event)) {return;}
 
 	//ih("mouseMove, "+event.clientX+","+event.clientY+"; ");
 	
@@ -805,16 +813,19 @@ function handleMouseMove(event)
  * determines whether an event happened on a new label
  * uses the fact that newlabels have an id "NL..."
  */
+/*
 function eventIsOnNewLabel(event)
 {
-   var targetId = event.target.id;
+   //this crashes IE 7, 8!!!!!!!
+	var targetId = event.target.id;
   
    return false;
    var result = (targetId.substring(0,2) =="NL")? true : false;
    //if(result) {ih("Cancelled from: "+targetId);}
    return result;
 }
-		
+*/
+
 //////////////////////////////////////////////////////////////////////
 //
 // DRAGGING
@@ -1743,7 +1754,8 @@ function createLabelInDom(labelData)
 	labelHtml+= '<div class="tooltip">Edit this label.</div>';
 	labelHtml+= '</div>';
 	jQ("#imageLabels").append(labelHtml);
-	
+	//jQ("#imageLabels").append('<div class="tester"><div id="' + labelId + '" class="label hastooltip"></div></div>');
+
 	//create element	
 /*	var label = document.createElement("div"); 
 	label.style.position = "absolute";
@@ -1756,8 +1768,19 @@ function createLabelInDom(labelData)
 	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
 	var labelText = labelData.label;
 	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
-	jQ("#"+labelId+"Text").html( jQ.parseHTML(labelText) );
+	//alert("wait0 '"+labelText)
+	ref(labelId+"Text").innerHTML = labelText;
+	//ref(labelId).innerHTML = labelText;
+	//testng
+	
 
+	/*	alert("wait1")
+	jQ("#"+labelId+"Text").html( labelText);
+	alert("wait2")	
+
+	jQ("#"+labelId+"Text").html( jQ.parseHTML(labelText) );
+*/	
+	//alert("wait3")
 	//add tooltip
 	if(labelData.tooltip != "")
 	{
@@ -1776,6 +1799,7 @@ function createLabelInDom(labelData)
 //	jQ("#"+labelId).append(editButton);
 	jQ("#"+labelId + "Edit").click(function(event){makeLabelEditable(labelId)});
 	//position the label
+	
 	repositionAndResizeLabels();
 	initTooltips();
 }
@@ -1799,6 +1823,7 @@ function calculateLabelPosition(labelData)
  */
 function positionLabel(labelData)
 {
+	
 	var labelId  = labelData.id;
 	var labelPos = calculateLabelPosition(labelData);
 	jQ("#"+labelId).css({"left": labelPos.x + "px", "top": (labelPos.y + settings.labelOffsetHeight) + "px"});
@@ -1852,14 +1877,17 @@ function resizeLabels()
 	var newLabelCorrFactor = (newLabelMagnFactor == 1)? -8 : 0; //subtract 2x padding to get it appear just as wide as the newLabelTextArea that has no padding
 	var newLabelTooltipWidth = ( newLabelMagnFactor *(sizeFactor * settings.originalLabelWidth) + newLabelCorrFactor ); //let the tooltip be twice as wide as the label
 
-	//ih(sizeProcent + ", "+ labelWidthPx);
+	//ih("sizeFactor="+sizeFactor+"<br>settings.originalLabelWidth="+settings.originalLabelWidth + "<br>labelWidth="+ labelWidth);
 	
 	//adapt font-size and max-width of fixed labels 
 	//1st note OBSOLETE - all label widths now determined from the single width in class .label, but just keep for moment 
 	//Note 1: XXX this doesn't set width on newlabeltextareas despite they have class .label, as width is overruled by class .newlabeltextarea declared later in css
 	//Note 2: used max-width instead of width so that the actual width (esp. the width that triggers the tooltip!) is the width of the visual text, but the text will still wrap at the same width as the newLabel
-	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth + "px"});
-
+	jQ(".label").css({'fontSize':sizeProcent,"max-width": labelWidth + "px"});	
+	//solve text wrap problem
+	jQ(".labelContainer").css({"width": labelWidth + "px"}); // to let the contained div .label expand. Else it wraps at each word and doesn't use the allowed max-width
+	jQ(".label").not(".newLabelTextArea").css({"position": "absolute"}); //to let it shrink-wrap on the contained text. Else the full max-width will trigger the hover. But dont apply on text-area in new label.
+	
 	setLabelOffsetHeight();
 	positionCrossHairs();
 	positionNewLabelCloseButtons(labelWidth);
@@ -2004,7 +2032,14 @@ function createNewLabelInDom(labelData)
 	var newLabelTextAreaId = newLabelId + "TextArea";
 	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label">' + labelData.label + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
-	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();}) 
+	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();})
+	//workaround to also let the glow work in ie7 that doesn't support :focus pseudo-selector (gives a glowing border like Chrome and Safari to show the location of the textbox more clearly)
+	if(isSet(islteIE7) && islteIE7)
+	{
+		jQ( "#"+newLabelTextAreaId ).focus(function() {jQ(this).addClass("glowingBorder")}); 
+		jQ( "#"+newLabelTextAreaId ).blur(function()  {jQ(this).removeClass("glowingBorder")}); 	
+	}
+	
 	//Autosize the textarea at text entry http://www.jacklmoore.com/autosize 
 	jQ( "#"+newLabelTextAreaId ).autosize({append: "\n"}); 
 	//Continuously get the entered text and store it in the data of the newlabel
@@ -2014,6 +2049,7 @@ function createNewLabelInDom(labelData)
 		}); 
 	jQ("#"+newLabelTextAreaId).keydown(function(e) 
 	{
+		//tab opens newlabeltooltip textarea
 		if (e.which == 9) 
 		{
 	        e.preventDefault();
@@ -2022,9 +2058,9 @@ function createNewLabelInDom(labelData)
 	});
 		
 	//buttons to open the tooltip textarea
-	var htmlArws = '<br /><img id="' + newLabelId + 'ArwDown" class="newLabelArw hastooltip" classname="newLabelArw hastooltip" src="../img/bullet_arrow_down.png">';
+	var htmlArws = '<br /><img id="' + newLabelId + 'ArwDown" class="newLabelArw hastooltip" classname="newLabelArw hastooltip" src="../img/bullet_arrow_down_light.png">';
 	htmlArws+= '<div class="tooltip">Add a tooltip for this label<br /><em><small>(A tooltip is a little box with additional information, that appears when the user hovers her mouse over the label. Just as the one you\'re reading now!)</small></em>.</div>';
-	htmlArws+= '<img id="' + newLabelId + 'ArwUp" class="newLabelArw hastooltip" classname="newLabelArw" src="../img/bullet_arrow_up.png">';
+	htmlArws+= '<img id="' + newLabelId + 'ArwUp" class="newLabelArw hastooltip" classname="newLabelArw" src="../img/bullet_arrow_up_light.png">';
 	htmlArws+= '<div class="tooltip">Close tooltip (your text remains stored)</div>';
 	jQ( "#"+newLabelContainerId ).append(htmlArws);
 	//initially hide the up arrow
@@ -2054,6 +2090,7 @@ function createNewLabelInDom(labelData)
 		}); 
 	jQ("#"+newLabelTooltipId).keydown(function(e) 
 	{
+		//shift tab closes newlabeltooltip textarea
 		if (e.which === 9 && e.shiftKey)  {
 	        e.preventDefault();
 	        closeNewLabelTooltipTextArea( newLabelId);
@@ -2061,37 +2098,22 @@ function createNewLabelInDom(labelData)
 	});
 	
 	//attach handlers to arw buttons (Note: refers to newLabelTooltip, so this is after adding of tooltip-textarea
-	now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = false;
+	now.newLabelPreviewTooltipEnabled[newLabelTooltipId] = true;
 	jQ("#"+ newLabelId + "ArwDown").click(function(){
-		openNewLabelTooltipTextArea(newLabelTooltipId);
-		jQ(this).hide(); //hide down arrow
-		jQ("#"+ newLabelId + "ArwUp").show(); //show up arrow
+		openNewLabelTooltipTextArea(newLabelId);		
 	});
 	jQ("#"+ newLabelId + "ArwUp").click(function(){
-		closeNewLabelTooltipTextArea(newLabelTooltipId)
-		now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = true; //disable the preview showing of tooltip until user has mouseout-ed of arw
-		//ih("disabled preview of "+newLabelTooltipId)
-		jQ(this).hide(); //hide up arrow
-		jQ("#newLabelArwDown"+index).show(); //show down arrow
+		closeNewLabelTooltipTextArea(newLabelId);
+		disablePreviewNewLabelToolTipTextArea(newLabelId); //to make it close directly, not just after mouseout of arw
 	});	
 	jQ("#"+ newLabelId + "ArwDown").mouseover(function(){
-		if(!now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId])
-		{
-			jQ( "#"+newLabelTooltipId ).show().css({"opacity":0.6});	//give an impression of the tooltip at hover to quickly check content without having to open it
-		}
-		//ih("arwdown mouseover")
+		previewNewLabelToolTipTextArea(newLabelId);
 	});
 	jQ("#"+ newLabelId + "ArwDown").mouseout(function(){
-		//hide only if the tooltip area was not deliberately opened (by click) by user
-		if(!now.newLabelTooltipIsOpen[newLabelTooltipId])
-		{
-			jQ( "#"+newLabelTooltipId ).hide();
-		}
-		//ih("arwdown mouseout")
+		hidePreviewNewLabelToolTipTextArea(newLabelId);
 	});	
 	jQ("#"+ newLabelId + "ArwDown").mouseout(function(event){ //note: only works if on arwDown
-		now.newLabelPreviewTooltipIsDisabled[newLabelTooltipId] = false;	
-		//ih("enabled preview of "+newLabelTooltipId)
+		enablePreviewNewLabelToolTipTextArea(newLabelId);
 	});
 	
 	//attach handler to close button
@@ -2132,22 +2154,59 @@ function createNewLabelInDom(labelData)
 
 function  openNewLabelTooltipTextArea(newLabelId)
 {
-	newLabelTooltipId = newLabelId  +"Tooltip"; 
-	jQ( "#"+newLabelTooltipId).show().css({"opacity":1}).focus(); //open tooltip text area, and put input on the tooltip area. 
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	jQ("#"+ newLabelTooltipId).show().css({"opacity":1}); //open tooltip text area
+	jQ("#"+ newLabelTooltipId).focus(); //put input on the tooltip text area
+	jQ("#"+ newLabelId + "ArwDown").hide(); //hide down arrow
+	jQ("#"+ newLabelId + "ArwUp").show(); //show up arrow
 	now.newLabelTooltipIsOpen[newLabelTooltipId] = true;
-	jQ( "#"+newLabelTooltipId).focus(); //put input back on the label text area	
 }
 
 function closeNewLabelTooltipTextArea(newLabelId)
 {
-	newLabelTooltipId = newLabelId  +"Tooltip"; 
-	jQ( "#"+newLabelTooltipId).hide(); //hide tooltip text area
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	jQ("#"+ newLabelTooltipId).hide(); //hide tooltip text area
+	jQ("#"+ newLabelId + "TextArea").focus(); //put input back on the label text area		
+	jQ("#"+ newLabelId + "ArwUp").hide(); //hide down arrow
+	jQ("#"+ newLabelId + "ArwDown").show(); //show up arrow
 	now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
-	jQ( "#"+newLabelId +"TextArea" ).focus(); //put input back on the label text area		
-
-
 }
 
+function previewNewLabelToolTipTextArea(newLabelId)
+{
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	if(now.newLabelPreviewTooltipEnabled[newLabelTooltipId])
+	{
+		jQ( "#"+newLabelTooltipId ).show().css({"opacity":0.6});	//give an impression of the tooltip at hover to quickly check content without having to open it
+	}
+	//ih("arwdown mouseover")	
+}
+
+function hidePreviewNewLabelToolTipTextArea(newLabelId)
+{
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	//hide only if the tooltip area was not deliberately opened (by click) by user
+	if(!now.newLabelTooltipIsOpen[newLabelTooltipId])
+	{
+		jQ( "#"+newLabelTooltipId ).hide();
+	}
+	//ih("arwdown mouseout")
+}
+
+
+function enablePreviewNewLabelToolTipTextArea(newLabelId)
+{
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	now.newLabelPreviewTooltipEnabled[newLabelTooltipId] = true;	
+	//ih("enabled preview of "+newLabelTooltipId)	
+}
+
+function disablePreviewNewLabelToolTipTextArea(newLabelId)
+{
+	var newLabelTooltipId = newLabelId  +"Tooltip"; 
+	now.newLabelPreviewTooltipEnabled[newLabelTooltipId] = false;	
+	//ih("disabled preview of "+newLabelTooltipId)	
+}
 /*
  * variant on the general addTooltips function. This positions the tooltip differently to not overlap the textarea
  * 
@@ -2169,6 +2228,8 @@ function initNewLabelTooltips()
 		position: { my: "left-100% top"}
 	});
 }
+
+
 
 function positionCrossHairs()
 {
@@ -2219,7 +2280,7 @@ function setLabelsToEditMode()
 		//Note: creating editable labels for alle labels caused unsolvable problems with labels outside the viewport coming into view and moving outerdiv without any tractable change in debuggers
 		//createNewLabel(data.labels[label]);
 	}
-	now.labelMode= "edit";
+	now.labelMode = "edit";
 }
 
 
@@ -2249,7 +2310,7 @@ function fixLabels()
 	data.newLabels= {};
 	//empty DOM of newLabels
 	jQ("#newLabels").empty();
-	now.labelMode= "fixed";
+	now.labelMode = "fixed";
 	
 }
 
@@ -2983,7 +3044,10 @@ function xmlread(data)
 
 }
 
-
+/*
+ * 
+ * 
+ */
 
 
 //////////////////////////////////////////////////////////////////////
@@ -2992,6 +3056,50 @@ function xmlread(data)
 //
 /////////////////////////////////////////////////////////////////////
 
+
+/*
+ * Check whether automatic image loading is allowed
+ * Source http://stereochro.me/ideas/detecting-broken-images-js 
+ * 
+ */
+function automaticImageLoadingIsAllowed()
+{
+	ref('testimage').src= "../img/emptyimage.gif";
+	var img = ref('testimage');
+	 
+ /*   
+  * this triggered in IE, turned it off
+  * if (!img.complete) {
+        return false;
+    }
+*/
+    if (typeof img.naturalWidth != "undefined" && img.naturalWidth == 0) {
+    	return false;
+    }
+
+    return true;	
+}
+
+function isImageOk(img) {
+    // During the onload event, IE correctly identifies any images that
+    // weren't downloaded as not complete. Others should too. Gecko-based
+    // browsers act like NS4 in that they report this incorrectly.
+    if (!img.complete) {
+        return false;
+    }
+
+    // However, they do have two very useful properties: naturalWidth and
+    // naturalHeight. These give the true size of the image. If it failed
+    // to load, either of these should be zero.
+    if (typeof img.naturalWidth != "undefined" && img.naturalWidth == 0) {
+        return false;
+    }
+
+    // No other way of checking: assume it's ok.
+    return true;
+}
+
+
 function signalUseIFrameFallBack()
 	{if(ref("signalI"))	{ref("signalI").style.display= "block";}
 	}
@@ -2999,7 +3107,17 @@ function signalUseIFrameFallBack()
 function signalUseLoadJsFallBack()
 	{if(ref("signalj")) {ref("signalj").style.display= "block";}
 	}
-		
+	
+function showAutomaticImageLoadingDisallowed()
+{
+var str = "It seems image loading is presently turned off in your browser. Therefore, the slide cannot be loaded and shown. To turn image loading on:<br /> ";
+str+= 	"<ul>";
+str+=	"<li>Firefox: orange Firefox button &gt; Options &gt; tab 'Content' &gt; check 'Load images automatically'.</li>";
+str+=	"</ul>";
+ref("warning").innerHTML= str;
+ref("warning").style.display="block";	
+}
+
 function showNoPathWarning()
 	{
 	ref("warning").innerHTML="Image cannot be displayed.<br />Reason: location [URL-path] of image not provided. The location should be provided either in the URL-query or in the html page.";

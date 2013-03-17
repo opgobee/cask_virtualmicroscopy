@@ -48,7 +48,7 @@
 <img id="buttonEditLabelsOn" src="../img/flag3_24.png" class="hastooltip"  title="Add or edit labels.">
 	<div class="tooltip">Add or edit labels.</div>
 <img id="buttonEditLabelsOff" src="../img/flag3_24_strikethrough.png" class="hastooltip hidden"  title="Stop editing labels.">
-	<div class="tooltip">Stop editing labels.</div>
+	<div class="tooltip">Stop editing labels and close the panel 'Add or edit labels'.</div>
 <img id="showUrlBar" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view">
 	<div id="tooltipGetLinkTextShowLink" class="tooltip">Get a direct link (a URL) to the present view</div>
 <img id="closeUrlBar" src="../img/link_strikethrough.png" class="hastooltip hidden"  title="Hide the panel with the direct link">
@@ -65,9 +65,10 @@
 <div id="SlideSetsMenuPane"></div>
 
 <div id="setLabelPanel">
-	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><br /><p>When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</p></div>
+	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><p>When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</p></div>
 	<button id="addLabelButton">Add a label</button>
-
+	<img id="closeLabelPanel" src="../img/close.png" class="hastooltip"/>
+	<div class="tooltip">Stop editing labels and close this panel</div>
 </div>	
 
 <div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
