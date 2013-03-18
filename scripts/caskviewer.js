@@ -131,14 +131,19 @@ function setHandlers()
 	window.onresize=winsize; 
 	ref("nav").onclick=handleClick;
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
+	
 	jQ("#buttonEditLabelsOn").click(openSetLabelPanel);
+	ref("buttonEditLabelsOn").ontouchstart = openSetLabelPanel;
+	
 	jQ("#buttonEditLabelsOff").click(closeSetLabelPanel);
+	ref("buttonEditLabelsOff").ontouchstart = closeSetLabelPanel;
+
 	jQ("#showUrlBar").click(showUrlBar);
 	jQ("#closeUrlBar,#closeUrlBar2").click(closeUrlBar);
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	jQ("#addLabelButton").click(addLabel);
-	jQ("#closeLabelPanel").mouseup(closeSetLabelPanel);
+	jQ("#closeLabelPanel").click(closeSetLabelPanel);
 	initTooltips();
 	slidesCont = ref("slidesCont");
 

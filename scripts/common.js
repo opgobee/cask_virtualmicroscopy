@@ -351,8 +351,19 @@ function switchTooltipContent(tooltipId,contentId)
 	jQ("#"+tooltipId +" #"+contentId).show();
 }
 
+/*
+ * TOUCH TEST
+ * 
+ */
 
-
+/*
+ * document.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    alert(touch.pageX + " - " + touch.pageY);
+}, false);
+ * 
+ */
 
 /*
  * creates alert with debuginfo

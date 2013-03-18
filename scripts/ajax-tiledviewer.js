@@ -514,31 +514,6 @@ function setHandlers()
         parent.document.ontouchmove = null;
     };
 	
-	// Capture Apple Device Events / touchevents
-	//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
-	//modified to use xui in attempt to be better cross-platform Paul Gobee; 10 March 2013
-/*	x$('#outerDiv').touchstart(appleStartTouch); 
-	x$('#outerDiv').touchend(appleMoveEnd); 
-	x$('#outerDiv').touchmove(appleMoving); 
-	x$('#outerDiv').gesturestart(function (event) {
-		//ih("gesturestart")
-        event.preventDefault();
-        gestureScale = event.scale;
-        parent.document.ontouchmove = function (event) {
-            event.preventDefault();
-        };
-    }); 
-	x$('#outerDiv').gestureend(function (event) {
-		//ih("gestureend")
-        event.preventDefault();
-        if (event.scale > gestureScale) {
-            ZoomIn();
-        } else {
-            ZoomOut();
-        }
-        parent.document.ontouchmove = null;
-    }); 
- */	
 	initTooltips();
 }
 
@@ -2213,7 +2188,8 @@ function disablePreviewNewLabelToolTipTextArea(newLabelId)
  */
 function initNewLabelTooltips()
 {
-	jQ(".hastooltip" ).tooltip({
+	//only affect hastooltips that are a child of newLabelContainer
+	jQ(".newLabelContainer .hastooltip" ).tooltip({
 		content: function() {
 			var data = jQ(this).next('.tooltip');
 			if(data.length)
