@@ -1455,62 +1455,128 @@ function showThumb()
 //ih("thumbHeight="+thumbHeight+", thumbWidth="+thumbWidth+"<br>"); 
 		
 	//connect handlers
-
-	elem.thumbContainer.ondragstart = function() { return false;}
-	elem.thumbContainer.onmousemove = processThumbMove; 
-	elem.thumbContainer.onmouseup = stopThumb; 
-	elem.viewIndicatorSenser.onmousedown = startThumbMove; 
-	elem.viewIndicatorSenser.ondragstart = function() {return false;}	
-
 	if(isTouchDevice)
 	{
-		elem.viewIndicatorSenser.ontouchstart = startThumbMove; 
-		elem.thumbContainer.ontouchmove = processThumbMove; 
-		elem.thumbContainer.ontouchend = function (event)
-		{
-			stopThumb(event);
-			touchEnd(event); 
-		}
+		elem.viewIndicatorSenser.ontouchstart = startTouchThumbMove; 
+		elem.thumbContainer.ontouchmove = processTouchThumbMove; 
+		elem.thumbContainer.ontouchend = stopTouchThumb;
 	}
+	else //not touchdevice
+	{
+		elem.viewIndicatorSenser.onmousedown = startMouseThumbMove; 
+		elem.thumbContainer.onmousemove = processMouseThumbMove; 
+		elem.thumbContainer.onmouseup = stopMouseThumb; 
+	}
+	elem.viewIndicatorSenser.ondragstart = function() {return false;}	
+	elem.thumbContainer.ondragstart = function() { return false;}
 }
 
 function hideThumb(){ ref('elem.thumbImageHolder').style.display="none";}
 
-	
-function startThumbMove(event)
+
+function getMouseEventPosition(event)
+{
+	var o= {};
+	o.x = event.clientX;
+	o.y = event.clientY;
+	return o;
+}
+
+function getTouchEventPosition(event)
+{
+	var o = {"x": null, "y": null};	
+	if (event.changedTouches.length == 1 && event.touches[0].identifier == event.changedTouches[0].identifier)
 	{
+		o.x	= event.changedTouches[0].clientX;
+		o.y	= event.changedTouches[0].clientY;
+	}
+	else if (event.touches.length == 1)
+	{		
+		o.x	= event.touches[0].clientX;
+		o.y	= event.touches[0].clientY;
+	}
+	return o;
+}
+
+function getViewIndicatorPosition(event)
+{
+	var o ={};
+	o.x = stripPx(elem.viewIndicator.style.left); 
+	o.y = stripPx(elem.viewIndicator.style.top); 
+	return o;
+}
+
+function startMouseThumbMove(event)
+{
 	if (!event){ event = window.event;}
-	var viewIndicatorDragStartLeft = event.clientX; 
-	var viewIndicatorDragStartTop = event.clientY; 
-	var viewIndicatorOrigLeft = stripPx(elem.viewIndicator.style.left); 
-	var viewIndicatorOrigTop = stripPx(elem.viewIndicator.style.top); 
-	viewIndicatorDragOffsetLeft = viewIndicatorOrigLeft - viewIndicatorDragStartLeft;
-	viewIndicatorDragOffsetTop = viewIndicatorOrigTop - viewIndicatorDragStartTop;
-	thumbDragging = true; return false;	
+	var eventPos = getMouseEventPosition(event);
+	var viewIndicatorPos = getViewIndicatorPosition(event);
+	viewIndicatorDragOffsetLeft = viewIndicatorPos.x - eventPos.x;
+	viewIndicatorDragOffsetTop = viewIndicatorPos.y - eventPos.y;
+	thumbDragging = true; 
+	return false;
+}
+
+function startTouchThumbMove(event)
+{
+	ih("touchStart");
+	if (!event){ event = window.event;}
+	var eventPos = getTouchEventPosition(event);
+	var viewIndicatorPos = getViewIndicatorPosition(event);
+	viewIndicatorDragOffsetLeft = viewIndicatorPos.x - eventPos.x;
+	viewIndicatorDragOffsetTop = viewIndicatorPos.y - eventPos.y;
+	thumbDragging = true; 
+	return false;
+}
+
+function processMouseThumbMove(event)
+{ 
+	if (!event){ event = window.event;}	
+	if (thumbDragging) 
+		{
+		var eventPos = getMouseEventPosition(event);
+		elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = eventPos.x + viewIndicatorDragOffsetLeft + "px"; 
+		elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = eventPos.y + viewIndicatorDragOffsetTop  + "px"; 
+		}
+}
+
+function processTouchThumbMove(event) 
+{
+	ih("touchDrag");
+	if (!event){ event = window.event;}	
+	if (thumbDragging) 
+	{
+		var eventPos = getTouchEventPosition(event);
+		elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = eventPos.x + viewIndicatorDragOffsetLeft + "px"; 
+		elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = eventPos.y + viewIndicatorDragOffsetTop  + "px"; 
 	}
-	
-function processThumbMove(event)
-	{ 
-		if (!event){ event = window.event;}
-		if (thumbDragging) 
-			{
-			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = event.clientX + viewIndicatorDragOffsetLeft +"px"; 
-			elem.viewIndicator.style.top = elem.viewIndicatorSenser.style.top = event.clientY + viewIndicatorDragOffsetTop + "px"; 
-			}
-	}
-	
+	event.preventDefault();
+}
+
+
+function stopMouseThumb(event)
+{
+	if (!event){ event = window.event;}
+	var eventPos = getMouseEventPosition(event);
+	stopThumb(eventPos);
+}
+
+function stopTouchThumb(event)
+{
+	if (!event){ event = window.event;}
+	ih("touchEnd");
+	var eventPos = getTouchEventPosition(event);
+	event.preventDefault();
+	stopThumb(eventPos);
+}
 /*
  * handles both end of drag viewIndicator and random click positioning on thumb
  */
-function stopThumb(event)
+function stopThumb(eventPos)
 {
-	if (!event){ event = window.event;}
-	if (event)
+	if (eventPos)
 	{
-		var eventX = event.clientX; //has no "px" apparently
-		var eventY = event.clientY; 
-		var fractionLR, fractionTB; 
-		
+		var fractionLR, fractionTB; 		
 		var controlsContPos= getElemPos(elem.controlsContainer);
 		var thumbContPos= getElemPos(elem.thumbContainer);
 				
@@ -1518,17 +1584,17 @@ function stopThumb(event)
 		if(thumbDragging)
 			{
 			thumbDragging = false;		
-			fractionLR = (eventX + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
-			fractionTB = (eventY + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 			
+			fractionLR = (eventPos.x + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
+			fractionTB = (eventPos.y + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 			
 			}
 		//click on thumbContainer without thumbdragging
 		else 
 			{
-			fractionLR = (eventX - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
-			fractionTB = (eventY - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
+			fractionLR = (eventPos.x - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
+			fractionTB = (eventPos.y - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
 			//update position viewIndicator
-			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = (eventX - controlsContPos.left - thumbContPos.left - viewIndicatorWidth/2 ) +"px" ;
-			elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = (eventY - controlsContPos.top  - thumbContPos.top  - viewIndicatorHeight/2) +"px" ;
+			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = (eventPos.x - controlsContPos.left - thumbContPos.left - viewIndicatorWidth/2 ) +"px" ;
+			elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = (eventPos.y - controlsContPos.top  - thumbContPos.top  - viewIndicatorHeight/2) +"px" ;
 			}	
 
 /*			if(testing)
@@ -1546,6 +1612,7 @@ function stopThumb(event)
 		if(isDisplayingUrl) {parent.updateUrl();}
 	}
 }
+
 
 /*
  * resizes and positions viewIndicator and viewIndicatorSenser, viewIndicator in fact indicates screen (viewport) size in relation to shown image
@@ -1567,6 +1634,9 @@ function moveViewIndicator()
 	}
 
 	
+
+
+
 
 
 
@@ -2893,53 +2963,6 @@ function appleMove(event)
 
 //*** END OF: Apple Device Event Handlers Block
 	
-//try to generalize
-var touches =[];
-
-function touchStartDrag(event,elem) 
-{
-	ih("touchStart")
-
-	touches[0] = {};
-	//ih("starttouch");
-	if (event.touches.length == 1) 
-	{
-		touches[0].touchIdentifier 	= event.touches[0].identifier;
-		touches[0].dragStartLeft 	= event.touches[0].clientX;
-		touches[0].dragStartTop 	= event.touches[0].clientY;
-		touches[0].elemStartLeft 	= elem.style.left;
-		touches[0].elemStartTop 	= elem.style.top;
-		touches[0].dragging			= true;
-
-		return true;
-	}
-}
-
-function touchMoveDrag(event,elem) 
-{
-	ih("touchMove");
-	event.preventDefault();
-	touchDrag(event,elem);
-}
-
-function touchEndDrag(event,elem) 
-{
-	ih("touchEnd");
-	touches[0].dragging = false;
-	touchDrag(event,elem);
-}
-
-function touchDrag(event,elem) 
-{
-	//	ih("touchDrag");
-	if ((event.changedTouches.length == 1) && (touches[0].dragging == true) && (touches[0].touchIdentifier == event.changedTouches[0].identifier)) 
-	{
-	    elem.style.left = touches[0].elemStartLeft + (event.changedTouches[0].clientX - touches[0].dragStartLeft) + 'px';
-	    elem.style.top = touches[0].elemStartTop + (event.changedTouches[0].clientY - touches[0].dragStartTop) + 'px';
-	}
-	event.preventDefault();
-}
-
 	
 
 
