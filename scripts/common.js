@@ -110,6 +110,21 @@ function mergeObjects(obj1,obj2)
 function ref(i) {return document.getElementById(i);}
 
 
+/*
+ * gets a reference to the element the event fired on.
+ */
+function getTarget(evt) //
+{
+	//standards: event=object passed to func/ IE: event= prop. of window
+	var evt= (evt) ? evt : ((event)? event : null); 	
+	
+	if(evt)
+	{
+		return (evt.target)? evt.target : ((evt.srcElement)? evt.srcElement : null); // target=W3C/srcElement=IE
+	}
+}	
+
+
 function makeElement(type,id,className)
 {
 	var el = document.createElement(type); 
@@ -119,6 +134,40 @@ function makeElement(type,id,className)
 	return el;
 }
 
+
+//////////////////////////////////////////////////////////////////////
+//
+// Browser 
+//
+/////////////////////////////////////////////////////////////////////
+/*
+ * Cross-browser detection of inner dimensions of viewport
+ * http://stackoverflow.com/questions/1766861/find-the-exact-height-and-width-of-the-viewport-in-a-cross-browser-way-no-proto
+ * @return object {width: ..number..., height: ..number..}
+ */
+function getViewportDimensions()
+{
+	var o = {};
+	//standards compliant
+	if( typeof( window.innerWidth ) == 'number' ) 
+	{ 
+		o.width = window.innerWidth; 
+		o.height = window.innerHeight;
+	} 
+	//IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+	else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) 
+	{ 
+		o.width = document.documentElement.clientWidth; 
+		o.height = document.documentElement.clientHeight;
+	} 
+	// older versions of IE
+	else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) 
+	{ 
+		o.width = document.body.clientWidth; 
+		o.height = document.body.clientHeight;
+	}
+	return o;
+}
 //////////////////////////////////////////////////////////////////////
 //
 // URL handling 
@@ -364,6 +413,18 @@ function switchTooltipContent(tooltipId,contentId)
 }, false);
  * 
  */
+
+/*
+function isTouchDevice()
+{
+	testEl.ontouchstart = function () {
+		testEl.onmousedown = null;
+		// initialize touch interface
+	}	
+
+}
+*/
+
 
 /*
  * creates alert with debuginfo

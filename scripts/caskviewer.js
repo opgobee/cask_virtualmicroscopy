@@ -61,10 +61,11 @@ var querySettings = Array(); //assoc arary with name/value pairs settings that a
 var fitDone= {},fitAttempt=1; //fitDone= assoc array slideName = true/false indicating whether the thumb-fitting has (already) succeeded
 var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
+var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
+var isTouchDevice = ("ontouchstart" in window)? true : false;
 var settingsCloseTimer;
 var slidesCont;
 var logwin;
-var viewportWidth, viewportHeight;
 var slideSetsMenus = {};
 var slideSetsMenuData = Array();
 
@@ -88,6 +89,18 @@ function init()
 	
 	winsize();//do after onload for IE
 	setHandlers();
+	
+	//unfortunately neccessary still: some device specific adaptations
+	if(isTouchDevice) 
+	{
+		setForTouchDevice();
+	}
+	if(isiPad)
+	{
+		setForiPad();
+	}
+	
+	
 	//sets default options in the options menu
 	checkChosenOptions();
 	//creates the menus: Menus: menuAnatomicalRegions and menuInstitutionsModules, containing headers, containing entries (entry refers to a set of slides to be shown in the slide-selection panel [=that is: here])
@@ -125,31 +138,98 @@ function setLocalSetting(name, value)
 }
 
 
-
+/*
+ * attach handlers
+ * 
+ * Note 1: touch handlers for adding labels turned off as labels still give an array of bugs on diff browsers/touch devices
+ * Note 2: http://www.quirksmode.org/blog/archives/2010/02/do_we_need_touc.html
+ * 			but we dont cancel the click events in the touch equivalent because then they are turned off definitively and there is no problem in having them fire both
+ */
 function setHandlers()
 {
-	window.onresize=winsize; 
-	ref("nav").onclick=handleClick;
+	window.onresize = winsize;
+	
+	if(isiPad)
+	{
+		//adapt for orientationchange neccessary because of iframe on ipad problem
+		//event resize seems to be safer than onorientationchange - http://davidwalsh.name/orientation-change
+		window.onresize = function() 
+		{
+			setForiPad();	
+			winsize();
+		}
+	}
+	
+	ref("nav").onclick = handleClick;
+	ref("nav").ontouchstart = handleClick;
+	
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
+	ref("slidesContOverlay").ontouchstart = hideSlideSetsMenuPane;
 	
-	jQ("#buttonEditLabelsOn").click(openSetLabelPanel);
-	ref("buttonEditLabelsOn").ontouchstart = openSetLabelPanel;
+	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
+	//ref("buttonEditLabelsOn").ontouchstart = openSetLabelPanel;
 	
-	jQ("#buttonEditLabelsOff").click(closeSetLabelPanel);
-	ref("buttonEditLabelsOff").ontouchstart = closeSetLabelPanel;
+	ref("buttonEditLabelsOff").onclick = closeSetLabelPanel;
+	//ref("buttonEditLabelsOff").ontouchstart = closeSetLabelPanel;
+	
+	ref("addLabelButton").onclick = addLabel;
+	//ref("addLabelButton").ontouchstart = addLabel;
+	
+	ref("closeLabelPanel").onclick = closeSetLabelPanel;
+	//ref("closeLabelPanel").ontouchstart = closeSetLabelPanel;
 
-	jQ("#showUrlBar").click(showUrlBar);
-	jQ("#closeUrlBar,#closeUrlBar2").click(closeUrlBar);
+	ref("showUrlBar").onclick = showUrlBar;
+	ref("showUrlBar").ontouchstart = showUrlBar;
+	
+	ref("closeUrlBar").onclick = closeUrlBar;	
+	ref("closeUrlBar").ontouchstart = closeUrlBar;
+	
+	ref("closeUrlBar2").onclick = closeUrlBar;	
+	ref("closeUrlBar2").ontouchstart = closeUrlBar;
+	
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
-	jQ("#addLabelButton").click(addLabel);
-	jQ("#closeLabelPanel").click(closeSetLabelPanel);
+	ref("checkBoxShowCoords").ontouchstart = showHideCoordsPanel;
+	
 	initTooltips();
 	slidesCont = ref("slidesCont");
 
 	//debug
 	jQ("#log").dblclick(function(){jQ(this).html("")});
 }	
+
+/*
+ * specific adaptations/ work-arounds (so long nothing better) for touch devices
+ */
+function setForTouchDevice()
+{
+	//dont allow labeling on touch device - array of bugs on different browsers
+	jQ("#buttonEditLabelsOn").hide();
+}
+
+/*
+ * specific adaptations for iPad -unfortunately neccessary
+ * Prevents the iFrame on iPad from expanding by holding it within a containerDiv that is dimensioned here
+ * @return nothing
+ * @action sets dimensions div#iFrameContainer
+ */
+function setForiPad()
+{
+	//Workaround for iPad feature/bug: on iPad an iFrame resizes to accomodate its content, this causes all calculations based on viewport to go astray
+	//prevent this by enclosing the iFrame in a div with fixed size, set the size here, unfortunately javaScript neccessary
+	//http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/
+	var viewport = getViewportDimensions();
+	var viewportWidth  = viewport.width;
+	var viewportHeight = viewport.height;
+	var iPadInitialWidth = viewportWidth - 220; // 220 = width of menu
+	var iPadInitialHeight = viewportHeight;
+	//alert("iPadInitialWidth="+iPadInitialWidth+", iPadInitialHeight="+iPadInitialHeight);
+	//test
+	//var w= iPadInitialWidth -100;
+	//var h = iPadInitialHeight -100;
+	//force iFrame to stay within the initial dimensions: replace the height settings of the iFrameContainer of 100% by fixed values. Width is no problem: ipad doesn't resize that
+	jQ("#iFrameContainer").css({"height" : iPadInitialHeight +"px"});
+}
 
 /*
  * In the options menus, checks the options according to the present settings
@@ -728,6 +808,7 @@ function closeSetLabelPanel()
 
 function addLabel()
 {
+	//alert("add Label")
 	if(window.viewerFrame && window.viewerFrame.createNewLabel)
 	{
 		window.viewerFrame.createNewLabel();
@@ -1019,15 +1100,17 @@ function getBaseUrlPart()
 }
 
 
-
-
-
 function winsize()
-	{ viewportWidth = 1300; viewportHeight = 1000; if( typeof( window.innerWidth ) == 'number' ) { viewportWidth = window.innerWidth; viewportHeight = window.innerHeight;} else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) { viewportWidth = document.documentElement.clientWidth; viewportHeight = document.documentElement.clientHeight;} else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) { viewportWidth = document.body.clientWidth; viewportHeight = document.body.clientHeight;}
+{ 
+	var viewport = getViewportDimensions();
+	var viewportHeight = (typeof viewport != undefined)? viewport.height : 1000;
+	var slidesContHeight = viewportHeight - 282; /*282 = height occupied by logo and openslidebox */
 	
 	//set height of containerdiv
-	ref("slidesCont").style.height=	(viewportHeight - 282) + "px"; /*282 = height occupied by logo and openslidebox */
-	}
+	ref("slidesCont").style.height=	slidesContHeight + "px"; 
+	//alert("Set slidesCont height to: "+ slidesContHeight);
+	
+}
 
 function handleClick(e)
 	{e = (e)? e : window.event;

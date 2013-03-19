@@ -152,7 +152,7 @@ var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
-var innerStyle; //global refs to elements, 
+var innerStyle; //global refs to elements,  
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
 var zoomOutTimer= false, autoZooming= false; //used to auto-zoomout if mouse hold down on image
 var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoombuttons locks the start zoomcenter until mousemove or zoom on cursor
@@ -184,6 +184,8 @@ var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE wo
 //var IEVersion = (isIE)? readIEVersion() : null; //not yet used
 var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
+var isTouchDevice = ("ontouchstart" in window)? true : false;
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -478,10 +480,11 @@ function readslideDataToGlobals()
  */
 function setHandlers()
 {
+	//main image interaction
+	
 	var outerDiv = document.getElementById("outerDiv"); 
 
 	outerDiv.onmousedown = handleMouseDown; outerDiv.onmousemove = handleMouseMove; outerDiv.onmouseup = handleMouseUp; outerDiv.ondblclick= handleDblClick; 
-	//outerDiv.ontouchstart  = handleMouseDown; outerDiv.ontouchmove = handleMouseMove; outerDiv.ontouchup = handleMouseUp; //weird behaviour for now 
 	outerDiv.ondragstart = function() { return false;};
 
 	//Workaround for iPad feature/bug: on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
@@ -491,29 +494,55 @@ function setHandlers()
 	{
 		window.onresize=winsize; //moved to here to prevent error on Chrome
 	}
-	
+		
 	// Capture Apple Device Events
-	//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010   
-	outerDiv.ontouchstart = appleStartTouch;
-    outerDiv.ontouchend = appleMoveEnd;
-    outerDiv.ontouchmove = appleMoving;
-    outerDiv.ongesturestart = function (event) {
+	// iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010 
+	//apple and android
+	outerDiv.ontouchstart 	= appleStartTouch;
+    outerDiv.ontouchend 	= appleMoveEnd;
+    outerDiv.ontouchmove 	= appleMoving;
+    
+    //apple only
+    outerDiv.ongesturestart = function (event) 
+    {
         event.preventDefault();
         gestureScale = event.scale;
-        parent.document.ontouchmove = function (event) {
+        parent.document.ontouchmove = function (event) 
+        {
             event.preventDefault();
         };
     }
-    outerDiv.ongestureend = function (event) {
+    //apple only
+    outerDiv.ongestureend = function (event) 
+    {
         event.preventDefault();
-        if (event.scale > gestureScale) {
+        if (event.scale > gestureScale) 
+        {
             ZoomIn();
-        } else {
+        } 
+        else 
+        {
             ZoomOut();
         }
         parent.document.ontouchmove = null;
     };
-	
+
+    //thumb interaction
+    
+    //zoomin and zoomout magnifier glass buttons
+    //Note: click appears to work better on iPad than touchstart for the zoomout button. Why???
+    ref("zoomin").onclick = btZoomIn;
+    ref("zoomout").onclick = btZoomOut;
+    
+    //don't show hints on touch device. a. they don't make sense, b. they show on click, but they dont hide on touchend, so its difficult to get them away
+    if(!isTouchDevice)
+   	{
+        jQ("#zoomin").mouseover(showZoomInTips); 
+		jQ("#zoomin").mouseout(hideTips); 
+		jQ("#zoomout").mouseover(showZoomOutTips);
+		jQ("#zoomout").mouseout(hideTips);
+	}
+    
 	initTooltips();
 }
 
@@ -620,31 +649,21 @@ function showSlideName()
 //
 /////////////////////////////////////////////////////////////////////
 
-
-
-//handles window resize
+/*
+ * handles window resize
+ * Exceptions for iPad to work around iframe on ipad problem:
+ * http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/
+ */
 function winsize()
 {
-	//used in keeping image at same center position whwn resizing
+	//used in keeping image at same center position when resizing
 	var oldViewportWidth = viewportWidth;
 	var oldViewportHeight = viewportHeight;
-		
-	if( typeof( window.innerWidth ) == 'number' ) 
-	{ 
-		viewportWidth = window.innerWidth; 
-		viewportHeight = window.innerHeight;
-	} 
-	else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) 
-	{ 
-		viewportWidth = document.documentElement.clientWidth; 
-		viewportHeight = document.documentElement.clientHeight;
-	} 
-	else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) 
-	{ 
-		viewportWidth = document.body.clientWidth; 
-		viewportHeight = document.body.clientHeight;
-	}
-	
+
+	var viewport 	= getViewportDimensions();
+	viewportWidth  	= viewport.width;
+	viewportHeight 	= viewport.height;
+
 	moveViewIndicator();
 	//initial
 	if(oldViewportWidth == null)
@@ -660,7 +679,7 @@ function winsize()
 	
 	placeArrows();
 	positionSizeIndicators();
-//if(logwin) {ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");}
+	//ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");
 }
 
 //handles mousewheel
@@ -1144,7 +1163,8 @@ function autoShowZoomOutTips()
 	}	
 		
 function hideTips()
-	{tips.style.display="none";
+	{
+	tips.style.display="none";
 	clearTimeout(tipTimer);
 	}
 
@@ -1405,7 +1425,7 @@ function getVisibleTiles()
 /////////////////////////////////////////////////////////////////////
 	
 function showThumb()
-	{//alert("in showThumb: imgWidthMaxZoom="+imgWidthMaxZoom+", imgHeightMaxZoom="+imgHeightMaxZoom)
+{//alert("in showThumb: imgWidthMaxZoom="+imgWidthMaxZoom+", imgHeightMaxZoom="+imgHeightMaxZoom)
 	
 	if( !dimensionsKnown() ) {return;}
 	
@@ -1435,12 +1455,24 @@ function showThumb()
 //ih("thumbHeight="+thumbHeight+", thumbWidth="+thumbWidth+"<br>"); 
 		
 	//connect handlers
+
 	elem.thumbContainer.ondragstart = function() { return false;}
 	elem.thumbContainer.onmousemove = processThumbMove; 
 	elem.thumbContainer.onmouseup = stopThumb; 
 	elem.viewIndicatorSenser.onmousedown = startThumbMove; 
-	elem.viewIndicatorSenser.ondragstart = function() {return false;}
+	elem.viewIndicatorSenser.ondragstart = function() {return false;}	
+
+	if(isTouchDevice)
+	{
+		elem.viewIndicatorSenser.ontouchstart = startThumbMove; 
+		elem.thumbContainer.ontouchmove = processThumbMove; 
+		elem.thumbContainer.ontouchend = function (event)
+		{
+			stopThumb(event);
+			touchEnd(event); 
+		}
 	}
+}
 
 function hideThumb(){ ref('elem.thumbImageHolder').style.display="none";}
 
@@ -2817,45 +2849,96 @@ function panMap(dir)
 //*** START OF: Apple Device Event Handlers Block
 //iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
 
-function appleStartTouch(event) {
+function appleStartTouch(event) 
+{
 	//ih("starttouch");
-  if (event.touches.length == 1) {
-      touchIdentifier = event.touches[0].identifier;
-      dragStartLeft = event.touches[0].clientX;
-      dragStartTop = event.touches[0].clientY;
-      mTop = stripPx(innerDiv.style.top);
-      mLeft = stripPx(innerDiv.style.left);
-      
-      dragging = true;
-      return true;
-  }
+	if (event.touches.length == 1) 
+	{
+		touchIdentifier = event.touches[0].identifier;
+		dragStartLeft = event.touches[0].clientX;
+		dragStartTop = event.touches[0].clientY;
+		mTop = stripPx(innerDiv.style.top);
+		mLeft = stripPx(innerDiv.style.left);
+		  
+		dragging = true;
+		return true;
+	}
 }
 
-function appleMoveEnd(event) {
+function appleMoving(event) 
+{
+	//ih("appleMoving");
+	event.preventDefault();
+	appleMove(event);
+}
+
+function appleMoveEnd(event) 
+{
 	//ih("moveend");
 	dragging = false;
-  appleMove(event);
+	appleMove(event);
 }
 
-function appleMove(event) {
-//	ih("applemove");
-  if ((event.changedTouches.length == 1) && (dragging == true) && (touchIdentifier == event.changedTouches[0].identifier)) {
-      innerDiv.style.top = mTop + (event.changedTouches[0].clientY - dragStartTop) + 'px';
-      innerDiv.style.left = mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px';
-      //dragging = false;
-  }
-  event.preventDefault();
-  checkTiles();
+function appleMove(event) 
+{
+	//	ih("applemove");
+	if ((event.changedTouches.length == 1) && (dragging == true) && (touchIdentifier == event.changedTouches[0].identifier)) 
+	{
+	    innerDiv.style.top = mTop + (event.changedTouches[0].clientY - dragStartTop) + 'px';
+	    innerDiv.style.left = mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px';
+	}
+	event.preventDefault();
+	checkTiles();
 }
 
-function appleMoving(event) {
-	//ih("appleMoving");
-  event.preventDefault();
-  appleMove(event);
-}
 //*** END OF: Apple Device Event Handlers Block
 	
+//try to generalize
+var touches =[];
 
+function touchStartDrag(event,elem) 
+{
+	ih("touchStart")
+
+	touches[0] = {};
+	//ih("starttouch");
+	if (event.touches.length == 1) 
+	{
+		touches[0].touchIdentifier 	= event.touches[0].identifier;
+		touches[0].dragStartLeft 	= event.touches[0].clientX;
+		touches[0].dragStartTop 	= event.touches[0].clientY;
+		touches[0].elemStartLeft 	= elem.style.left;
+		touches[0].elemStartTop 	= elem.style.top;
+		touches[0].dragging			= true;
+
+		return true;
+	}
+}
+
+function touchMoveDrag(event,elem) 
+{
+	ih("touchMove");
+	event.preventDefault();
+	touchDrag(event,elem);
+}
+
+function touchEndDrag(event,elem) 
+{
+	ih("touchEnd");
+	touches[0].dragging = false;
+	touchDrag(event,elem);
+}
+
+function touchDrag(event,elem) 
+{
+	//	ih("touchDrag");
+	if ((event.changedTouches.length == 1) && (touches[0].dragging == true) && (touches[0].touchIdentifier == event.changedTouches[0].identifier)) 
+	{
+	    elem.style.left = touches[0].elemStartLeft + (event.changedTouches[0].clientX - touches[0].dragStartLeft) + 'px';
+	    elem.style.top = touches[0].elemStartTop + (event.changedTouches[0].clientY - touches[0].dragStartTop) + 'px';
+	}
+	event.preventDefault();
+}
 
 	
 
