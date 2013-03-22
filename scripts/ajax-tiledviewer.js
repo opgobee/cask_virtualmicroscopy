@@ -1816,52 +1816,21 @@ function createLabelInDom(labelData)
 	labelHtml+= '<div class="tooltip">Edit this label.</div>';
 	labelHtml+= '</div>';
 	jQ("#imageLabels").append(labelHtml);
-	//jQ("#imageLabels").append('<div class="tester"><div id="' + labelId + '" class="label hastooltip"></div></div>');
-
-	//create element	
-/*	var label = document.createElement("div"); 
-	label.style.position = "absolute";
-	label.style.zIndex = 1; 
-	label.setAttribute("id", labelId);
-	label.setAttribute("class", "label"); 
-	label.setAttribute("className", "label"); //IE
-	label = elem.imageLabels.appendChild(label);
-*/			
+		
 	//Add the text of the label in a xss safe way (note: this text may be user inserted from the URL!)
 	var labelText = labelData.label;
 	labelText = ( isSet(labelData.href) )? '<a href="' + labelData.href + '" target="_blank">' + labelText + '</a>' : labelText ;	
-	//alert("wait0 '"+labelText)
 	ref(labelId+"Text").innerHTML = labelText;
-	//ref(labelId).innerHTML = labelText;
-	//testng
-	
 
-	/*	alert("wait1")
-	jQ("#"+labelId+"Text").html( labelText);
-	alert("wait2")	
-
-	jQ("#"+labelId+"Text").html( jQ.parseHTML(labelText) );
-*/	
-	//alert("wait3")
-	//add tooltip
+	//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
 	if(labelData.tooltip != "")
-	{
-/*		//create element
-		var labelTooltip = document.createElement("div");
-		labelTooltip.setAttribute("class", "tooltip"); 
-		labelTooltip.setAttribute("className", "tooltip"); //IE		
-		labelTooltip = elem.imageLabels.appendChild(labelTooltip);
-*/		
-		//Add the text of the tooltip in a xss safe way (note: this text may be user inserted from the URL!)
+	{		
 		jQ("#"+labelId+"Tooltip").append( jQ.parseHTML(labelData.tooltip) );
-		//add hastooltip class to the label itself
-		//jQ("#"+labelId).addClass("hastooltip");
 	}
 
-//	jQ("#"+labelId).append(editButton);
 	jQ("#"+labelId + "Edit").click(function(event){makeLabelEditable(labelId)});
+
 	//position the label
-	
 	repositionAndResizeLabels();
 	initTooltips();
 }

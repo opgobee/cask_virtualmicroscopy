@@ -385,6 +385,15 @@ function initTooltips()
 		hide: false,
 		tooltipClass: "tooltip"
 	});
+	jQ(".hastooltip" ).each(function(){
+		this.ontouchstart = function(){
+			jQ(this).next('.tooltip').show();
+			//jQ(this).next('.tooltip').css({"position":"relative","left": 10* zoom, "top": -10 *zoom});	
+		}
+		this.ontouchend = function(){jQ(this).next('.tooltip').fadeOut(2000);}
+		jQ(this).next('.tooltip').addClass("touchTooltip");
+		
+	});
 }
 
 
