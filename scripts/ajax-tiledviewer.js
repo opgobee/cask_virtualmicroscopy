@@ -1473,31 +1473,6 @@ function showThumb()
 
 function hideThumb(){ ref('elem.thumbImageHolder').style.display="none";}
 
-
-function getMouseEventPosition(event)
-{
-	var o= {};
-	o.x = event.clientX;
-	o.y = event.clientY;
-	return o;
-}
-
-function getTouchEventPosition(event)
-{
-	var o = {"x": null, "y": null};	
-	if (event.changedTouches.length == 1 && event.touches[0].identifier == event.changedTouches[0].identifier)
-	{
-		o.x	= event.changedTouches[0].clientX;
-		o.y	= event.changedTouches[0].clientY;
-	}
-	else if (event.touches.length == 1)
-	{		
-		o.x	= event.touches[0].clientX;
-		o.y	= event.touches[0].clientY;
-	}
-	return o;
-}
-
 function getViewIndicatorPosition(event)
 {
 	var o ={};
@@ -1509,92 +1484,102 @@ function getViewIndicatorPosition(event)
 function startMouseThumbMove(event)
 {
 	if (!event){ event = window.event;}
-	var eventPos = getMouseEventPosition(event);
 	var viewIndicatorPos = getViewIndicatorPosition(event);
-	viewIndicatorDragOffsetLeft = viewIndicatorPos.x - eventPos.x;
-	viewIndicatorDragOffsetTop = viewIndicatorPos.y - eventPos.y;
+	viewIndicatorDragOffsetLeft = viewIndicatorPos.x - event.clientX;
+	viewIndicatorDragOffsetTop = viewIndicatorPos.y - event.clientY;
 	thumbDragging = true; 
 	return false;
 }
-
+/*
+ * Note: uses direct event.touches for performance, to prevent flipping out on touch devices that are less powerful than desktops
+ */
 function startTouchThumbMove(event)
 {
-	ih("touchStart");
-	if (!event){ event = window.event;}
-	var eventPos = getTouchEventPosition(event);
-	var viewIndicatorPos = getViewIndicatorPosition(event);
-	viewIndicatorDragOffsetLeft = viewIndicatorPos.x - eventPos.x;
-	viewIndicatorDragOffsetTop = viewIndicatorPos.y - eventPos.y;
-	thumbDragging = true; 
+	if (event.touches.length == 1) 
+	{
+		var viewIndicatorPos = getViewIndicatorPosition(event);
+		viewIndicatorDragOffsetLeft = viewIndicatorPos.x - event.touches[0].clientX;
+		viewIndicatorDragOffsetTop = viewIndicatorPos.y - event.touches[0].clientY;
+		thumbTouchIdentifier = event.touches[0].identifier;
+		thumbDragging = true; 
+	}
 	return false;
 }
 
+/*
+ * Note : does not move viewIndicatorSenser, but only in the final stopThumb. viewIndicatorSenser is not needed here as movement is sensed on the thumbContainer 
+ */
 function processMouseThumbMove(event)
 { 
-	if (!event){ event = window.event;}	
-	if (thumbDragging) 
-		{
-		var eventPos = getMouseEventPosition(event);
-		elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = eventPos.x + viewIndicatorDragOffsetLeft + "px"; 
-		elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = eventPos.y + viewIndicatorDragOffsetTop  + "px"; 
-		}
-}
-
-function processTouchThumbMove(event) 
-{
-	ih("touchDrag");
-	if (!event){ event = window.event;}	
 	if (thumbDragging) 
 	{
-		var eventPos = getTouchEventPosition(event);
-		elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = eventPos.x + viewIndicatorDragOffsetLeft + "px"; 
-		elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = eventPos.y + viewIndicatorDragOffsetTop  + "px"; 
+		elem.viewIndicator.style.left  = event.clientX + viewIndicatorDragOffsetLeft + "px"; 
+		elem.viewIndicator.style.top   = event.clientY + viewIndicatorDragOffsetTop  + "px"; 
+	}
+}
+
+/*
+ * 
+ * for performance, to prevent flipping out on touch devices that are less powerful than desktops:
+ * 1: uses direct event.changedTouches 
+ * 2: does not move viewIndicatorSenser, but only in the final stopThumb. viewIndicatorSenser is not needed here as movement is sensed on the thumbContainer 
+ */
+function processTouchThumbMove(event) 
+{
+	if (thumbDragging && event.changedTouches.length == 1 && (thumbTouchIdentifier == event.changedTouches[0].identifier) ) 
+	{
+		elem.viewIndicator.style.left  = event.changedTouches[0].clientX + viewIndicatorDragOffsetLeft + "px"; 
+		elem.viewIndicator.style.top   = event.changedTouches[0].clientY + viewIndicatorDragOffsetTop  + "px"; 
 	}
 	event.preventDefault();
 }
 
-
 function stopMouseThumb(event)
 {
-	if (!event){ event = window.event;}
-	var eventPos = getMouseEventPosition(event);
-	stopThumb(eventPos);
+	if (!event){ event = window.event;};
+	var eventX = event.clientX;
+	var eventY = event.clientY;
+	stopThumb(eventX,eventY);
 }
 
 function stopTouchThumb(event)
 {
-	if (!event){ event = window.event;}
-	ih("touchEnd");
-	var eventPos = getTouchEventPosition(event);
 	event.preventDefault();
-	stopThumb(eventPos);
+	var eventX = event.changedTouches[0].clientX;
+	var eventY = event.changedTouches[0].clientY;
+	stopThumb(eventX,eventY);
 }
+
 /*
  * handles both end of drag viewIndicator and random click positioning on thumb
  */
-function stopThumb(eventPos)
+function stopThumb(eventX,eventY)
 {
-	if (eventPos)
+	if (eventX)
 	{
 		var fractionLR, fractionTB; 		
-		var controlsContPos= getElemPos(elem.controlsContainer);
-		var thumbContPos= getElemPos(elem.thumbContainer);
 				
 		//end of thumbdragging
 		if(thumbDragging)
 			{
 			thumbDragging = false;		
-			fractionLR = (eventPos.x + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
-			fractionTB = (eventPos.y + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 			
+			fractionLR = (eventX + viewIndicatorDragOffsetLeft + viewIndicatorWidth/2 ) / thumbContainerWidth; 
+			fractionTB = (eventY + viewIndicatorDragOffsetTop + viewIndicatorHeight/ 2 ) / thumbContainerHeight; 	
+			//update position viewIndicator
+			elem.viewIndicator.style.left  = elem.viewIndicatorSenser.style.left = eventX + viewIndicatorDragOffsetLeft + "px"; 
+			elem.viewIndicator.style.top   = elem.viewIndicatorSenser.style.top  = eventY + viewIndicatorDragOffsetTop  + "px"; 
 			}
 		//click on thumbContainer without thumbdragging
 		else 
 			{
-			fractionLR = (eventPos.x - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
-			fractionTB = (eventPos.y - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
+			var controlsContPos= getElemPos(elem.controlsContainer);
+			var thumbContPos= getElemPos(elem.thumbContainer);
+
+			fractionLR = (eventX - controlsContPos.left - thumbContPos.left) / thumbContainerWidth; 
+			fractionTB = (eventY - controlsContPos.top - thumbContPos.top) / thumbContainerHeight; 
 			//update position viewIndicator
-			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = (eventPos.x - controlsContPos.left - thumbContPos.left - viewIndicatorWidth/2 ) +"px" ;
-			elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = (eventPos.y - controlsContPos.top  - thumbContPos.top  - viewIndicatorHeight/2) +"px" ;
+			elem.viewIndicator.style.left = elem.viewIndicatorSenser.style.left = (eventX - controlsContPos.left - thumbContPos.left - viewIndicatorWidth/2 ) +"px" ;
+			elem.viewIndicator.style.top  = elem.viewIndicatorSenser.style.top  = (eventY - controlsContPos.top  - thumbContPos.top  - viewIndicatorHeight/2) +"px" ;
 			}	
 
 /*			if(testing)
@@ -2959,6 +2944,7 @@ function appleMove(event)
 	}
 	event.preventDefault();
 	checkTiles();
+	moveViewIndicator();
 }
 
 //*** END OF: Apple Device Event Handlers Block
