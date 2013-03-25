@@ -1,0 +1,6 @@
+
+.glowingBorder {
+	outline:none;
+    border-color:#9ecaed;
+    border: solid 3px;
+}

@@ -1,11 +1,13 @@
 //Written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.   You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+//Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
+//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
+
 
 /*
  * @TODO: letloadXML use jquery.
  * @TODO: on win resize let it recenter on the actual viewed center (now it re-centers on the image center)
  */ 
 
-// Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
 
 /*
  * In the URL-query you can pass the following parameters:
@@ -126,7 +128,10 @@ var elem = {}; //global containing references to DOM elements in the connected h
 
 var data = {}; // global container for data
 data.labels = {}; //object with data of the labels
+data.highestUsedLabelIndex = null; //the highest index used up till now (irrespective if it is still in use now). If a label is created give it an id of this index plus 1
 data.newLabels = {}; //object with data of live created labels
+data.highestUsedNewLabelIndex = null; //the highest index used up till now (irrespective if it is still in use now). If a newlabel is created give it an id of this index plus 1
+data.queryArgsFromUrl = {}; //object/map with the queryargs that were read from the URL  (these may be combined with queryargs read from a view - a stored query)
 
 var now = {}; //global object to keep data that needs to be kept track of
 now.renderingLabels = false; //busy creating labels.
@@ -197,8 +202,7 @@ var isTouchDevice = ("ontouchstart" in window)? true : false;
 
 //do all stuff that can be done as soon as document has loaded
 function init() 
-{
-
+{	
 	//Give warning message if image loading is disabled
 	if( !automaticImageLoadingIsAllowed() )
 		{showAutomaticImageLoadingDisallowed();}
@@ -206,6 +210,9 @@ function init()
 	//Load data
 	//set global references to DOM elements 
 	setGlobalReferences();
+
+	//alert(window.location)
+	
 	//Reads data from different inputs and sets globals and settings from these data
 	readDataToSettings();
 	//Set event handlers
@@ -251,15 +258,19 @@ function readDataToSettings()
 {
 	//set or adapt globals based on variables defined in html page
 	readSettingsInHtmlFileToGlobals();
-	//set or adapt globals with query information
-	readQueryToSettings();
-
+	
+	//get variables from query in URL
+	//dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+	data.queryArgsFromUrl = getQueryArgs({"dontDecodeKey":"labels"});
+	//and store the results in settings
+	queryArgsToSettings(data.queryArgsFromUrl);
+	
 	//test for a view request, if present, load data of the view
 	//var result = settings.slideName.match(/view\((.+?)\)/)	
 	if(settings.viewName)
 	{
-		//if a view is requested, use that, discard all other settings.
-		discardDetailSettings();
+		//if a view is requested, use that
+		//discardDetailSettings();
 		loadViewData(settings.viewName);
 	}
 	//copy a possible initial zoom setting to the life value in object 'now'
@@ -363,78 +374,53 @@ function readSettingsInHtmlFileToGlobals()
 }
 
 /*
- * gets query and stores requests in  query in settings
- * 
- */
-function readQueryToSettings()
-{
-	//get variables from query in URL
-	//dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
-	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
-	//and store the results
-	queryArgsToSettings(queryArgs);
-}
-
-/*
  * gets the data for a specific requested view from the file views.js
  * @param string viewName = name of a specific view (view is in facted a stored query)
  */
 function loadViewData(viewName)
 {
-	if(typeof views == undefined )
-	{
-		showViewsFileMissingWarning();
-		return false;
-	}
-	if(views[viewName] == undefined)
-	{
-		showRequestedViewNotPresentWarning();
-		return false;
-	}
-	//get the view (in fact a stored query)
-	var view = views[viewName];
-	
-	var params={
-			"dontDecodeKey"		: "labels", //dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
-			"alternativeQuery"	: view		//use the view as query - in fact the view is a stored query
-		};
-	//get variables from query in URL
-	var queryArgs= getQueryArgs(params);
-	
-	//if the view belongs to this slide, store the settings as requested in the view
-	//settings.slideName 	= the slideName that was in the URL as 'slide=.....'
-	//queryArgs.slide		= the slideName that is in the view, (a stored query)
-	if(queryArgs.slide && queryArgs.slide == settings.slideName)
-	{
-		queryArgsToSettings(queryArgs);
-	}
-	else
-	{
-		alert("Warning. The requested view '" + viewName + "' does not belong to the requested slide '" + settings.slideName + "'. The view request is ignored.")
-	}
+	var queryArgsFromView = getViewData(viewName);
+	//store the settings as requested in the view. Any additional settings in the URL will overwrite the settings of the view
+	queryArgsToSettings(queryArgsFromView,data.queryArgsFromUrl);
+
 }
 
 /*
  * Stores data read from the query to the global object 'settings'
  * Note: this function can be called by:  
- * readQueryToSettings() 	- in this case the query data comes from a real query
+ * readDataToSettings() 	- in this case the query data comes from a real query
  * loadViewData()			- in this case the query data comes from the view (a stored query)
+ * You can enter one or more params queryArgs, e.g. one originating from the URL, another originating from a view. 
+ * If two queryArgs hold the same property (e.g. both have a 'zoom' property), the latter will overwrite the earlier onse
  * @param object/map queryArgs
+ * @param object/map queryArgs [optional] a second queryArgs parameter from another source 
+ * @param object/map queryArgs [optional] a third queryArgs parameter from another source 
+ * @return nothing
+ * @sets global 'settings'.
  */
-function queryArgsToSettings(queryArgs)
+function queryArgsToSettings(queryArgs1)
 {
-	if (queryArgs.start){ settings.slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
-	if (queryArgs.slide) {settings.slideName = queryArgs.slide;}
-	if (queryArgs.view) {settings.viewName = queryArgs.view;}	
-	if (queryArgs.showcoords) {settings.showCoordinatesPanel = (queryArgs.showcoords == 1)? true : false;} 
-	if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
-	if (queryArgs.zoom){ settings.zoom = Number(queryArgs.zoom);}
-	if (queryArgs.x) { settings.x = Number(queryArgs.x);}
-	if (queryArgs.y) { settings.y = Number(queryArgs.y);}
-	if (queryArgs.label) { settings.showLabel = queryArgs.label;}
-	if (queryArgs.labels) { settings.labels = queryArgs.labels;}	
-	if (queryArgs.focus) { settings.focusLabel = queryArgs.focus;}
-	if (queryArgs.hidethumb) {settings.hideThumb = queryArgs.hidethumb;}; 
+	var nrArguments = arguments.length;
+	var queryArgs;
+	
+	for(i=0; i<nrArguments; i++)
+	{
+		queryArgs = arguments[i];
+		
+		if (queryArgs.start){ settings.slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
+		if (queryArgs.slide) {settings.slideName = queryArgs.slide;}
+		if (queryArgs.view) {settings.viewName = queryArgs.view;}	
+		if (queryArgs.showcoords) {settings.showCoordinatesPanel = (queryArgs.showcoords == 1)? true : false;} 
+		if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
+		if (queryArgs.zoom){ settings.zoom = Number(queryArgs.zoom);}
+		if (queryArgs.x) { settings.x = Number(queryArgs.x);}
+		if (queryArgs.y) { settings.y = Number(queryArgs.y);}
+		if (queryArgs.label) { settings.showLabel = queryArgs.label;}
+		if (queryArgs.labels) { settings.labels = queryArgs.labels;}	
+		if (queryArgs.focus) { settings.focusLabel = queryArgs.focus;}
+		if (queryArgs.hidethumb) {settings.hideThumb = queryArgs.hidethumb;}; 
+	}
+
 }
 
 /*
@@ -1751,29 +1737,18 @@ function createLabelObject(labelData)
 	//Create data object for the label 
 	var localLabelData = {"id":null,"x":null,"y":null,"label":"","tooltip":""}; 
 	
-	//the index will be the amount of present labels. Note: length property is not a native thing in a javascript object
-	var index			= 	getObjectLength(data.labels);
-	localLabelData.id 		= 	"L" + index;
+	/* The index will be the highest ever used labelindex plus 1. Also update data.highestUsedLabelIndex 
+	 * Note: the number of labels is not a good measure as labels may have been removed, ie:
+	 * STEP1: 3 labels: L0, L1, L2
+	 * STEP2: make L0 and L1 editable: now data.labels has L2 and data.newLabels has NL0 and NL1
+	 * STEP3: fix label NL0: Now data.labels has length = 1. But you dont want the fixed labels to be positioned on 1 plus 1 = 2 (L2). That would overwrite L2
+	 * So you need the highest ever used number. Then id of the created label becomes: highest number + 1
+	 */
+	var index 					= (data.highestUsedLabelIndex == null)? 0 : data.highestUsedLabelIndex + 1
+	localLabelData.id 			= "L" + index;
+	data.highestUsedLabelIndex 	= index; 
+//	debug("New highest labelId:" +localLabelData.id);
 	
-	//If labelData was read from the URL it has no id set yet. Create one.
-/*	if(!isSet(labelData.id))
-	{
-		//the index will be the amount of present labels. Note: length property is not a native thing in a javascript object
-		var index			= 	getObjectLength(data.labels);
-		localLabelData.id 		= 	"L" + index;
-	}
-	//If labelData came from a new label, it has an id: "NLx" (x= an index). Create an equivalent id with "Lx" 
-	else
-	{
-		if(labelData.id.substring(0,2) != "NL")
-		{
-			alert("Error. Invalid labelId: '"+labelData.id+"' passed into function to create fixed label object."); 
-			return localLabelData;
-		}		
-		//convert "NLx" to "Lx" by slicing of the initial "N"
-		localLabelData.id 	= 	labelData.id.substring(1); 
-	}
-*/	
 	//copy the rest of the labelData
 	localLabelData.x 			= 	labelData.x;
 	localLabelData.y 			= 	labelData.y;
@@ -1885,13 +1860,13 @@ function repositionAndResizeLabels()
  */
 function repositionLabels()
 {
-	for(labelId in data.labels)
+	for(thisLabel in data.labels)
 	{
-		positionLabel(data.labels[labelId]);
+		positionLabel(data.labels[thisLabel]);
 	}
-	for(labelId in data.newLabels)
+	for(thisNewLabel in data.newLabels)
 	{
-		positionLabel(data.newLabels[labelId]);
+		positionLabel(data.newLabels[thisNewLabel]);
 	}	
 }
 
@@ -2007,16 +1982,22 @@ function createNewLabelObject(labelData)
 	//Create data object for the new label
 	var newLabelData = {"id":null,"x":null,"y":null,"label":"","tooltip":""}; //container for the data of the new label
 
-	//If labelData is given, this comes from an existing fixed label, that labelData will be copied into the newLabelData object, with id adapted from "Lx" to "NLx"
+	//the index will be the highest ever used newlabelindex plus 1. Also update data.highestUsedLabelIndex 
+	var index 							= (data.highestUsedNewLabelIndex == null)? 0 : data.highestUsedNewLabelIndex + 1
+	newLabelData.id 					= "NL" + index;
+	data.highestUsedNewLabelIndex 		= index; 
+
+	//If labelData is given, this comes from an existing fixed label, that labelData will be copied into the newLabelData object
 	if(isSet(labelData))
 	{
-		if(labelData.id.charAt(0) != "L")
+/*		if(labelData.id.charAt(0) != "L")
 		{
 			alert("Error. Invalid labelId: '"+newLabelData.id+"' passed into function to create new label object."); 
 			return newLabelData;
 		}
 		//fixed label had id: "Lx", with x=index, new label gets id "NLx"
 		newLabelData.id 		= 	"N" + labelData.id;
+*/
 		newLabelData.x			= 	labelData.x;
 		newLabelData.y			= 	labelData.y;
 		newLabelData.label  	=	labelData.label;
@@ -2025,8 +2006,8 @@ function createNewLabelObject(labelData)
 	else
 	{
 		//the index will be the amount of present newLabels. Note: length property is not a native thing in a javascript object
-		var index				= 	getObjectLength(data.newLabels);
-		newLabelData.id 		= 	"NL" + index;
+//		var index				= 	getObjectLength(data.newLabels);
+//		newLabelData.id 		= 	"NL" + index;
 		var center = getImgCoords(viewportWidth/2,viewportHeight/2); //calculate position on image in fractions of mid-viewport 
 		newLabelData.x 			= 	center.x; //store in the data object
 		newLabelData.y 			= 	center.y;
@@ -2064,8 +2045,8 @@ function createNewLabelInDom(labelData)
 	jQ( "#"+newLabelContainerId ).append('<textarea id="'+newLabelTextAreaId+'" class="newLabelTextArea label" classname="newLabelTextArea label">' + labelData.label + '</textarea>');
 	//neccessary to make textarea editable whilst it is draggable: http://yuilibrary.com/forum/viewtopic.php?p=10361 (in combination with 'cancel:input' in draggable)	
 	jQ( "#"+newLabelTextAreaId ).click(function(e){e.target.focus();})
-	//workaround to also let the glow work in ie7 that doesn't support :focus pseudo-selector (gives a glowing border like Chrome and Safari to show the location of the textbox more clearly)
-	if(isSet(islteIE7) && islteIE7)
+	//workaround to also let the glow work in ie7 that doesn't support :focus pseudo-selector (gives a glowing border like Chrome and Safari to show the location of the textbox more clearly) -would be better with modernizr
+	if(isSet(islteIE8) && islteIE8)
 	{
 		jQ( "#"+newLabelTextAreaId ).focus(function() {jQ(this).addClass("glowingBorder")}); 
 		jQ( "#"+newLabelTextAreaId ).blur(function()  {jQ(this).removeClass("glowingBorder")}); 	
@@ -2304,10 +2285,10 @@ function getLabelMode()
 function setLabelsToEditMode()
 {
 	//make a new label for each existing (fixed) label
-	for(label in data.labels)
+	for(thisLabel in data.labels)
 	{
-		var labelId= data.labels[label].id;
-		//show the dit buttons on the labels
+		var labelId= data.labels[thisLabel].id;
+		//show the edit buttons on the labels
 		jQ(".labelEditButton").removeClass("invisible");
 		//Note: creating editable labels for alle labels caused unsolvable problems with labels outside the viewport coming into view and moving outerdiv without any tractable change in debuggers
 		//createNewLabel(data.labels[label]);
@@ -2319,8 +2300,11 @@ function setLabelsToEditMode()
 function makeLabelEditable(labelId)
 {
 	createNewLabel(data.labels[labelId]);
+	//remove the fixed Label from DOM and from the data storage
 	jQ("#imageLabels #"+labelId).remove();
-	data.labels[labelId] ={};
+	delete data.labels[labelId];
+	//debug("LABELS",data.labels);
+	//debug("NEWLABELS",data.newLabels);
 }
 
 /*
@@ -2359,6 +2343,9 @@ function fixLabel(newLabelId)
 	//remove the new Label from the data storage and from DOM
 	delete data.newLabels[newLabelId];
 	jQ("#"+newLabelId).remove();
+	//debug("LABELS",data.labels);
+	//debug("NEWLABELS",data.newLabels);
+	
 }
 
 //adds additional credits into credit div
@@ -2415,9 +2402,9 @@ function getDataForUrl()
 function createQueryPartLabels(labels)
 {
 	var str="";
-	for(label in labels)
+	for(thisLabel in labels)
 	{
-		str+= createQueryPartLabel(labels[label]);
+		str+= createQueryPartLabel(labels[thisLabel]);
 	}
 	return str;
 }
@@ -2435,7 +2422,7 @@ function createQueryPartLabel(labelData)
 		var qLabel 	 =	(labelData.label)? 		urlEncode(labelData.label) 		: "";
 		var qTooltip =	(labelData.tooltip)? 	urlEncode(labelData.tooltip) 	: "";
 		
-		return   "(" + qX + "$" + qY + "$" + qLabel + "$" +qTooltip +")" ;
+		return   "(" + qX + "," + qY + "," + qLabel + "," +qTooltip +")" ;
 	}
 	return "";
 }
@@ -2452,7 +2439,7 @@ function extractLabelData(queryPartLabel)
 	/*
 	 * EXAMPLE:
 	 * NOW WE HAVE queryPartLabel=
-	 * (0.9$0.7$labeltext$labeltooltip)(0.5$0.5004$%28this+text%29+is+between+parenthesis$) //note second label: text holds parenthesis, tooltip is empty
+	 * (0.9,0.7,labeltext,labeltooltip)(0.5,0.5004,%28this+text%29+is+between+parenthesis,) //note second label: text holds parenthesis, tooltip is empty
 	 */
 
 	//Step 1: Get the separate labels and place them in array 'labels' 
@@ -2461,8 +2448,8 @@ function extractLabelData(queryPartLabel)
 	/*
 	 * EXAMPLE
 	 * NOW WE HAVE
-	 * labels[0] = 0.9$0.7$labeltext$labeltooltip
-	 * labels[1] = 0.5$0.5004$%28this+text%29+is+between+parenthesis$
+	 * labels[0] = 0.9,0.7,labeltext,labeltooltip
+	 * labels[1] = 0.5,0.5004,%28this+text%29+is+between+parenthesis,
 	 */
 	
 	//Step 2, 3, 4: for each label: 
@@ -2471,9 +2458,9 @@ function extractLabelData(queryPartLabel)
 	{
 		thisLabel = labels[i]; //for easier reading
 		
-		//Step 2: split the string on the $ to get the individual properties
+		//Step 2: split the string on the , to get the individual properties
 		thisLabel = extractLabelDataStepSplitToProperties(thisLabel);
-		//debug("STEP2. after split on $: thisLabel["+i+"]=",thisLabel)
+		//debug("STEP2. after split on ,: thisLabel["+i+"]=",thisLabel)
 		/*
 		 * EXAMPLE
 		 * NOW WE HAVE (for 2nd label in example)
@@ -2558,16 +2545,18 @@ function extractLabelDataStepRegEx(queryPartLabel)
 }
 
 /*
- * split the string on the $ to get the individual properties
+ * split the string on the , to get the individual properties
+ * @param string thisLabel = x,y,labeltext,tooltip
  */
 function extractLabelDataStepSplitToProperties(thisLabel)
 {
-	thisLabel = thisLabel.split("$");
+	thisLabel = thisLabel.split(",");
 	return thisLabel;	
 }
 
 /*
  * url-decode the values
+ * @param reg array thisLabel = array with thisLabel[0] = x, thisLabel[1] = y, thisLabel[2] = labeltext, thisLabel[3]= tooltip
  */
 function extractLabelDataStepUrlDecode(thisLabel)
 {
@@ -2583,6 +2572,7 @@ function extractLabelDataStepUrlDecode(thisLabel)
 
 /*
  * place the values in the respective keys in object 'labelData' and convert x and y to numbers
+ * @param reg array thisLabel = array with thisLabel[0] = x, thisLabel[1] = y, thisLabel[2] = labeltext, thisLabel[3]= tooltip
  */
 function extractLabelDataStepToObject(thisLabel)
 {

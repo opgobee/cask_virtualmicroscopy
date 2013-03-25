@@ -1,0 +1,4 @@
+
+div#all {overflow:hidden;} /*IE workaround to remove scroll bars caused by IE added out of the blue offset of 16px on slidesCont li"*/
+/*#urlString {margin-left:-220px;}*/ /*IE workaround because IE8 incorrectly lets the margin set on urlBar inherit downward, simply setting margin-left to 0 isn't sufficient. Two days later on same PC this fix appeared not needed anymore and generating error instead???? So turned off again*/
+

@@ -122,15 +122,10 @@ div#coordsPane{
 	background-color:transparent;
 	background-image:url('../img/transp.png'); /*IE workaround */
 }
-.glowingBorder {
-	outline:none;
-    border-color:#9ecaed;
-    box-shadow:0 0 10px #9ecaed;
-}
 textarea:focus{
 	outline:none;
     border-color:#9ecaed;
-    box-shadow:0 0 10px #9ecaed;
+    box-shadow:0 0 15px 3px #9ecaed;
 }
 .newLabelTooltip
 {
@@ -185,7 +180,7 @@ div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:c
 
 
 /*debug*/
-div#log {display:none;position:absolute;top:210px;left:10px;width:300px;height:200px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#log {display:block;position:absolute;top:210px;left:10px;width:300px;height:200px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
 #test {display:none;position:absolute;right:50px;bottom:0px;width:50px;height:50px;background-color:#fbfbfb;;z-index:1000;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
@@ -194,32 +189,21 @@ span#signalj {display:none;}
 </style>
 
 <script>
-var islteIE7 = false;
+var islteIE8 = false;
 </script>
-
-<!--[if IE]>
-<style type="text/css">
-div#viewIndicatorSenser {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "viewIndicator"*/
-</style>
-<![endif]-->
 
 <!--[if lte IE 7]>
-<style type="text/css">
-div#namePanel{width:500px;} /*no min-width*/
-</style>
-<script>
-islteIE7 = true;
-</script>
+	<link rel="stylesheet" href="../css/main_ie7.css" type="text/css" />
 <![endif]-->
-
-<!--[if IE 9]>
-<style type="text/css">
-/*textarea {font-size:300%;}*/ /*Forget it.. IE9 workaround for strange clipping of the text area at zoom. So far the only way I found is to set it hard, not dynamically*/
-/*bug described here: http://social.msdn.microsoft.com/Forums/en-US/iewebdevelopment/thread/45c7f82c-7b2b-47b3-be78-fd745626befb/ */
-</style>
+<!--[if lte IE 8]>
+	<link rel="stylesheet" href="../css/main_ie8.css" type="text/css" />
+	<script>
+		islteIE8 = true;
+	</script>
 <![endif]-->
-
-
+<!--[if IE]>
+	<link rel="stylesheet" href="../css/main_ie.css" type="text/css" />
+<![endif]-->
 
 
 <!-- SCRIPTS & SLIDES DATA /////////////////////////////-->

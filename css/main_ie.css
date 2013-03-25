@@ -1,0 +1,2 @@
+
+div#viewIndicatorSenser {background-color:green;filter:alpha(opacity=1)} /*IE workaround to sense event on "viewIndicator"*/

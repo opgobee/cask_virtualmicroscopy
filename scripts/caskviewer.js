@@ -23,7 +23,7 @@
     
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
-var initialSlideSet = "P-2&view=carotis1,4qw_rot"; //slideSet to load opening //@TODO: put this in the menus.js file
+var initialSlideSet = "view=carotis1,4qw_rot"; //slideSet to load opening //@TODO: put this in the menus.js file
 var urlViewerFile = "../html/main.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
@@ -85,16 +85,15 @@ function init()
 	resetSettings();
 	
 	//reads data from the URL
-	readQueryToSettings();
+	//get variables from query in URL
+	//without uri-decoding for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
+	queryArgsToSettings(queryArgs);
 	
 	winsize();//do after onload for IE
 	setHandlers();
 	
 	//unfortunately neccessary still: some device specific adaptations
-	if(isTouchDevice) 
-	{
-		setForTouchDevice();
-	}
 	if(isiPad)
 	{
 		setForiPad();
@@ -107,13 +106,14 @@ function init()
 	createSlideSetsMenus();
 	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
-	//If a slide is requested in the URL (e.g. '...?slide=carotis'), load the requested slide in the main panel
+	//If a slide or view is requested in the URL (e.g. '...?slide=carotis' or '...?view=xxxx' ), load the requested slide or view in the main panel
 	//Note 1: all additional specific requests in the URL (e.g. zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
 	//Note 2: a slide may also be loaded by a click on one of the slides-thumbs in the menus
-	if(settings["slideName"] != null)  
+	if(settings["slideName"] != null || settings["viewName"] != null)  
 	{
-		//mode= 'auto' - both a 'view' or 'details' request can be handled
-		loadVirtualSlide(settings,"auto"); 
+		var query = getQuery();
+		//mode= 'unchanged': pass the query through unchanged
+		loadVirtualSlide({"query":query},"unchanged"); 
 	}
 }
 
@@ -166,27 +166,42 @@ function setHandlers()
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
 	ref("slidesContOverlay").ontouchstart = hideSlideSetsMenuPane;
 	
-	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
-	//ref("buttonEditLabelsOn").ontouchstart = openSetLabelPanel;
+	//the flag icon
+//	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
+//	ref("buttonEditLabelsOn").ontouchstart = touchOpenSetLabelPanel;
 	
+	//jQ("buttonEditLabelsOn").click = openSetLabelPanel;
+	jQ("buttonEditLabelsOn").on("touchstart",touchOpenSetLabelPanel);
+	
+	//the flag icon
 	ref("buttonEditLabelsOff").onclick = closeSetLabelPanel;
 	//ref("buttonEditLabelsOff").ontouchstart = closeSetLabelPanel;
 	
+	//button in  the labelpanel
 	ref("addLabelButton").onclick = addLabel;
 	//ref("addLabelButton").ontouchstart = addLabel;
 	
+	//the x on the labelpanel
 	ref("closeLabelPanel").onclick = closeSetLabelPanel;
 	//ref("closeLabelPanel").ontouchstart = closeSetLabelPanel;
 
-	ref("showUrlBar").onclick = showUrlBar;
-	ref("showUrlBar").ontouchstart = showUrlBar;
+	//the link icon
+	ref("buttonShowUrlBar").onclick = showUrlBar;
+	ref("buttonShowUrlBar").ontouchstart = showUrlBar;
 	
-	ref("closeUrlBar").onclick = closeUrlBar;	
-	ref("closeUrlBar").ontouchstart = closeUrlBar;
+	//the link icon
+	ref("buttonCloseUrlBar").onclick = closeUrlBar;	
+	ref("buttonCloseUrlBar").ontouchstart = closeUrlBar;
 	
-	ref("closeUrlBar2").onclick = closeUrlBar;	
-	ref("closeUrlBar2").ontouchstart = closeUrlBar;
+	//the x on the urlbar
+	ref("buttonCloseUrlBar2").onclick = closeUrlBar;	
+	ref("buttonCloseUrlBar2").ontouchstart = closeUrlBar;
 	
+	//the buttonWrench icon
+	ref("buttonWrench").onclick = showHideSettings;	
+	//ref("buttonWrench").ontouchstart = showHideSettings; //this would duplicate and thus close again
+	
+	//settings in settings panel
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	ref("checkBoxShowCoords").ontouchstart = showHideCoordsPanel;
@@ -198,14 +213,7 @@ function setHandlers()
 	jQ("#log").dblclick(function(){jQ(this).html("")});
 }	
 
-/*
- * specific adaptations/ work-arounds (so long nothing better) for touch devices
- */
-function setForTouchDevice()
-{
-	//dont allow labeling on touch device - array of bugs on different browsers
-	jQ("#buttonEditLabelsOn").hide();
-}
+
 
 /*
  * specific adaptations for iPad -unfortunately neccessary
@@ -435,7 +443,7 @@ function loadSlideSet(stringSlideNames)
 */
 function loadSlideThumbs()
 {
-	var slideRequest, slideName, viewName;
+	var slideRequest;
 	
 	//first remove any existing slides
 	removeSlides();
@@ -451,17 +459,25 @@ function loadSlideThumbs()
 			//slideRequest may be only a slideName, or a slideName plus an attached '&view=....' 
 			//split it to slideName and possible viewName
 			slideRequest 	= currentSlideSetSlideNames[i];
-			slideRequest 	= slideRequest.split("&");
+			/*
+			 * slideRequest 	= slideRequest.split("&");
 			slideName 		= slideRequest[0];
 			viewName		= (isSet(slideRequest[1]))? slideRequest[1].replace("view=","") : null;
-			
-			if(slideName == "ALL")
+			*/
+
+			if(slideRequest == "ALL")
 			{
 				loadAllSlides();
 			}
+			else
+			{
+				createSlide(slideRequest)
+			}
+			
+
 			//alert("Testing Is slide  with name: '" + slides[i].name + "' present amongst: "+ showNames);
 			//create thumb if this requested slide exists amongst the available slides //here the global var slides is read!!
-			else if(slides[slideName] && (viewName)) 
+	/*		else if(slides[slideName] && (viewName)) 
 			{
 				//alert("Creating slide with name:"+slideName+ " and viewName "+viewName);
 				createSlide(slideName,viewName);			
@@ -471,6 +487,7 @@ function loadSlideThumbs()
 				//alert("Creating slide with name:"+slideName);
 				createSlide(slideName);			
 			}
+	*/		
 		}	
 	}
 	//else simply load all slides (is used in this viewer's version without menus/collections)
@@ -504,14 +521,25 @@ function removeSlides()
 /*
 * Creates a clickable slide (thumb projected on a slide image)
 * Technically: Creates DOM elements for a slide, and appends it to div with id 'slidescont'
-* @param string slideName
+* @param string slideRequest. This may be a slideName or 'view=...'
 * @param string viewName [optional]
 * @needs globar var 'slides' with the slide-info
 *
 */
-function createSlide(slideName,viewName)
+function createSlide(slideRequest)
 { 
+	var slideName, viewName = null;
 	
+	if(slideRequest.indexOf("view=") != -1)
+	{
+		viewName= slideRequest.replace("view=","");
+		var queryArgs = getViewData(viewName);
+		slideName = (queryArgs && queryArgs.slide)? queryArgs.slide : null;
+	}
+	else
+	{
+		slideName = slideRequest;
+	}
 	//safety
 	if(typeof slides == "undefined" || ! slides[slideName])
 		{return;}
@@ -577,9 +605,17 @@ function createSlide(slideName,viewName)
 	//closure
 	function loadIt()
 	{
-		//load with mode 'view': that is only use slidName and (possible) viewName
-		loadVirtualSlide({"slideName":slideName,"viewName":viewName},"view"); 	
+		//load with mode 'view': that is only use viewName
+		if(viewName)
+		{
+			loadVirtualSlide({"viewName":viewName},"view"); 				
+		}
+		else
+		{
+			loadVirtualSlide({"slideName":slideName},"auto"); 	
+		}
 	} 
+
 }
 
 /*
@@ -676,14 +712,21 @@ function checkFit()
  */
 function loadVirtualSlide(settings, mode)
 {	
+	var query;
 	//debug("LoadVirtSlide1",settings);
-	
-	var settings = filterSettings(settings,mode);
-	//creates URL aimed at the main window
-	var query = createQuery(settings,mode);
-	var URL = urlViewerFile + query;	
+	if(settings["query"] && mode == "unchanged")
+	{
+		query = settings["query"];
+	}
+	else
+	{
+		var settings = filterSettings(settings,mode);
+		//creates URL aimed at the main window
+		query = createQuery(settings,mode);
+	}
+	var URL = urlViewerFile + "?" + query;	
 	//load the URL with the sliderequest in the main (=view) window
-//	alert("loading viewerFrame with URL= '"+URL+"'");
+	//alert("loading viewerFrame with URL= '"+URL+"'");
 	window.viewerFrame.location= URL;
 	//debug("loadVirt2",settings);	
 }
@@ -774,9 +817,12 @@ function applySettings()
 // 	USER SETTINGS AND TOOLS
 //
 ////////////////////////////////////////////	
+function touchOpenSetLabelPanel()
+{
+	
+}
 
-
-function openSetLabelPanel()
+function openSetLabelPanel(event)
 {
 	if(window.viewerFrame.setLabelsToEditMode)
 	{
@@ -786,7 +832,7 @@ function openSetLabelPanel()
 	{
 		showWarningChromeLocal();	
 	}
-	jQ("#setLabelPanel").show();
+	jQ("#editLabelPanel").show();
 	jQ("#buttonEditLabelsOn").hide();
 	jQ("#buttonEditLabelsOff").show();	
 	now.labelMode = "edit";
@@ -799,10 +845,20 @@ function closeSetLabelPanel()
 	{
 		window.viewerFrame.fixLabels();
 	}
-	jQ("#setLabelPanel").hide();
+	//hide the labels panel
+	jQ("#editLabelPanel").hide();
+	//switch the flag icon
 	jQ("#buttonEditLabelsOn").show();
 	jQ("#buttonEditLabelsOff").hide();
 	now.labelMode = "fixed";
+	//open the urlbar if there any labels
+	//get data on present view, labels, from the viewerframe
+	var presentViewSettings = (window.viewerFrame.getDataForUrl)? window.viewerFrame.getDataForUrl() : {};
+	//if the QueryPartLabels is not empty (so there are labels), show the urlbar
+	if( presentViewSettings.labels != "")
+	{
+		showUrlBar();
+	}
 }
 
 
@@ -833,9 +889,8 @@ function showUrlBar()
 	jQ("#urlBar").show();
 	now.urlViewing = true;	
 	window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
-	jQ("#showUrlBar").hide();
-	jQ("#closeUrlBar").show();
-	//switchTooltipContent("tooltipGetLink","tooltipGetLinkTextHideLink");
+	jQ("#buttonShowUrlBar").hide();
+	jQ("#buttonCloseUrlBar").show();
 	//let the textarea holding the url resize 
 	//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
 	//jQ("#urlString").trigger('autosize'); //doesnt work well yet
@@ -857,10 +912,9 @@ function closeUrlBar()
 	jQ("#urlBar").hide();
 	//empty it
 	jQ("#urlString").html("");
-	jQ("#showUrlBar").show();
-	jQ("#closeUrlBar").hide();
+	jQ("#buttonShowUrlBar").show();
+	jQ("#buttonCloseUrlBar").hide();
 
-	//switchTooltipContent("tooltipGetLink","tooltipGetLinkTextShowLink");
 	//hide sizeIndicators in main
 	if(window.viewerFrame && window.viewerFrame.stopUrlViewing)
 	{
@@ -974,12 +1028,10 @@ function showWarningChromeLocal()
 
 /*
  * reads query and stores the data in settings
+ * @param object/map queryArgs
  */
-function readQueryToSettings()
+function queryArgsToSettings(queryArgs)
 {
-	//get variables from query in URL
-	//without uri-decoding for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
-	var queryArgs= getQueryArgs({"dontDecodeKey":"labels"});
 	
 	if (queryArgs.slide) 				{ settings["slideName"] = queryArgs.slide; }
 	if (queryArgs.view) 				{ settings["viewName"] = queryArgs.view; }
@@ -1050,7 +1102,7 @@ function createQuery(settings,mode)
 	var qView = 		(!isEmpty(settings.viewName))?				"&view=" 	+ settings.viewName 	: "";
 //	var qShowCoords = 	(!isEmpty(settings.showCoordinatesPanel))? ((settings.showCoordinatesPanel)? "&showcoords=1" : "") : "";
 //	var qZoomInDir = 	(!isEmpty(settings.wheelZoomInDirection))? ((settings.wheelZoomInDirection == "up")? "&wheelzoomindirection=up" : "") : "";
-	var qZoom =			(!isEmpty(settings.zoom))? 				"&zoom=" 	+ settings.zoom 		: "";
+	var qZoom =			(!isEmpty(settings.zoom))? 					"&zoom=" 	+ settings.zoom 		: "";
 	var qX =			(!isEmpty(settings.x))? 					"&x=" 		+ settings.x 			: "";
 	var qY =			(!isEmpty(settings.y))? 					"&y=" 		+ settings.y 			: "";
 	var qLabels =		(!isEmpty(settings.labels))? 				"&labels="	+ settings.labels 		: "";
@@ -1058,15 +1110,15 @@ function createQuery(settings,mode)
 
 	if(mode=="auto")
 	{
-		var query = "?" + qSlide + qView + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
+		var query =  qSlide + qView + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords;
 	}
 	if(mode== "details")
 	{
-		var query = "?" + qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords; //Note: no qView here!
+		var query =  qSlide + qZoom + qX + qY + qLabels + qLabel; //+ qZoomInDir + qShowCoords; //Note: no qView here!
 	}
 	if(mode== "view" )
 	{
-		var query = "?" + qSlide + qView ; //+ qZoomInDir + qShowCoords;
+		var query =  qSlide + qView ; //+ qZoomInDir + qShowCoords;
 	}
 	
 	//debug("createQuery2",settings,"created query=", query)
@@ -1118,7 +1170,7 @@ function handleClick(e)
 		{var elem=getSrcElem(e);
 		var id=elem.id;
 
-		if(!inElem(elem,ref("settingsDiv")) && id!="wrench")
+		if(!inElem(elem,ref("settingsDiv")) && id!="buttonWrench")
 			{hideSettings();}
 		if(inElem(elem,ref("slidesContOverlay")))
 			{hideSlideSetsMenuPane();}

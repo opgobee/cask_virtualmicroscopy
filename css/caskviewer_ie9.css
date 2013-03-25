@@ -1,0 +1,10 @@
+
+.slideSetsMenu .accordionHeader
+{   
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#646464', endColorstr='#c8c8c8',GradientType=0 );  /*dont apply in IE7-8 as it makes text ugly*/ 
+}
+.slideSetsMenu .accordionEntry
+{   
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c8c8c8', endColorstr='#f1f1f1',GradientType=0 );  
+	
+}

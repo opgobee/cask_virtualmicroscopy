@@ -28,13 +28,13 @@
 
 
 <!--[if lte IE 7]>
-	<link rel="stylesheet" href="../css/ie7.css" type="text/css" />
+	<link rel="stylesheet" href="../css/caskviewer_ie7.css" type="text/css" />
 <![endif]-->
 <!--[if lte IE 8]>
-	<link rel="stylesheet" href="../css/ie8.css" type="text/css" />
+	<link rel="stylesheet" href="../css/caskviewer_ie8.css" type="text/css" />
 <![endif]-->
 <!--[if IE 9]>
-	<link rel="stylesheet" href="../css/ie9.css" type="text/css" />
+	<link rel="stylesheet" href="../css/caskviewer_ie9.css" type="text/css" />
 <![endif]-->
 
 </head>
@@ -49,11 +49,11 @@
 	<div class="tooltip">Add or edit labels.</div>
 <img id="buttonEditLabelsOff" src="../img/flag3_24_strikethrough.png" class="hastooltip hidden"  title="Stop editing labels.">
 	<div class="tooltip">Stop editing labels and close the panel 'Add or edit labels'.</div>
-<img id="showUrlBar" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view">
-	<div id="tooltipGetLinkTextShowLink" class="tooltip">Get a direct link (a URL) to the present view</div>
-<img id="closeUrlBar" src="../img/link_strikethrough.png" class="hastooltip hidden"  title="Hide the panel with the direct link">
-	<div id="tooltipGetLinkTextHideLink" class="tooltip">Hide the panel with the direct link</div>
-<img id="wrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings" onclick="showHideSettings()">
+<img id="buttonShowUrlBar" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view">
+	<div class="tooltip">Get a direct link (a URL) to the present view</div>
+<img id="buttonCloseUrlBar" src="../img/link_strikethrough.png" class="hastooltip hidden"  title="Hide the panel with the direct link">
+	<div class="tooltip">Hide the panel with the direct link</div>
+<img id="buttonWrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings">
 	<div class="tooltip">Settings</div>
 <img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
 <a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
@@ -64,8 +64,8 @@
 <div id="slidesContOverlay"></div>
 <div id="SlideSetsMenuPane"></div>
 
-<div id="setLabelPanel">
-	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><p>When you have set all desired labels, click 'Get link' <img class="linkIconSmall" src="../img/link.png"> to get a link with the labels included.</p></div>
+<div id="editLabelPanel">
+	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><p>You can save the labels you made in a link (= an URL). To save, close this panel or click 'Get link' <img class="linkIconSmall" src="../img/link.png">.</p></div>
 	<button id="addLabelButton">Add a label</button>
 	<img id="closeLabelPanel" src="../img/close.png" class="hastooltip"/>
 	<div class="tooltip">Stop editing labels and close this panel</div>
@@ -96,7 +96,7 @@
 
 <!-- to display URL -->
 <div id="urlBar" >
-	<img id="closeUrlBar2" src="../img/close.png" title="Close" >
+	<img id="buttonCloseUrlBar2" src="../img/close.png" title="Close" >
 	<div class="urlInfoBarLeader">Direct link to this view  <em>(Note that what users will see depends on their screen-size, approximate viewing areas are indicated)</em> :</div>
 	<textarea id="urlString"></textarea>	
 </div>

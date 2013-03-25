@@ -7,7 +7,7 @@ var slideSetsMenus= {
 			"header":{showText:"CardioVascular System",infoText:"",slides:""},
 			"sets":[
 				{showText:"Elastic arteries",infoText:"",slides:"120a_aorta_foetus_mens_he,120b_aorta_foetus_mens_azan,120b_aorta_foetus_mens_azan_01,120c_aorta_foetus_mens_rf,120d_aorta_foetus_mens_vwf,120e_aorta_foetus_mens_1a4,120f_aorta_foetus_mens_s100,121a_aorta_adult_mens_he,121c_aorta_adult_mens_rf,121d_aorta_adult_mens_vwf,121e_aorta_adult_mens_1a4,121f_aorta_adult_mens_s100"},
-				{showText:"Muscular arteries",infoText:"",slides:"P-2&view=carotis1,119a_musculeuze_arterie_mens_he,119b_musculeuze_arterie_mens_azan,119c_musculeuze_arterie_mens_rf,119d_musculeuze_arterie_mens_vwf,119e_musculeuze_arterie_mens_1a4,119f_musculeuze_arterie_mens_s100"},
+				{showText:"Muscular arteries",infoText:"",slides:"view=carotis1,119a_musculeuze_arterie_mens_he,119b_musculeuze_arterie_mens_azan,119c_musculeuze_arterie_mens_rf,119d_musculeuze_arterie_mens_vwf,119e_musculeuze_arterie_mens_1a4,119f_musculeuze_arterie_mens_s100"},
 				{showText:"Large veins",infoText:"",slides:"122a_vena_cava_inferior_mens_he,122c_vena_cava_inferior_mens_rf,122d_vena_pulmonalis_mens_vwf,122e_vena_pulmonalis_mens_1a4,122f_vena_pulmonalis_mens_s100"}
 				]
 		},
@@ -61,8 +61,8 @@ var slideSetsMenus= {
 	    {
 			"header":{showText:"LUMC - OA - Module 7 Buikchirurgie",infoText:"infoPrep",slides:""},
 			"sets":[
-				{showText:"Leeractiviteit 35 Zelfstudie-opdracht Anatomie maag, darm, lever",infoText:"",slides:"056_maag_mens_he&vragen_maag_OA_module7,115_ileum_mens_he&vragen_ileum_OA_module7"},
-				{showText:"Leeractiviteit 36 Zelfstudie-opdracht nieren en urinewegen",infoText:"",slides:"090_nier_mens_adult_he_magn2&vragen_nier_OA_module7"}		
+				{showText:"Leeractiviteit 35 Zelfstudie-opdracht Anatomie maag, darm, lever",infoText:"",slides:"view=vragen_maag_OA_module7,view=vragen_ileum_OA_module7"},
+				{showText:"Leeractiviteit 36 Zelfstudie-opdracht nieren en urinewegen",infoText:"",slides:"view=vragen_nier_OA_module7"}		
 				]	
 		}
 	]

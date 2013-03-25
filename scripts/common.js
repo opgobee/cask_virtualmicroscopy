@@ -238,6 +238,14 @@ function urlDecode (str)
 //
 /////////////////////////////////////////////////////////////////////
 
+/*
+ * reads the query part from the location
+ * @return string the query, without '?'
+ */
+function getQuery()
+{
+	return location.search.substring(1);
+}
 
 /*
  * gets variables from the query in the URL
@@ -257,8 +265,8 @@ function getQueryArgs(params)
 	var mode={
 			"window"			: 	"self",  	//default window self
 			"decode"			: 	true,		//default DO decode 
-			"dontDecodeKeys"	:	[],			//default no exceptions
-			"alternativeQuery"	:	null		//default no alternativequery
+			"dontDecodeKeys"	:	[],			//exceptions, default none
+			"alternativeQuery"	:	null		//alternativequery, default none
 	};
 	if(params != undefined)
 	{
@@ -308,7 +316,44 @@ function getQueryArgs(params)
 	}		
 	return args	;
 }	
+/*
+ * gets the data for a specific requested view from the file views.js
+ * @param string viewName = name of a specific view (view is in facted a stored query)
+ * 
+ */
+function getViewData(viewName)
+{
+	if(typeof views == undefined )
+	{
+		showViewsFileMissingWarning(viewName);
+		return false;
+	}
+	if(views[viewName] == undefined)
+	{
+		showRequestedViewNotPresentWarning(viewName);
+		return false;
+	}
+	//get the view (in fact a stored query)
+	var view = views[viewName];
+	
+	var params={
+			"dontDecodeKey"		: "labels", //dont directly uri-decode texts for the labels, you want to first extract the content parts between the parentheses, any parentheses in the content should remain encoded so long
+			"alternativeQuery"	: view		//use the view as query - in fact the view is a stored query
+		};
+	//extract the variables in the view (Note: here they are not read from an URL, but from the data got from views.js
+	var queryArgsFromView = getQueryArgs(params);
+	return queryArgsFromView;
+}
 
+function showViewsFileMissingWarning(viewName)
+{
+	alert("The slide for the requested view '"+viewName+"' cannot be displayed because the views-info file (views.js) is missing in the folder 'slides'.");
+	
+}
+function showRequestedViewNotPresentWarning(viewName)
+{
+	alert("The slide for the requested view '"+viewName+"' cannot be displayed because the requested view is not present in the views-info file (views.js in folder 'slides').");
+}
 
 /*
  * gets location object!! (not string URL) from the requested window
@@ -436,17 +481,21 @@ function isTouchDevice()
 
 
 /*
- * creates alert with debuginfo
+ * creates alert or logwin entry with debuginfo
  * @param one or more arguments to be shown
  */ 
 function debug(subjects)
 {
+	var outputFunction = "ih" //or alert
+		
+	var newLine = (outputFunction== "alert")? "\n" : "<br />"
+	var tab = (outputFunction== "alert")? "\t" : "&nbsp;";
 	var str="";
 	
 	for(var i=0;i<arguments.length;i++)
 	{	
 		showSubject(arguments[i]);	
-		str+="\n";
+		str+= newLine;
 	}
 	
 	function showSubject(subject)
@@ -454,7 +503,7 @@ function debug(subjects)
 		//alert(typeof subject)
 		if(typeof subject == "object" && subject instanceof Array)
 		{	
-			str+= "[Array]\n";
+			str+= "[Array]"+newLine;
 			if (subject.length == 0) 
 			{
 				str+= "EMPTY"
@@ -465,13 +514,13 @@ function debug(subjects)
 				{
 					if(typeof subject[i] == "object")
 					{
-						str+="--------------\n\t";
+						str+="--------------"+ newLine + tab;
 						showSubject(subject[i]);
-						//str+="--------------\n";
+						//str+="--------------"+ newLine;
 					}
 					else
 					{
-						str+= i + " : " + subject[i] + "\n";
+						str+= i + " : " + subject[i] + newLine;
 					}
 				}
 			}	
@@ -485,13 +534,13 @@ function debug(subjects)
 			{
 				if(typeof subject[prop] == "object" && subject[prop] != null)
 				{
-					str+="--------------\n\t";
+					str+="--------------"+ newLine + tab;
 					showSubject(subject[prop]);
-					//str+="--------------\n";
+					//str+="--------------"+ newLine;
 				}
 				else
 				{
-					str+= prop + " : " + subject[prop]  + "\n";;
+					str+= prop + " : " + subject[prop]  + newLine;
 				}
 				counter++;	
 			}
@@ -530,7 +579,15 @@ function debug(subjects)
 	
 	} //end showSubject
 
-	ih(str);
+	if(outputFunction == "ih")
+	{
+		ih(str);
+	}
+	else // if outputFunction == "alert"
+	{
+		alert(str);
+	}
+	
 }
 
 
