@@ -1,0 +1,4 @@
+/*does not seem to work*/
+
+#IElinkToCask {display: block;}
+.linkToCaskSenser {width:80px; height:100px;cursor:pointer;} /*IE workaround*/

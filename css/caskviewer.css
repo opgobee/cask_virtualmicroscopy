@@ -68,14 +68,17 @@ a
 
 /* Simplified version, according to idea on http://alistapart.com/article/holygrail */
 div#container {padding-left:220px;height:100%;}
-div#nav {width:220px;}
+div#nav {width:220px;position:absolute;}
 /* The iFrame with the viewer  */
 #viewerFrame {height:100%;width:100%;background-color:#FFFFFF;}
 #iFrameContainer {width:100%;height:100%;}
 
 /* top panel with logo and settings menu */
-img#logo {position:absolute;left:0px;top:0px;border:none;}
-a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px}
+img#logoCask {position:absolute;left:0px;top:0px;border:none;}
+.caskTooltipName {color: #021a44; font-weight: bold;}
+.caskTooltipCredit {font-style: italic; font-size:0.9em; color:#808080;}
+a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px;}
+img#logoInstitution {position:absolute;right:5px;top:5px;border:none;cursor:pointer; box-shadow: 5px 5px 5px #808080} /*left:58px;top:3px;*/
 
 img#buttonEditLabelsOn, img#buttonEditLabelsOff {position:absolute;left:115px;top:80px;cursor:pointer;}
 div#editLabelPanel {display:none;position:absolute;left:0px;top:112px;width:208px;padding:10px 5px 10px 5px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial,Helvetica,sans-serif;z-index:200;}
@@ -89,34 +92,6 @@ img#buttonWrench {position:absolute;left:180px;top:75px;cursor:pointer;}
 	div#settingsDiv {display:none;position:absolute;left:0px;top:112px;width:212px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial,Helvetica,sans-serif;z-index:200;}
 .shiftUp{position:relative;top:-10px;}
 
-/* The bar with the URL*/
-#urlBar
-{
-	display:none;position:absolute;top:0px;left:0px;right:0px;margin-left:220px;padding:3px;z-index:10; /*solution to let it dynamically fill out the space from 220px onward. The absolute positioning makes the trick with width 100% not work: ita takes 100% of the whole window.*/
-	border: solid #808080 2px; 
-	font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#c0c0c0;
-	background-color: #021a44; 
-}
-#urlString
-{
-	width:90%;
-	height:80px;
-	background-color:#ececec;
-}
-div.urlInfoBarLeader 
-{
-	margin:3px;
-}
-img#buttonCloseUrlBar2
-{
-	float:right;
-	cursor:pointer;
-}
-
-div#chromeLocalWarning
-{
-	position:absolute;left:45%;top:40%;display:none;width:400px;height:100px;border: 3px solid white;background-color:#021a44;color:white;font-family:Arial,Helvetica,sans-serif;font-size:1em;padding:10px;z-index:10
-}
 
 /* open slidebox with menutabs overlays*/
 img#slideBoxOpen {position:absolute;left:0px;top:112px;z-index:10;cursor:pointer;}
@@ -188,6 +163,34 @@ div#slidesCont {position:absolute;left:0px;top:282px;width:220px;overflow-x:auto
 .caption {position:absolute;left:10px;top:75px;width:188px;height:40px;font-family:Courier;font-size:70%;color:black;line-height:1}
 .written {position:absolute;left:145px;top:10px;width:40px;height:55px;font-family:script, monospace;font-size:9px;font-style:italic;line-height:0.8;color:#767676;z-index:1;overflow:hidden;word-wrap:break-word;}
 
+/* The bar with the URL*/
+#urlBar
+{
+	display:none;position:absolute;top:0px;left:0px;right:0px;margin-left:220px;padding:3px;z-index:10; /*solution to let it dynamically fill out the space from 220px onward. The absolute positioning makes the trick with width 100% not work: ita takes 100% of the whole window.*/
+	border: solid #808080 2px; 
+	font-family:Arial,Helvetica,sans-serif;font-size:0.8em;color:#c0c0c0;
+	background-color: #021a44; 
+}
+#urlString
+{
+	width:90%;
+	height:80px;
+	background-color:#ececec;
+}
+div.urlInfoBarLeader 
+{
+	margin:3px;
+}
+img#buttonCloseUrlBar2
+{
+	float:right;
+	cursor:pointer;
+}
+
+div#chromeLocalWarning
+{
+	position:absolute;left:45%;top:40%;display:none;width:400px;height:100px;border: 3px solid white;background-color:#021a44;color:white;font-family:Arial,Helvetica,sans-serif;font-size:1em;padding:10px;z-index:10
+}
 
 
 

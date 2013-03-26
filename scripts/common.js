@@ -486,8 +486,10 @@ function isTouchDevice()
  */ 
 function debug(subjects)
 {
-	var outputFunction = "ih" //or alert
-		
+	//uncomment what wanted
+	//var outputFunction = "ih";
+	var outputFunction = "alert";
+			
 	var newLine = (outputFunction== "alert")? "\n" : "<br />"
 	var tab = (outputFunction== "alert")? "\t" : "&nbsp;";
 	var str="";

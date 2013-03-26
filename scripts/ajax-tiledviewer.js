@@ -3,102 +3,6 @@
 //iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
 
 
-/*
- * @TODO: letloadXML use jquery.
- * @TODO: on win resize let it recenter on the actual viewed center (now it re-centers on the image center)
- */ 
-
-
-/*
- * In the URL-query you can pass the following parameters:
- * 
- * slide: 		name of the slide to load, slideData will be read from a file slides.js that must be present
- * zoom: 		zoom level {values: 0-max zoomlevel for the image}
- * x: 			x coordinate (horizontal fraction of image) will be centered {values: 0-1}
- * y: 			y coordinate (vertical fraction of image) will be centered {values: 0-1}
- * showcoords: 	determines whether panel will be shown that displays the image-coordinates where the cursor is {values: 0 or 1}
- * wheelzoomindirection: determines what direction of rotation of the mousewheel causes zoom-in {values: "up" or "down"}
- * 
- * 
- */
-
-// Keep modification list, and tests intact in full code, but may be removed in minified code
-// Modifications:
-// FIX BUG losing images or undefined image if dragging at low zoom levels to right or bottom (Sol: in getVisibleTiles) 
-// Note: too high count at smaller zooms inside viewPort uncorrected because it slowed down responsiveness
-// FIX BUG clickthumb not working on IE (Sol: call winsize after onload + catch event in clickTumb)
-// FIX BUG dragging from inside viewIndicator not working on FF, Chrome, IE (only worked in Mac-Saf) (Sol: Handler on thumbContainer, for IE: viewIndicatorSenser - filter opacity as described in forum)
-// FIX BUG not fetching tiles after thumb navigation until move mouse outside thumb (add checktiles call in clickthumb) 
-// FIX BUG keypress plus not well detected. On Opera one must use + key and SHIFT - keys, and not Numeric keypad keys
-// FIX BUG micrometer-character correct
-// FIX BUG enclosed call of XmlHHTPRequest in a try{} because causes error on IE6 with ActiveX disabled (eg secure office/hospital environment)
-// FIX BUG? removed if-clause in loadllabels which caused it not to work on ie
-// FIX BUG? removed '-16' subtraction in coords calculation (now in function getCoordsImg) due to which labels were incorrectly repositioned at small zooms
-// FIX BUG/CHG replaced function getVar by function getQueryArgs because getVar could misrecognize args, eg. 'jslabels' was also found as 'labels' 
-// FIX ERR referencing to elements by id/name in global scope generated errors
-// ADD viewIndicator visibly moves while dragged (originally only jumped to drag-end position)
-// ADD doubleclick zooms in, hold mouse down zooms out (with a workaround for IE)
-// ADD grey background colour behind not yet loaded tiles
-// ADD prevent dragging or zooming outside viewport
-// ADD center map at window resize
-// ADD mobile mode: click mobile icon shows up/down/left/right autopan navigation arrows, moves thumb to top-left (prevents errors with offsetted visual viewports)
-// ADD styling of labels via class 'label'; 'name' in labels file was not yet used. Set it in title on label div
-// ADD loadlabels as separate option, independent of presence of a stack of images
-// ADD fallback for IE6 with ActiveX disabled and IE6/8 local: use iFrame to get width and height from Imgeproperties.xml (signal: grey 'I' top-right)
-// ADD fallback for IE6 with ActiveX disabled: use script insert to get labels.js (signal: grey 'j' top-right) [note: requires calling as 'jslabels' instead of 'labels' and prepending:   jsLabels=    before the JSON
-// ADD Informative warning messages explaining why no image is visible if no path is given or no width & height are given or retrievable
-// ADD Additional credit information can be added per slide, by using credit="..path_to_credits.js_file.." in html page or query and putting extra text in credits.js file
-// ADD/CHG More clear scale bar, with resizing of bar to round length numbers, display in micron, cm or mm; (more clear) bar-image instead of hr
-// ADD/CHG Zoom centers around cursorposition when zooming with scrollbutton or mouseclick. Zoomcenter remains center of viewport when zooming with +/- or zoombuttons.
-// CHG repositioned thumb and zoomIn and zoomOut icons and zoomInfo to upper right corner
-// CHG reorganised: clustered similar code, collective functions handlemousedown, handlemouseup etc., separate into functions: centermap, getNrTiers, countTilesPerTier, getImgCoords, etc.
-// CHG function name: $ to: ref, to prevent conflicts upon possible combining with other libraries
-// EFFIC countTilesPerTier() performed once, not in each checkTiles
-// EFFIC func processmove, call to checktiles in (if drag) to prevent checking at simple mousemove without drag
-// EFFIC in loop in checktiles removed call to moveViewIndicator, now called once in higher level calling functs together with call of checktiles()
-
-
-/* TESTED:
-img= shows basic image correctly
-noDims= shows image correctly even if no width and height are specified in html-page or in query (i.e. collects them from imageProperties.xml)
-Labels= shows labels correctly (collected from labels.js)
-
-						img			noDims			Labels 			Mechanism of loading of ImageProperties.xml and labels.js files
-/// ONLINE /////
-Firefox 3.6		  		OK			OK				OK				Standard XMLHttpRequest
-IE8 ActiveX				OK			OK				OK				MS XMLHTTP
-IE8 No ActiveX			OK			OK				OK				Standard XMLHttpRequest
-IE6 ActiveX				OK			OK				OK				MS XMLHTTP
-IE6 No ActiveX			OK			OK				OK				XML via I-Frame fallback, labels via load script fallback
-Chrome 6.0				OK			OK				OK				Standard XMLHttpRequest
-Safari					OK			OK				OK				Standard XMLHttpRequest
-Opera					OK			OK				OK				Standard XMLHttpRequest
-iPad					OK
-iPhone					OK
-Android					OK
-
-/// LOCAL without server ///
-Firefox 3.6 			OK			OK				OK				Standard XMLHttpRequest
-IE8 ActiveX				OK			OK				OK				XML via I-Frame fallback, labels.js via MS XMLHTTP (!?)
-IE8 No ActiveX 			OK?			OK?				OK?				(Untestable, no access anymore to My Computer Security settings in IE8)
-IE6 ActiveX				OK			OK				OK				XML via I-Frame fallback, labels.js via MS XMLHTTP (!?)
-IE6 No ActiveX			OK			OK				OK				XML via I-Frame fallback, labels via load script fallback
-Chrome 6				OK			--				--				XHR doesn't work locally on Chrome 6, neither does I-frame fallback
-Safari					OK			OK				OK				Standard XMLHttpRequest
-Opera					OK			OK				OK				Standard XMLHttpRequest
-*/
-
-/*
-Instructions for new features:
-
-Have labels on IE6 with ActiveX disabled:
-1. modify the labels.js file: prepend "jsLabels=" (without quotes) in front of JSON
-2. in the query or in the html page, set "jslabels=...path to labels.js..." instead of "labels=...path to labels.js..." 
-
-Display additional credit information:
-1. create .js-file containing: credits= "...html to display...";
-2. in the query or in the html page, set "credits=...path to credits.js..."
-*/
 
 //alert("load main page");
 
@@ -132,6 +36,7 @@ data.highestUsedLabelIndex = null; //the highest index used up till now (irrespe
 data.newLabels = {}; //object with data of live created labels
 data.highestUsedNewLabelIndex = null; //the highest index used up till now (irrespective if it is still in use now). If a newlabel is created give it an id of this index plus 1
 data.queryArgsFromUrl = {}; //object/map with the queryargs that were read from the URL  (these may be combined with queryargs read from a view - a stored query)
+data.credits = {}; //object will get credits info if present
 
 var now = {}; //global object to keep data that needs to be kept track of
 now.renderingLabels = false; //busy creating labels.
@@ -151,8 +56,7 @@ var height = null, width = null; //may be defined in html page (then overwrites 
 var imgWidthMaxZoom = null, imgHeightMaxZoom= null; //width/height of max size image, Note: may be string as read from html page, query or xhr
 var imgWidthPresentZoom = null, imgHeightPresentZoom= null; //integer, shortcut for gTierWidth/Height[now.zoom]
 var loadedXML=0; //used in xhr loading of XML and JSON files
-var labelsPath=null, labelTimer;
-var creditsPath=null; //path to .js file with additional credits to display
+var labelTimer;
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
@@ -221,10 +125,7 @@ function init()
 	//Specific settings
 	if (isMobile && !isiPad) {setMobileOn();}
 	//if (isiPad) {trackOrientation();}	
-	//show slideName (the name shown to users) in the little panel at the top of the page
-	showSlideName();
-	//load credits file and show additional credits
-	loadAndShowCredits();
+
 	//shows or hides the coords panel
 	showHideCoordinatesPanel();
 	
@@ -443,6 +344,7 @@ function discardDetailSettings()
 
 /*
  * sets globals about the slide based on the slideData read from the global 'slides' 
+ * also might need global 'credits'
  */
 function readslideDataToGlobals()
 {
@@ -455,7 +357,7 @@ function readslideDataToGlobals()
 	if (slideData.height) {imgHeightMaxZoom = slideData.height;} 
 	if (slideData.res)	{settings.res = slideData.res;}
 	//if (slideData.hasLabels) {settings.hasLabels = (slideData.hasLabels.search(/true/i) != -1)? true :false;} 
-	if (slideData.credits) {creditsPath = slideData.credits;} 	
+	if (slideData.credits && window.credits && window.credits[slideData.credits]) {data.credits = window.credits[slideData.credits];} 	
 
 }
 
@@ -591,7 +493,12 @@ function showInitialView()
 	moveViewIndicator(); 
 	updateLengthBar();
 
+	//show slideName (the name shown to users) in the little panel at the top of the page
+	showSlideName();
+	//show credits
+	showCredits();
 	
+	//doesn't work: small screens but still many pixels
 	if(hasSmallViewport()) {adaptDimensions();}
 }
 
@@ -613,6 +520,24 @@ function loadAndShowCredits()
 			return;
 		}	
 	}	 	
+}
+
+function showCredits()
+{
+	if(data.credits.logo)
+	{
+		ref("creditSlideLogo").src= data.credits.logo;
+		jQ("#creditSlideLogo").show();
+	}
+	if(data.credits.text)
+	{
+		jQ("#creditSlideText").html(data.credits.text);
+	}	
+	if(data.credits.url)
+	{
+		ref("creditLinkLogo").href = data.credits.url;
+		ref("creditLinkText").href = data.credits.url;
+	}
 }
 
 /*
@@ -2677,18 +2602,23 @@ function hideUrlBarAndSizeIndicators()
 
 
 function hasSmallViewport()	
-	{return (viewportWidth+viewportHeight <= 790)? true :false;
+	{
+		return (viewportWidth+viewportHeight <= 790)? true :false;
 	}
 
 
 function adaptDimensions()
-	{//ref('credit').style.width=viewportWidth/2;
-	ref('credit').style.fontSize="8px";
+	{
+	//ref('credit').style.width=viewportWidth/2;
+	//ref('credit').style.fontSize="8px";
+	//enlarge zoom buttons
+	jQ("#zoomButtonsContainer,#zoomin,#zoomout").addClass("enlarged");	
 	}
 
 function resetDimensions()
 	{ref('credit').style.width="";
 	ref('credit').style.fontSize="";
+	jQ("#zoomButtonsContainer,#zoomin,#zoomout").removeClass("enlarged");	
 	}
 	
 
@@ -2696,7 +2626,7 @@ function setMobileOn()
 	{mobile=true;
 	ref("iconMobile").style.display="none";
 	adaptDimensions();
-	showArrows();
+	//showArrows();
 	elem.controlsContainer.style.right=""; //left positioning elem.thumbImageHolder to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
 	elem.controlsContainer.style.left="0px";
 	elem.controlsContainer.style.top="0px";
@@ -2708,7 +2638,7 @@ function setMobileOff()
 	{mobile=false;
 	ref("iconMobile").style.display="block";
 	resetDimensions();
-	hideArrows();
+	//hideArrows();
 	elem.controlsContainer.style.left="";
 	elem.controlsContainer.style.top="10px";
 	elem.controlsContainer.style.right="10px";

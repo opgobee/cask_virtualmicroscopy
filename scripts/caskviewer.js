@@ -43,6 +43,7 @@ settings["label"] = null; // a single label to be set on the center x,y location
 //to hold track of actual things
 now= {}; 
 now.urlViewing = false;
+//now.labelingIsDisabled = false; //for workaround to prevent labelpanel on touch devices where it doesn't work well yet
 
 //Variable declarations
 
@@ -62,7 +63,9 @@ var fitDone= {},fitAttempt=1; //fitDone= assoc array slideName = true/false indi
 var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
-var isTouchDevice = ("ontouchstart" in window)? true : false;
+var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
+var isAndroid= (navigator.userAgent.indexOf("Android") != -1)? true : false; //not detected on all Androids
+var isTouchDevice = ("ontouchstart" in window)? true : false; //may give wrong results
 var settingsCloseTimer;
 var slidesCont;
 var logwin;
@@ -80,7 +83,7 @@ function init()
 {
 	//debugging
 	logwin=document.getElementById("log");
-	
+		
 	//at a reload reset the settings
 	resetSettings();
 	
@@ -97,6 +100,10 @@ function init()
 	if(isiPad)
 	{
 		setForiPad();
+	}
+	if(isAndroid)
+	{
+		setForAndroid();
 	}
 	
 	
@@ -160,6 +167,8 @@ function setHandlers()
 		}
 	}
 	
+	//all touch detection works bad for some reason
+	
 	ref("nav").onclick = handleClick;
 	ref("nav").ontouchstart = handleClick;
 	
@@ -167,11 +176,9 @@ function setHandlers()
 	ref("slidesContOverlay").ontouchstart = hideSlideSetsMenuPane;
 	
 	//the flag icon
-//	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
-//	ref("buttonEditLabelsOn").ontouchstart = touchOpenSetLabelPanel;
-	
-	//jQ("buttonEditLabelsOn").click = openSetLabelPanel;
-	jQ("buttonEditLabelsOn").on("touchstart",touchOpenSetLabelPanel);
+	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
+	//ref("buttonEditLabelsOn").ontouchstart = openSetLabelPanel;
+	//jQuery on("touchstart",..) doesn't work unfortunately
 	
 	//the flag icon
 	ref("buttonEditLabelsOff").onclick = closeSetLabelPanel;
@@ -204,7 +211,7 @@ function setHandlers()
 	//settings in settings panel
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
-	ref("checkBoxShowCoords").ontouchstart = showHideCoordsPanel;
+	//ref("checkBoxShowCoords").ontouchstart = showHideCoordsPanel;
 	
 	initTooltips();
 	slidesCont = ref("slidesCont");
@@ -237,7 +244,17 @@ function setForiPad()
 	//var h = iPadInitialHeight -100;
 	//force iFrame to stay within the initial dimensions: replace the height settings of the iFrameContainer of 100% by fixed values. Width is no problem: ipad doesn't resize that
 	jQ("#iFrameContainer").css({"height" : iPadInitialHeight +"px"});
+	//temp (unsatisfactory) workaround: for now hide labels button- labeling gives array of bugs on touch devices, also hide showUrl: works patchy, settings are nonsens on touch devices
+	jQ("#buttonEditLabelsOn, #buttonShowUrlBar, #buttonWrench").hide();
 }
+
+
+function setForAndroid()
+{
+	//temp (unsatisfactory) workaround: for now hide labels button- labeling gives array of bugs on touch devices, also hide showUrl: works patchy, settings are nonsens on touch devices
+	jQ("#buttonEditLabelsOn, #buttonShowUrlBar, #buttonWrench").hide();
+}
+
 
 /*
  * In the options menus, checks the options according to the present settings
@@ -816,11 +833,27 @@ function applySettings()
 //
 // 	USER SETTINGS AND TOOLS
 //
-////////////////////////////////////////////	
+////////////////////////////////////////////
+/*
+ * Catch a touch on the labels icon:
+ * - gives message: you can only label on desktop
+ * - temporarily disables the labelpanel from opening on click
+ * This is the 'best' for now workaround. Tried:
+ * attach click and touch events with jQuery and cancel the click following the touch with stopImmediatePropagation. Failed: jQuery didn't bind the touch.
+ * use jQuery mobile to attach the touch. Failed: jQuery mobile still comes with much undesired css setting. Uncoupled is in alpha
+ * use xui to attach the touch. Failed: broke IE on event.target
+ * test for ("ontouchstart" in window) to detect touch support. Failed: gave 'true' over RDP on Chrome on desktop
+ * detecting touch even doesnt work now Why?
+ */
+/*
 function touchOpenSetLabelPanel()
 {
-	
+	ih("label touch")
+	now.labelingIsDisabled = true;
+	setTimeout(function(){now.labelingIsDisabled = false;}, 500);
+	alert("With this function you can add and edit labels, when using a desktop computer.")
 }
+*/
 
 function openSetLabelPanel(event)
 {
@@ -876,28 +909,36 @@ function addLabel()
 	}	
 }
 
+/*function touchShowUrlBar()
+{
+ih("touch showUrlBar")	
+}
+*/
+
 /*
  * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
  */
 function showUrlBar()
 {
-	
+
+	//ih("click showUrl Bar")
+	//dont activate if there is no image loaded or if the veiwerFrame is inaccessible (Chrome on local)
 	if(window.viewerFrame && window.viewerFrame.startUrlViewing)
 	{
-	var url = createUrl();
-	jQ("#urlString").html(url);
-	jQ("#urlBar").show();
-	now.urlViewing = true;	
-	window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
-	jQ("#buttonShowUrlBar").hide();
-	jQ("#buttonCloseUrlBar").show();
-	//let the textarea holding the url resize 
-	//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
-	//jQ("#urlString").trigger('autosize'); //doesnt work well yet
+		var url = createUrl();
+		jQ("#urlString").html(url);
+		jQ("#urlBar").show();
+		now.urlViewing = true;	
+		window.viewerFrame.startUrlViewing(); //activates dynamic tracking and showing of sizeindicators
+		jQ("#buttonShowUrlBar").hide();
+		jQ("#buttonCloseUrlBar").show();
+		//let the textarea holding the url resize 
+		//jQ("#urlString").autosize({append: "\n"}); //doesnt work well yet
+		//jQ("#urlString").trigger('autosize'); //doesnt work well yet
 	}
 	else
 	{
-	showWarningChromeLocal();
+		showWarningChromeLocal();
 	}
 }
 

@@ -36,73 +36,82 @@
 <!--[if IE 9]>
 	<link rel="stylesheet" href="../css/caskviewer_ie9.css" type="text/css" />
 <![endif]-->
-
+<!--[if IE]>
+	<link rel="stylesheet" href="../css/caskviewer_ie.css" type="text/css" />
+<![endif]-->
 </head>
 
 <body onload="init()" style="height:100%;" >
-<div id="container">
 	
-<div id="nav" class="column"> 
-<img id="logo" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
-<a id="linkToCask" href="http://www.lumc.nl/con/3090/82525/903101130112533/?setlanguage=English&setcountry=en" target="blank"></a>
-<img id="buttonEditLabelsOn" src="../img/flag3_24.png" class="hastooltip"  title="Add or edit labels.">
-	<div class="tooltip">Add or edit labels.</div>
-<img id="buttonEditLabelsOff" src="../img/flag3_24_strikethrough.png" class="hastooltip hidden"  title="Stop editing labels.">
-	<div class="tooltip">Stop editing labels and close the panel 'Add or edit labels'.</div>
-<img id="buttonShowUrlBar" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view">
-	<div class="tooltip">Get a direct link (a URL) to the present view</div>
-<img id="buttonCloseUrlBar" src="../img/link_strikethrough.png" class="hastooltip hidden"  title="Hide the panel with the direct link">
-	<div class="tooltip">Hide the panel with the direct link</div>
-<img id="buttonWrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings">
-	<div class="tooltip">Settings</div>
-<img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
-<a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
-<a id="menutab2" class="menutab" onclick="toggleSlideSetsMenuPane('menuInstitutionsModules')">Institution/Module</a>
+<div id="nav" > 
+	<img id="logoCask" src="../img/logo_cask_micr_darkblue_font_light_arial_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
+	<a id="linkToCask" class="hastooltip" href="http://www.caskanatomy.info/caskonlumc/" target="blank"></a>
+		<div class="tooltip"><div class="caskTooltipName">CASK Microscopy Viewer</div><br /><p class="caskTooltipCredit">Developed by the CASK (Clinical Anatomical SKills)-group, at Leiden University Medical Center, Dept. of Anatomy &amp; Embryology.</p></div>	
+	
+	<a href="http://www.lumc.nl" target="blank">
+		<img id="logoInstitution" class="hastooltip" src="../img/logo_lumc50x50.png" alt="Logo Leiden University Medical Center">
+		<div class="tooltip">Hosted by Leiden University Medical Center</div>
+	</a>
+	
+	<img id="buttonEditLabelsOn" src="../img/flag3_24.png" class="hastooltip"  title="Add or edit labels.">
+		<div class="tooltip">Add or edit labels.</div>
+	<img id="buttonEditLabelsOff" src="../img/flag3_24_strikethrough.png" class="hastooltip hidden"  title="Stop editing labels.">
+		<div class="tooltip">Stop editing labels and close the panel 'Add or edit labels'.</div>
+	<img id="buttonShowUrlBar" src="../img/link.png" class="hastooltip"  title="Get a direct link (a URL) to the present view">
+		<div class="tooltip">Get a direct link (a URL) to the present view</div>
+	<img id="buttonCloseUrlBar" src="../img/link_strikethrough.png" class="hastooltip hidden"  title="Hide the panel with the direct link">
+		<div class="tooltip">Hide the panel with the direct link</div>
+	<img id="buttonWrench" src="../img/wrench_light.png"  class="hastooltip" title="Settings" >
+		<div class="tooltip">Settings</div>
+	<img id="slideBoxOpen" src="../img/slidebox_open_background.png" >
+	<a id="menutab1" class="menutab" onclick="toggleSlideSetsMenuPane('menuAnatomicalRegions')">Body regions</a>
+	<a id="menutab2" class="menutab" onclick="toggleSlideSetsMenuPane('menuInstitutionsModules')">Institution/Module</a>
+	
+	
+	<div id="slidesCont" onclick="handleClick()"></div> <!--eof slidesCont -->
+	<div id="slidesContOverlay"></div>
+	<div id="SlideSetsMenuPane"></div>
+	
+	<div id="editLabelPanel">
+		<div id="labelPanelInfo"><h5>Add or edit labels.</h5><p>You can save the labels you made in a link (= an URL). To save, close this panel or click 'Get link' <img class="linkIconSmall" src="../img/link.png">.</p></div>
+		<button id="addLabelButton">Add a label</button>
+		<img id="closeLabelPanel" src="../img/close.png" class="hastooltip"/>
+		<div class="tooltip">Stop editing labels and close this panel</div>
+	</div>	
+	
+	<div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
+		<form id="settingsForm">
+			<hr />
+			Scroll-wheel<br />
+			<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="up" id="optWheelUp"><label  for="optWheelUp"><img src="../img/wheelup.gif"> <span class="shiftUp">Zoom In </span></label><br />
+			<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="down" id="optWheelDown"><label for="optWheelDown"><img src="../img/wheeldown.gif"> <span class="shiftUp">Zoom In </span></label>
+			<hr />
+			<input id="checkBoxShowCoords" type="checkbox" name="checkBoxShowCoords" value="show"><label id="optShow" for="checkBoxShowCoords">Show coordinates panel</label>
+			<br />
+		</form> <!--end of radioform  -->			
+	</div>
+	
+	<!--<button style="position:absolute; left:20px;top:800px; width:100px;height:20px" onclick="debug(settings)"></button>-->
+	<div id="log"></div>
+	
+</div> <!--eof nav -->
 
-
-<div id="slidesCont" onclick="handleClick()"></div> <!--eof slidesCont -->
-<div id="slidesContOverlay"></div>
-<div id="SlideSetsMenuPane"></div>
-
-<div id="editLabelPanel">
-	<div id="labelPanelInfo"><h5>Add or edit labels.</h5><p>You can save the labels you made in a link (= an URL). To save, close this panel or click 'Get link' <img class="linkIconSmall" src="../img/link.png">.</p></div>
-	<button id="addLabelButton">Add a label</button>
-	<img id="closeLabelPanel" src="../img/close.png" class="hastooltip"/>
-	<div class="tooltip">Stop editing labels and close this panel</div>
-</div>	
-
-<div id="settingsDiv" onmouseout="delayedClose()" onmouseover="cancelClose()">
-	<form id="settingsForm">
-		<hr />
-		Scroll-wheel<br />
-		<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="up" id="optWheelUp"><label  for="optWheelUp"><img src="../img/wheelup.gif"> <span class="shiftUp">Zoom In </span></label><br />
-		<input class="wheelZoomDir shiftUp" type="radio" name="wheelZoomDir" value="down" id="optWheelDown"><label for="optWheelDown"><img src="../img/wheeldown.gif"> <span class="shiftUp">Zoom In </span></label>
-		<hr />
-		<input id="checkBoxShowCoords" type="checkbox" name="checkBoxShowCoords" value="show"><label id="optShow" for="checkBoxShowCoords">Show coordinates panel</label>
-		<br />
-	</form> <!--end of radioform  -->			
-</div>
-
-<!--<button style="position:absolute; left:20px;top:800px; width:100px;height:20px" onclick="debug(settings)"></button>-->
-<div id="log"></div>
-
-</div> <!--eof all -->
-
-<!-- unsolved problem: div doesnt work: automatic iFrame extension //http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/-->
-<div id="iFrameContainer">
-<!-- iframe with virtual microscopy viewer-->
-<iframe id="viewerFrame" name="viewerFrame" src="blank.html" frameborder="0" marginheight="0" marginwidth="0" scrolling="no" ></iframe>
-</div>
-
-<!-- to display URL -->
-<div id="urlBar" >
-	<img id="buttonCloseUrlBar2" src="../img/close.png" title="Close" >
-	<div class="urlInfoBarLeader">Direct link to this view  <em>(Note that what users will see depends on their screen-size, approximate viewing areas are indicated)</em> :</div>
-	<textarea id="urlString"></textarea>	
-</div>
-
-<div id="chromeLocalWarning">This browser does not support settings and tools when used from a <em>local source (e.g. from a harddisk or USB device)</em>.<br/><br />Firefox, Internet Explorer, Safari <em>DO</em> work locally.
-</div>
+<div id="container">
+	<!-- correct automatic iFrame extension //http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/-->
+	<div id="iFrameContainer">
+	<!-- iframe with virtual microscopy viewer-->
+	<iframe id="viewerFrame" name="viewerFrame" src="blank.html" frameborder="0" marginheight="0" marginwidth="0" scrolling="no" ></iframe>
+	</div>
+	
+	<!-- to display URL -->
+	<div id="urlBar" >
+		<img id="buttonCloseUrlBar2" src="../img/close.png" title="Close" >
+		<div class="urlInfoBarLeader">Direct link to this view  <em>(Note that what users will see depends on their screen-size, approximate viewing areas are indicated)</em> :</div>
+		<textarea id="urlString"></textarea>	
+	</div>
+	
+	<div id="chromeLocalWarning">This browser does not support settings and tools when used from a <em>local source (e.g. from a harddisk or USB device)</em>.<br/><br />Firefox, Internet Explorer, Safari <em>DO</em> work locally.
+	</div>
 </div> <!-- eof container-->
 
 
