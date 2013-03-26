@@ -1117,7 +1117,7 @@ function createUrl()
 	//debug(combinedSettings)
 	//create Url in mode "details" - that is: show x, y, zoom, labels etc, evetyhring, but discard viewName 
 	var query = createQuery(combinedSettings,"details");
-	return baseUrl+query;
+	return baseUrl + "?" + query;
 }
 
 /*

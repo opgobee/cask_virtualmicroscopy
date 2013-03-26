@@ -41,7 +41,7 @@ div#controlsContainer {position:absolute;right:10px;top:25px;width:200px;height:
 		div#viewIndicator {display:none;position:absolute;border:1px solid #29ffde;overflow:hidden;} /*cyan box that indicates which part of the image is visible in the viewport now*/ /*cyan: #29ffde*/
 		div#viewIndicatorSenser {display:none;position:absolute;} /*senser over the viewIndicator for catching events on IE, because IE doesn't sense events on transparent/empty elements, see IE conditional comments*/
 	div#zoomButtonsContainer {position:absolute;right:0px;width:80px;height:30px;} 
-	div#zoomButtonsContainer.enlarged {position:absolute;right:0px;width:80px;height:220px;} 
+	div#zoomButtonsContainer.enlarged {position:absolute;left:10px;width:80px;height:220px;} 
 		#zoomin {position:absolute;left:0px;top:0px;cursor:pointer;}
 		#zoomin.enlarged {position:absolute;left:0px;top:20px;width:80px;height:80px;cursor:pointer;}
 		#zoomout {position:absolute;left:40px;top:0px;cursor:pointer;}
@@ -66,7 +66,7 @@ div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-inde
 #theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;}
 #theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:white;}
 
-div#credit {position:absolute;bottom:10px;left:10px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
+div#credit {position:absolute;bottom:10px;left:30px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
 	#creditSlideLogo {display:none;float:left;border:none;}
 	#creditText {float:left;margin-left:3px;}
 	a#creditLinkText {color:blue;text-decoration:none;}
@@ -180,7 +180,7 @@ div#hor1024x768 {width:784px;height:656px;}
 #btDownCont {display:none;position:absolute;left:100px;bottom:0px;}
 #btLeftCont {display:none;position:absolute;left:0px;top:100px;}
 #btRightCont {display:none;position:absolute;right:0px;top:100px;}
-#iconMobileCont  {position:absolute;right:7px;bottom:7px;width:26px;height:36px;cursor:pointer;z-index:100;}
+#iconMobileCont  {position:absolute;left:2px;bottom:8px;width:26px;height:36px;cursor:pointer;z-index:100;} /* right:7px;bottom:7px;*/
 .iconMobile  {position:absolute;left:0px;top:0px;width:26px;height:36px;cursor:pointer;z-index:100;}
 #mobileHint  {position:absolute;left:-180px;top:5px;width:165px;height:15px;padding:5px;z-index:100;color:#000;font-size:12px;font-family:sans-serif;border:solid black 1px;background-color:#ffffef;}
 

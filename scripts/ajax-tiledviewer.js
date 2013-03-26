@@ -503,25 +503,6 @@ function showInitialView()
 }
 
 
-/*
- * loads and displays credit information
- */
-function loadAndShowCredits()
-{
-	if(creditsPath)
-	{
-		try
-		{
-			loadJs(creditsPath);
-			displayCredits();
-		}
-		catch(e)
-		{
-			return;
-		}	
-	}	 	
-}
-
 function showCredits()
 {
 	if(data.credits.logo)
@@ -2273,27 +2254,6 @@ function fixLabel(newLabelId)
 	
 }
 
-//adds additional credits into credit div
-function displayCredits()
-	{displayCredits.timer="";
-	displayCredits.counter=0;
-	if(window.credits)
-		{
-		var credDiv = ref("credit");
-		if(credDiv)
-			{var credNow = credDiv.innerHTML;
-			credDiv.innerHTML= credNow +"<br />" + credits;
-			}
-		}
-	else
-		{if ( displayCredits.counter < 6 ) //6 attempts
-			{clearTimeout(displayCredits.timer);
-			displayCredits.counter++;
-			var delay= displayCredits.counter * 200; //each attempt longer delay for retry
-			displayCredits.timer = setTimeout("displayCredits()",delay);
-			}
-		}	
-	}
 
 
 //////////////////////////////////////////////////////////////////////
