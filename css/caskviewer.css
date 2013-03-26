@@ -68,7 +68,7 @@ a
 
 /* Simplified version, according to idea on http://alistapart.com/article/holygrail */
 div#container {padding-left:220px;height:100%;}
-div#nav {width:220px;position:absolute;}
+div#nav {width:220px;height:100%;position:absolute;}
 /* The iFrame with the viewer  */
 #viewerFrame {height:100%;width:100%;background-color:#FFFFFF;}
 #iFrameContainer {width:100%;height:100%;}
@@ -140,13 +140,12 @@ div#SlideSetsMenuPane /* NOTE!! if change width, also change max. e.pageX [shoul
 	background: -webkit-linear-gradient(top, #c8c8c8,#f1f1f1); /* Chrome10+,Safari5.1+ */
 	background: -o-linear-gradient(top, #c8c8c8,#f1f1f1); /* Opera11.10+ */
 	background: -ms-linear-gradient(top, #c8c8c8,#f1f1f1); /* IE10+ */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c8c8c8', endColorstr='#f1f1f1',GradientType=0 );  /*IE6-9 gave problems - text gone on IE7/8*/
 	background: linear-gradient(top, #c8c8c8,#f1f1f1); /* W3C */
 }
 /*.slideSetsMenu .menuheader{background-image:url('../img/slidebox_side_220.png');width:220px;height:31px;padding-left:10px;}*/
 div#slidesContOverlay
 {
-	position:absolute;left:0px;top:282px;width:220px;bottom:0px;margin:0px;padding:0px;overflow:auto;z-index:1000;
+	position:absolute;left:0px;top:282px;width:220px;height:100%;bottom:0px;margin:0px;padding:0px;overflow:auto;z-index:1000;
 	background-color:#202020;
 	opacity: 0.90;
 	filter: alpha(opacity=90);
