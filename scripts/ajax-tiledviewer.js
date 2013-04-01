@@ -93,6 +93,7 @@ var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE wo
 //var IEVersion = (isIE)? readIEVersion() : null; //not yet used
 var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
+var isiPhone= (navigator.userAgent.indexOf("iPhone") != -1)? true : false;
 var isTouchDevice = ("ontouchstart" in window)? true : false;
 
 
@@ -123,7 +124,7 @@ function init()
 	setHandlers();
 	
 	//Specific settings
-	if (isMobile && !isiPad) {setMobileOn();}
+	if ((isMobile || isiPhone) && !isiPad) {setMobileOn();}
 	//if (isiPad) {trackOrientation();}	
 
 	//shows or hides the coords panel
@@ -375,10 +376,10 @@ function setHandlers()
 	outerDiv.onmousedown = handleMouseDown; outerDiv.onmousemove = handleMouseMove; outerDiv.onmouseup = handleMouseUp; outerDiv.ondblclick= handleDblClick; 
 	outerDiv.ondragstart = function() { return false;};
 
-	//Workaround for iPad feature/bug: on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
+	//Workaround for iPad and iPhone feature/bug: on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
 	//prevent this from happening on iPad as on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
 	//http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/
-	if(!isiPad) 
+	if(!isiPad && !isiPhone) 
 	{
 		window.onresize=winsize; //moved to here to prevent error on Chrome
 	}

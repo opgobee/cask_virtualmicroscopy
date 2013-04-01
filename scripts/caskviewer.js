@@ -51,7 +51,7 @@ now.urlViewing = false;
  * Expected global vars in loaded files:
  * 
  * var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
- * var slideSetsMenus; //global var 'slideSetsMenus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
+ * var menus; //global var 'menus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
  */
 
 var currentSlideSetMenu = null;
@@ -63,13 +63,14 @@ var fitDone= {},fitAttempt=1; //fitDone= assoc array slideName = true/false indi
 var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
+var isiPhone= (navigator.userAgent.indexOf("iPhone") != -1)? true : false;
 var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
 var isAndroid= (navigator.userAgent.indexOf("Android") != -1)? true : false; //not detected on all Androids
 var isTouchDevice = ("ontouchstart" in window)? true : false; //may give wrong results
 var settingsCloseTimer;
 var slidesCont;
 var logwin;
-var slideSetsMenus = {};
+var menus = {}; //safety to prevent error in case the files menus.js is not loaded
 var slideSetsMenuData = Array();
 
 //////////////////////////////////////////
@@ -97,7 +98,7 @@ function init()
 	setHandlers();
 	
 	//unfortunately neccessary still: some device specific adaptations
-	if(isiPad)
+	if(isiPad || isiPhone)
 	{
 		setForiPad();
 	}
@@ -223,8 +224,8 @@ function setHandlers()
 
 
 /*
- * specific adaptations for iPad -unfortunately neccessary
- * Prevents the iFrame on iPad from expanding by holding it within a containerDiv that is dimensioned here
+ * specific adaptations for iPad and iPhone -unfortunately neccessary
+ * Prevents the iFrame on iPad and iPhone from expanding by holding it within a containerDiv that is dimensioned here
  * @return nothing
  * @action sets dimensions div#iFrameContainer
  */
@@ -282,14 +283,14 @@ function checkChosenOptions()
 ////////////////////////////////////////////	
 
 /*
- * From the datacontainer slideSetsMenus creates all slideSetsMenus (presently: menuAnatomicalRegions and menuInstitutionsModules) and places them in the slideSetsMenuPane
+ * From the datacontainer menus creates all slideSets - menus (presently: menuAnatomicalRegions and menuInstitutionsModules) and places them in the slideSetsMenuPane
  */
 function createSlideSetsMenus()
 {
 	//if the necessary file with links has not yet loaded, retry
-	if(slideSetsMenus.length == 0) {setTimeout("createSlideSetsMenu()",250);return;}
+	if(menus.length == 0) {setTimeout("createSlideSetsMenu()",250);return;}
 	
-	for (slideSetMenuName in slideSetsMenus)
+	for (slideSetMenuName in menus)
 		{
 			createSlideSetsMenu(slideSetMenuName);
 		}
@@ -323,11 +324,11 @@ function createSlideSetsMenu(slideSetMenuName)
  *	"menuAnatomicalRegions":
  *	[
  *		{
- *			"header":{showText:"CardioVascular System",infoText:"infoVariants",slides:""},
+ *			"header":{title:"CardioVascular System",slides:""},
  *			"sets":[
- *				{showText:"Vessels",infoText:"infoFrontPageChp",slides:"brain,hippocampus_humaan_normaal_he"},
- *				{showText:"BB",infoText:"infoHepVascVar",slides:""},
- *				{showText:"CC",infoText:"inforenVascVar",slides:""}
+ *				{title:"Vessels",slides:"brain,hippocampus_humaan_normaal_he"},
+ *				{title:"BB",slides:"view=carotis1"},
+ *				{title:"CC",slides:""}
  *				]
  *		},
  *	.....
@@ -337,7 +338,7 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 {
 	var entry;
 	loadedSlideSetMenuNames[loadedSlideSetMenuNames.length] = slideSetMenuName;
-	var slideSetsMenuData = slideSetsMenus[slideSetMenuName];
+	var slideSetsMenuData = menus[slideSetMenuName];
 	var str="";
 	
 	//header level
@@ -349,7 +350,7 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 		//create header
 		if(header)
 		{
-		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.showText + "</h3>";
+		str+="<h3 class='accordionHeader' onclick='loadSlideSet(\""+header.slides+"\")'>" + header.title + "</h3>";
 		}
 			//entries below header
 			if(sets)
@@ -359,7 +360,7 @@ function createSlideSetsMenuHtml(slideSetMenuName)
 				{
 				entry = sets[y];
 				//create an entry 
-				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.showText + "</div>";			
+				str+="<div class='accordionEntry' onclick='loadSlideSet(\""+entry.slides+"\")'>" + entry.title + "</div>";			
 				}
 			str+="</div>";
 			}
