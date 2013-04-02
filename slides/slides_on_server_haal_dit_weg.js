@@ -4,6 +4,24 @@ var slides={
 		"056_maag_mens_he" : {"path":"../slides/056_maag_mens_he/","res":0.2325,"width":64001,"height":64969,"credits":"LUMC_Anat","title":"056 Stomach human HE"},
 		"062_ureter_mens_adult_azan" : {"path":"../slides/062_ureter_mens_adult_azan/","res":0.2325,"width":21096,"height":18043,"credits":"LUMC_Anat","title":"062 Ureter human adult Azan"},
 		"062_ureter_mens_foetaal_azan" : {"path":"../slides/062_ureter_mens_foetaal_azan/","res":0.2325,"width":13046,"height":7633,"credits":"LUMC_Anat","title":"062 Ureter human fetal Azan"},
+		"077_testis_mens_neonaat_he_01" : {"path":"../slides/077_testis_mens_neonaat_he_01/","res":0.2325,"width":60057,"height":64578,"credits":"LUMC_Anat","title":"077 Testis human neonate HE 01"},
+		"078_testis_muis_he_01" : {"path":"../slides/078_testis_muis_he_01/","res":0.2325,"width":23245,"height":57440,"credits":"LUMC_Anat","title":"078 Testis mouse HE 01"},
+		"081_ductus_deferens_mens_azan" : {"path":"../slides/081_ductus_deferens_mens_azan/","res":0.2325,"width":14005,"height":11085,"credits":"LUMC_Anat","title":"081 Ductus deferens human Azan"},
+		"083_ovarium_mens_foetaal_he_01" : {"path":"../slides/083_ovarium_mens_foetaal_he_01/","res":0.2325,"width":24357,"height":19465,"credits":"LUMC_Anat","title":"083 Ovary human fetaal HE 01"},
+		"084_ovarium_kat_he_02" : {"path":"../slides/084_ovarium_kat_he_02/","res":0.2325,"width":32361,"height":40233,"credits":"LUMC_Anat","title":"084 Ovary cat HE 02"},
+		"084_ovarium_kat_he_03" : {"path":"../slides/084_ovarium_kat_he_03/","res":0.2325,"width":27767,"height":41865,"credits":"LUMC_Anat","title":"084 Ovary cat HE 03"},
+		"085_ovarium_mens_he_01_magn4" : {"path":"../slides/085_ovarium_mens_he_01_magn4/","res":0.93,"width":11236,"height":36279,"credits":"LUMC_Anat","title":"085 Ovary human HE 01"},
+		"085_ovarium_mens_he_02_magn4" : {"path":"../slides/085_ovarium_mens_he_02_magn4/","res":0.93,"width":11932,"height":35738,"credits":"LUMC_Anat","title":"085 Ovary human HE 02, overview (low res)"},
+		"085_ovarium_mens_he_02_part1" : {"path":"../slides/085_ovarium_mens_he_02_part1/","res":0.2325,"width":47756,"height":62130,"credits":"LUMC_Anat","title":"085 Ovary human HE 02, part 1 (high res)"},
+		"085_ovarium_mens_he_02_part2" : {"path":"../slides/085_ovarium_mens_he_02_part2/","res":0.2325,"width":47596,"height":53664,"credits":"LUMC_Anat","title":"085 Ovary human HE 02, part 2 (high res)"},
+		"085_ovarium_mens_he_02_part3" : {"path":"../slides/085_ovarium_mens_he_02_part3/","res":0.2325,"width":47756,"height":37853,"credits":"LUMC_Anat","title":"085 Ovary human HE 02, part 3 (high res)"},
+		"086_ovarium_varken_he_magn2" : {"path":"../slides/086_ovarium_varken_he_magn2/","res":0.465,"width":29626,"height":52531,"credits":"LUMC_Anat","title":"086 Ovary pig HE"},
+		"087_uterus_mens_he_magn2" : {"path":"../slides/087_uterus_mens_he_magn2/","res":0.465,"width":35470,"height":44509,"credits":"LUMC_Anat","title":"087 Uterus human HE"},
+		"087_uterus_mens_he_02_magn2" : {"path":"../slides/087_uterus_mens_he_02_magn2/","res":0.465,"width":34257,"height":46559,"credits":"LUMC_Anat","title":"087 Uterus human HE 02"},
+		"088_uterus_mens_he_magn2" : {"path":"../slides/088_uterus_mens_he_magn2/","res":0.465,"width":37833,"height":46624,"credits":"LUMC_Anat","title":"088 Uterus human HE"},
+		"088_uterus_mens_he_02_magn2" : {"path":"../slides/088_uterus_mens_he_02_magn2/","res":0.465,"width":38490,"height":48132,"credits":"LUMC_Anat","title":"088 Uterus human HE 02"},
+		"089_uterus_mens_he_01_magn2" : {"path":"../slides/089_uterus_mens_he_01_magn2/","res":0.465,"width":30478,"height":57465,"credits":"LUMC_Anat","title":"089 Uterus human HE 01"},
+		"089_uterus_mens_he_03" : {"path":"../slides/089_uterus_mens_he_03/","res":0.2325,"width":65165,"height":23427,"credits":"LUMC_Anat","title":"089 Uterus human HE 03"},
 		"090_nier_mens_adult_he_magn2" : {"path":"../slides/090_nier_mens_adult_he_magn2/","res":0.465,"width":46657,"height":64715,"credits":"LUMC_Anat","title":"090 Kidney human adult HE"},
 		"091_nier_mens_foetaal_he" : {"path":"../slides/091_nier_mens_foetaal_he/","res":0.2325,"width":53259,"height":47440,"credits":"LUMC_Anat","title":"091 Kidney human fetal HE"},
 		"091_nier_mens_foetaal_he_01_magn2" : {"path":"../slides/091_nier_mens_foetaal_he_01_magn2/","res":0.465,"width":40431,"height":39139,"credits":"LUMC_Anat","title":"091 Kidney human fetal HE 01"},
@@ -43,7 +61,8 @@ var slides={
 		"hippocampus_humaan_normaal_he" : {"path":"../slides/hippocampus_humaan_normaal_he/","res":0.921,"width":27953,"height":19748,"credits":"LUMC_Anat","title":"Hippocampus, human. Normal. HE."},
 		"hippocampus_humaan_ad_he1" : {"path":"../slides/hippocampus_humaan_ad_he1/","res":0.921,"width":24841,"height":17915,"credits":"LUMC_Anat","title":"Hippocampus, human. Alzheimer's Disease. HE."},
 		"hippocampus_humaan_ad_tau_protein" : {"path":"../slides/hippocampus_humaan_ad_tau_protein/","res":0.921,"width":24888,"height":17733,"credits":"LUMC_Anat","title":"Hippocampus, human. Alzheimer's Disease. Tau Protein."}
-		};
+
+};
 
 
 
