@@ -5,18 +5,6 @@
  * license: Creative Commons: BY NC SA
  * Basically: You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
  * This notification should be kept intact, also in minified versions of the code. 
- * 
- * How it works:
- * frameset full.html refers to nav frame nav.html with scripts nav_pane.js and main frame 'view' main.html with scripts ajax-tiledviewer.js
- * If no slide is requested in the parent's URl (that is in the URL of the frameset, the URL the user sees), blank.html is loaded in the main frame
- * If one of the slides in the slide selection menu (created here) is clicked, the parent will be reloaded with the slide request aded to the query: ?slide=..slidename...
- * If a slide IS requested in the parent's URl (either because it was direcly externally called with that, or because the parent was reloaded with the slide request, then viewer file is called in the main frame, with the query (including the requested slide) appended to it
- * So: basically 2 possible ways to show a slide:
- * 1. the BMCviewer is called direct from the start with a slide request: '....pathtoBMCviewer.../full.html?slide=slideName' --> the nav panel is shown, but the requested slide is directly loaded in the main panel
- * 2. the BMCviewer is called without a slide request: '....pathtoBMCviewer.../full.html'. 
- * 		- the user clicks one of the slides in the slide selection menu
- * 		- a reload of the parent is done with a slide request: '....pathtoBMCviewer.../full.html?slide=slideName'
- * 		- step 1 is executed
  *
  */
 
@@ -24,7 +12,7 @@
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
 var initialSlideSet = "view=carotis1,4qw_rot"; //slideSet to load opening //@TODO: put this in the menus.js file
-var urlViewerFile = "../html/main.html";
+var urlViewerFile = "../html/tiledviewer.html";
 var urlSlideImg = "../img/slide.jpg";
 var urlSensorImg = "../img/emptyimage.gif";
 var spaceRatio = 2.307692307692308; //w/h ratio of thumbs projected on slides

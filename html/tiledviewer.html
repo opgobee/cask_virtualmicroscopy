@@ -213,16 +213,16 @@ var islteIE8 = false;
 </script>
 
 <!--[if lte IE 7]>
-	<link rel="stylesheet" href="../css/main_ie7.css" type="text/css" />
+	<link rel="stylesheet" href="../css/tiledviewer_ie7.css" type="text/css" />
 <![endif]-->
 <!--[if lte IE 8]>
-	<link rel="stylesheet" href="../css/main_ie8.css" type="text/css" />
+	<link rel="stylesheet" href="../css/tiledviewer_ie8.css" type="text/css" />
 	<script>
 		islteIE8 = true;
 	</script>
 <![endif]-->
 <!--[if IE]>
-	<link rel="stylesheet" href="../css/main_ie.css" type="text/css" />
+	<link rel="stylesheet" href="../css/tiledviewer_ie.css" type="text/css" />
 <![endif]-->
 
 
@@ -234,11 +234,9 @@ var islteIE8 = false;
 <script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.1.custom.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery.autosize.js"></script>
 
-<!-- pm: "http://code.jquery.com/jquery-latest.js" -->
-
 <!--  Viewer engine -->
 <script src="../scripts/common.js" type="text/javascript" ></script>
-<script src="../scripts/ajax-tiledviewer.js" type="text/javascript"></script>
+<script src="../scripts/tiledviewer.js" type="text/javascript"></script>
 
 <!-- slides info -->
 <script src="../slides/slides.js" type="text/javascript"></script>
@@ -261,18 +259,11 @@ var islteIE8 = false;
 <div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
 
 <div id="barCont">
-<!-- Old bar images, keep a moment, might be necessary for old IE fallback that sometimes breaks the div version
-	<img id="bar_left" src="../img/bar_vert.gif" class="bar" />
-	<img id="bar_right" src="../img/bar_vert.gif" class="bar" />
-	<img id="bar_mid" src="../img/bar_mid.gif" class="bar" /> -->
-
 	<div id="bar_left"  class="bar verticalLine" ></div>
 	<div id="bar_mid" class="bar horizontalLine"></div>
 	<div id="bar_right" class="bar verticalLine"></div>
-
 	<div id="theScale2"></div><div id="theScale1"></div> 
 </div> 
-
 
 <div id="outerDiv0">
 	<div id="outerDiv">
@@ -328,8 +319,6 @@ var islteIE8 = false;
 	</div><!-- eof thumbContainer -->
 		
 	<div id="zoomButtonsContainer">
-	<!--	<img id="zoomin" src="../img/zoomin.png" onclick="btZoomIn()" onmouseover="showZoomInTips()" onmouseout="hideTips()"/> --> 
-	<!--	<img id="zoomout" src="../img/zoomout.png" onclick="btZoomOut()"  onmouseover="showZoomOutTips()" onmouseout="hideTips()"/> -->
 		<img id="zoomin" src="../img/zoomin.png" />  
 		<img id="zoomout" src="../img/zoomout.png" />
 	</div> 
