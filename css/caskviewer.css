@@ -80,15 +80,16 @@ img#logoCask {position:absolute;left:0px;top:0px;border:none;}
 a#linkToCask {position:absolute;left:0px;top:0px;width:80px; height:100px;}
 img#logoInstitution {position:absolute;right:5px;top:5px;border:none;cursor:pointer; box-shadow: 5px 5px 5px #808080} /*left:58px;top:3px;*/
 
-img#buttonEditLabelsOn, img#buttonEditLabelsOff {position:absolute;left:115px;top:80px;cursor:pointer;}
+div#buttonInfo {position:absolute;left:100px;top:76px;cursor:pointer;font-family:Times serif; color:#afafaf; font-style:italic; font-weight:bolder; font-size: 2em;}
+img#buttonEditLabelsOn, img#buttonEditLabelsOff {position:absolute;left:122px;top:80px;cursor:pointer;}
 div#editLabelPanel {display:none;position:absolute;left:0px;top:112px;width:208px;padding:10px 5px 10px 5px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial,Helvetica,sans-serif;z-index:200;}
 	div#labelPanelInfo h5 {font-weight:bold;text-decoration:underline}
 	div#labelPanelInfo {font-size:80%;color:#808080;margin-bottom:10px;line-height:1.8em;}
 	img.linkIconSmall{width:18px;height:18px;}
 	#addLabelButton {width:90%;height:30px;vertical-align:middle;}
 	img#closeLabelPanel{float:right;}
-img#buttonShowUrlBar, img#buttonCloseUrlBar {position:absolute;left:150px;top:80px;cursor:pointer;}
-img#buttonWrench {position:absolute;left:180px;top:75px;cursor:pointer;}
+img#buttonShowUrlBar, img#buttonCloseUrlBar {position:absolute;left:157px;top:80px;cursor:pointer;}
+img#buttonWrench {position:absolute;left:187px;top:75px;cursor:pointer;}
 	div#settingsDiv {display:none;position:absolute;left:0px;top:112px;width:212px;padding:3px;z-index:10;background-color:white;border:1px solid black;overflow:auto;font-family:Arial,Helvetica,sans-serif;z-index:200;}
 .shiftUp{position:relative;top:-10px;}
 
@@ -186,6 +187,27 @@ img#buttonCloseUrlBar2
 	cursor:pointer;
 }
 
+div#infoPanel {
+	display: none;
+	position:absolute;
+	left:250px;right:30px;top:30px;bottom:30px;
+	border: #021a44 solid 4px;
+	box-shadow: 0px 0px 20px 10px #808080;
+	padding:15px;
+	background: #fafafa;
+	color: #aaaaaa;
+	font-family: Arial, Helvetica, sans-serif;
+	overflow:auto;
+}
+	div#infoPanel #buttonCloseInfoPanel {float:right;cursor:pointer;}
+	div#infoPanel h1 {font-size: 2em; font-weight:bold;margin-top:20px;}
+	div#infoPanel p {margin-top:15px;}
+	div#infoPanel .strong {font-weight:bold;}
+	div#infoPanel ul {margin:10px 0px 10px 0px;padding-left:1em;} /*CSS Definitive Guide, E.A. Meyer*/
+	div#infoPanel li {list-style:disc;font-size:0.8em;padding-top:0.3em;}
+	div#infoPanel a {color:#aaaaaa; text-decoration:none;}
+	div#infoPanel a:hover {color:#404040; text-decoration:underline;}
+	
 div#chromeLocalWarning
 {
 	position:absolute;left:45%;top:40%;display:none;width:400px;height:100px;border: 3px solid white;background-color:#021a44;color:white;font-family:Arial,Helvetica,sans-serif;font-size:1em;padding:10px;z-index:10

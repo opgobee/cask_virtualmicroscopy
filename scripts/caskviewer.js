@@ -39,7 +39,7 @@ now.urlViewing = false;
  * Expected global vars in loaded files:
  * 
  * var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
- * var menus; //global var 'menus' containing the menus of slideSets. Is now defined and set in slidesets_menus.js
+ * var menus; //global var 'menus' containing the menus of slideSets. Is now defined and set in menus.js
  */
 
 var currentSlideSetMenu = null;
@@ -163,6 +163,10 @@ function setHandlers()
 	
 	ref("slidesContOverlay").onclick = hideSlideSetsMenuPane;
 	ref("slidesContOverlay").ontouchstart = hideSlideSetsMenuPane;
+	
+	//the info icon
+	ref("buttonInfo").onclick = showHideInfo;
+	ref("buttonCloseInfoPanel").onclick = showHideInfo;
 	
 	//the flag icon
 	ref("buttonEditLabelsOn").onclick = openSetLabelPanel;
@@ -290,9 +294,6 @@ function createSlideSetsMenus()
 
 /*
  * calls html creation of slidesetmenu, appends it and attaches accordion behaviour
- * xx-3-2009 NEW
- * 20-5-2009 CHG removed SlideSetsMenuPaneSenser (mut 1 & 2) and set SlideSetsMenuPaneTab to react to mouseover instead of click (mut 3)
- * 15-2-2012 CHG made it to retry with a timeout if the file with the slideSetsMenuData has not yet loaded - first it simply exited
 */
 function createSlideSetsMenu(slideSetMenuName)
 {
@@ -301,8 +302,9 @@ function createSlideSetsMenu(slideSetMenuName)
 	//insert the html
 	jQ("#SlideSetsMenuPane").append(slideSetsMenuHtml);	
 	//set accordion behaviour
-	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7
-	jQ(".slideSetsMenu").accordion({collapsible:true,active:false,autoHeight:false});
+	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7, 
+	//CHG 6-4-2013 option autoHeight:false changed to heightStyle:"content", seems to have been replaced by this
+	jQ(".slideSetsMenu").accordion({collapsible:true,active:false,heightStyle:"content"});
 }
 
 
@@ -834,6 +836,15 @@ function applySettings()
  * test for ("ontouchstart" in window) to detect touch support. Failed: gave 'true' over RDP on Chrome on desktop
  * detecting touch even doesnt work now Why?
  */
+
+/*
+ * shows or hides the info page
+ */
+function showHideInfo()
+{
+	jQ("#infoPanel").toggle();
+}
+
 /*
 function touchOpenSetLabelPanel()
 {
@@ -898,11 +909,6 @@ function addLabel()
 	}	
 }
 
-/*function touchShowUrlBar()
-{
-ih("touch showUrlBar")	
-}
-*/
 
 /*
  * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
