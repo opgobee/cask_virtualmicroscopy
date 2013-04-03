@@ -1,12 +1,30 @@
-//Written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.   You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
-//Extensively modified by Paul Gobee, Leiden Univ. Med. Center, Netherlands, 2010.   Contact: o.p.gobee--at--lumc.nl. This notification should be kept intact, also in minified versions of the code.
-//iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
+/*
+ * Core functionality (virtual slide, thumbnail, basic labels) written by Shawn Mikula, 2007 in brainmaps API.  Contact: brainmaps--at--gmail.com.   
+ * Extensively modified (IE support, zoom on mouse location, zoomout by holding mousedown, online GUI labelling, direct URLs, touch support, credits, debugging, etc) by Paul Gobee, 2010-2013, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o--dot--p--dot--gobee--at--lumc--dot--nl 
+ * See also: http://www.caskanatomy.info/microscopy and www.caskanatomy.info/products/caskviewer
+ * iPhone/iPad modifications on virtual slide written by Matthew K. Lindley; August 25, 2010
+ * You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+ * This notification should be kept intact, also in minified versions of the code. 
+ *
+ */
 
-
-
+/*
+ * Expected global vars in loaded files:
+ * 
+ * var slides;  //global var 'slides' containing the list of slides. Is defined and set in file slides.js
+ * var menus;   //global var 'menus' containing the menus of slideSets. Is defined and set in file menus.js
+ * var views;   //global var 'views' containing stored URL-queries to load specific slide with pre-set position, zoom and labels. Is defined and set in file views.js
+ * var credits; //global var 'credits' contianing credit information. Is defined and set in file credits.js
+ * 
+ * Expected scripts:
+ * 
+ * file common.js with support scripts
+ * jQuery  
+ * jQuery ui
+ * jQuery autosize.js
+ * 
+ */
 //alert("load main page");
-
-var labelsPathInSlidesFolder = "labels.js"; //the default path (fileName) of the file with labels in the slides folder
 
 var settings= {}; //container object for settings
 settings.slideName = null;
@@ -125,7 +143,7 @@ function init()
 	
 	//Specific settings
 	if ((isMobile || isiPhone) && !isiPad) {setMobileOn();}
-	//if (isiPad) {trackOrientation();}	
+	//if (isiPad) {trackOrientation();}	//was neccessary on iPad 1, doesn't seem needed anymore
 
 	//shows or hides the coords panel
 	showHideCoordinatesPanel();
@@ -261,7 +279,6 @@ function setGlobalReferences()
 	tips=ref('tips');
 	logwin=document.getElementById("log"); 
 	logwin.ondblclick=resetlog;
-
 }
 
 /*
@@ -326,7 +343,7 @@ function queryArgsToSettings(queryArgs1)
 }
 
 /*
- * Discards settings for details settings: x, y, zoom, labels etc
+ * Discards settings for details settings: x, y, zoom, labels etc. Is NOT used presently..
  * This is used when the URL request has both a 'view' request and x, y, zoom, labels etc requests (= details-requests) .
  * Then the view request has precedence. To prevent possible unclarities, discard the settings caused by the details-requests.
  */
@@ -436,8 +453,9 @@ function setHandlers()
 }
 
 
-
-//do calculations and rendering for which width and height are needed	
+/*
+ * do calculations and rendering for which width and height are needed	 
+ */
 function showInitialView() 
 {//ih("init");
 
@@ -453,7 +471,7 @@ function showInitialView()
 	imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
 	imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
 	
-//ih("init-winsize");
+	//ih("init-winsize");
 	winsize();//do after onload for IE
 
 	/////////////////
@@ -484,10 +502,10 @@ function showInitialView()
 		renderLabels();
 		} 
 
-//ih("init-showThumb");
+	//ih("init-showThumb");
 	if (!settings.hideThumb) 	{showThumb();}
 		
-//ih("init-updateDiverse");
+	//ih("init-updateDiverse");
 	//resizeBackgroundDiv(); 
 	//loads the tiles
 	checkTiles(); 
@@ -503,7 +521,9 @@ function showInitialView()
 	if(hasSmallViewport()) {adaptDimensions();}
 }
 
-
+/*
+ * shows credit info in credits area bottom left on slide
+ */
 function showCredits()
 {
 	if(data.credits.logo)
@@ -575,7 +595,9 @@ function winsize()
 	//ih("WINSIZE: viewportWidth="+viewportWidth+", viewportHeight="+viewportHeight+"<br>");
 }
 
-//handles mousewheel
+/*
+ * handles mousewheel
+ */
 function handle(delta) 
 { 
 	zoomCenterOnCursor= true;
@@ -627,12 +649,12 @@ else if( k == 37 || k== 38 || k== 33){ slidePrev();}
 if(navigator.appName!= "Mozilla"){document.onkeyup=capturekey}
 else{document.addEventListener("keypress",capturekey,true);}
 
-	
+/*
+ * handles actions after mousedown event
+ */	
 function handleMouseDown(event)
 	{if(!event) {event=window.event;}
 	
-	//still needed?
-	//if(eventIsOnNewLabel(event)) {return;}
 	//ih("mouseDown ");
 	clearZoomOutTimer();
 	downX=event.clientX;
@@ -645,11 +667,11 @@ function handleMouseDown(event)
 	//hideUrlBarAndSizeIndicators(); //presently not called, keep for a while
 	//ih("isIE"+isIE+", downX="+downX+", downY="+downY+", autoZooming="+autoZooming)
 	}	
-
+/*
+ * handles actions after mouseup event
+ */	
 function handleMouseUp(event)
 	{
-	//still needed?
-//	if(eventIsOnNewLabel(event)) {return;}
 
 	//ih("mouseUp<br>");
 	clearZoomOutTimer(); //cancel autozoomout
@@ -657,10 +679,11 @@ function handleMouseUp(event)
 	stopMove(event);
 	}
 	
+/*
+ * handles actions after doubleclick event
+ */	
 function handleDblClick(event)
 	{
-	//still needed?
-//	if(eventIsOnNewLabel(event)) {return;}
 
 	//ih("dblclick ");
 	clearZoomOutTimer(); //cancel autozoomout
@@ -668,13 +691,13 @@ function handleDblClick(event)
 	ZoomIn();
 	}	
 
-
+/*
+ * handles actions after mousemove event
+ * 
+ */	
 function handleMouseMove(event)
 	{if(!event) {event=window.event;}
 	
-	//still needed?
-	//if(eventIsOnNewLabel(event)) {return;}
-
 	//ih("mouseMove, "+event.clientX+","+event.clientY+"; ");
 	
 	//keep track of cursorposition to enable cursorposition-centered zooming
@@ -696,22 +719,7 @@ function handleMouseMove(event)
 	processMove(event);
 	}
 
-/*
- * determines whether an event happened on a new label
- * uses the fact that newlabels have an id "NL..."
- */
-/*
-function eventIsOnNewLabel(event)
-{
-   //this crashes IE 7, 8!!!!!!!
-	var targetId = event.target.id;
-  
-   return false;
-   var result = (targetId.substring(0,2) =="NL")? true : false;
-   //if(result) {ih("Cancelled from: "+targetId);}
-   return result;
-}
-*/
+
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -731,7 +739,11 @@ function startMove(event)
 	dragging = true; return false;
 	}
 
-
+/*
+ * Does all things needed when slide is dragged: moves slide and updates URL in URL bar
+ * Also shows mouse coordinates in coordinates panel, if show coords is true
+ * @TODO: For performance: replace duplicate if (settings.showCoordinatesPanel) and if(isDisplayingUrl) by a single if checking a single setting.
+ */
 function processMove(event) 
 {//ih("processmove ");
 	if (!event){ event = window.event;}
@@ -970,13 +982,18 @@ function ZoomOut()
 }
 
 
-//hide labels at low zoom, because then the labels appear to be offset, probably due to Zoomify inaccuracies at high size reductions (=low zoom)
+/*
+ * NOT used anymore, not neccessary anymore works well now.
+ * hide labels at low zoom, because then the labels appear to be offset, probably due to Zoomify inaccuracies at high size reductions (=low zoom)
+ */
 function lowZoomHideLabels()
 	{if(now.zoom<=1) {elem.imageLabels.style.display="none";}
 	else {elem.imageLabels.style.display="block";}
 	}
 	
-
+/*
+ * Does the auto zoomout when the mouse is held down
+ */
 function autoZoomOut()
 	{
 	//ih("autoZoomOut called, zoomOutTimer="+zoomOutTimer+"<br>");
@@ -1008,7 +1025,9 @@ function clearZoomOutTimer()
 	//ih("timer cancelled ");
 	}	
 
-	
+/*
+ * shows changing tips on zoom in button (magnifier + button) about different ways to zoom in
+ */	
 function showZoomInTips()	
 	{if(!mobile)
 		{if(!zoomInTipsShown) {autoShowZoomInTips();}
@@ -1016,6 +1035,9 @@ function showZoomInTips()
 		}	
 	}
 	
+/*
+ * shows changing tips on zoom out button (magnifier - button) about different ways to zoom out
+ */	
 function showZoomOutTips()	
 	{if(!mobile)
 		{if(!zoomOutTipsShown) {autoShowZoomOutTips();}
@@ -1138,6 +1160,9 @@ function centerOn(xcoord,ycoord)
 	setInnerDiv(x,y);
 }
 
+/*
+ * Centers the innerDiv that contains the image, in the middle of the viewport
+ */
 function centerMap()
 {//ih("in centerMap1");
 	if(dimensionsKnown())
@@ -1153,8 +1178,12 @@ function centerMap()
 	}	
 }
 
+/*
+ * Keeps the innerDiv that contains the image within the viewPort upon attempt to drag it out viewPort
+ */
 function keepInViewport()
-	{//safety factor, keep minimally this amount of pixesl of image in view
+	{
+	//safety factor, keep minimally this amount of pixels of image in view
 	var minPixelsInView = 25;
 
 	var imgLeft = stripPx(innerStyle.left); 
@@ -1235,10 +1264,10 @@ function checkTiles()
 	for (i = 0; i < visibleTiles.length; i++)  //each entry is a tile, contains an array [x,y], number of tiles that would fit in the viewport
 		{ var tileArray = visibleTiles[i]; //for this tile
 		
-//ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))) +"viewportWidth="+viewportWidth+"<br>");
+		//ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))) +"viewportWidth="+viewportWidth+"<br>");
 		pCol=tileArray[0]; 
 		pRow=tileArray[1]; 
-//ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels there are far more pCol and pRow than actually called (and available) pictures
+		//ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels there are far more pCol and pRow than actually called (and available) pictures
 
 		//determine tilegroupnum, each tilegroup contains 256 images, theoffset is sequential num of img
 		tier=now.zoom; 
@@ -1246,21 +1275,21 @@ function checkTiles()
 		for (var theTier=0; theTier<tier; theTier++) theOffset += gTileCountWidth[theTier]*gTileCountHeight[theTier]; 
 		_tileGroupNum=Math.floor(theOffset/256.0); 
 		
-//ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
+		//ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
 
 
 		if (pCol<gTileCountWidth[now.zoom] && pRow<gTileCountHeight[now.zoom])
 			{var tileName = "TileGroup" + _tileGroupNum + "/" + now.zoom + "-" + pCol + "-" + pRow + ".jpg";
-//ih("TILENAME CREATED</br>");
+			//ih("TILENAME CREATED</br>");
 			}
 
 		visibleTilesMap[tileName] = true; 
 		var img = document.getElementById(tileName); 
-//if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
+		//if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
 		if (!img) 
 			{ img = document.createElement("img"); 
 			img.src = imgPath + tileName; 
-//ih("GETTING IMAGE: "+tileName+"</br>");
+			//ih("GETTING IMAGE: "+tileName+"</br>");
 			img.style.position = "absolute"; 
 			img.style.left = (tileArray[0] * tileSize) + "px"; 
 			img.style.top = (tileArray[1] * tileSize) + "px"; 
@@ -1316,7 +1345,10 @@ function getVisibleTiles()
 // THUMB
 //
 /////////////////////////////////////////////////////////////////////
-	
+
+/*
+ * Creates and shows the thumbnail iamge with the viewindicator
+ */
 function showThumb()
 {//alert("in showThumb: imgWidthMaxZoom="+imgWidthMaxZoom+", imgHeightMaxZoom="+imgHeightMaxZoom)
 	
@@ -1344,8 +1376,8 @@ function showThumb()
 	elem.controlsContainer.style.width= ((thumbContainerWidth > zoomButtonsDim.width)?  thumbContainerWidth : zoomButtonsDim.width)  +"px";
 	elem.zoomButtonsContainer.style.top= thumbContainerHeight + 10  +"px";
 
-//ih("zoomButtonsDim.height="+zoomButtonsDim.height+", thumbContainerHeight="+thumbContainerHeight+", controlsContPos.height"+controlsContPos.height+", controlsContPos.width="+controlsContPos.width+"<br>"); 
-//ih("thumbHeight="+thumbHeight+", thumbWidth="+thumbWidth+"<br>"); 
+	//ih("zoomButtonsDim.height="+zoomButtonsDim.height+", thumbContainerHeight="+thumbContainerHeight+", controlsContPos.height"+controlsContPos.height+", controlsContPos.width="+controlsContPos.width+"<br>"); 
+	//ih("thumbHeight="+thumbHeight+", thumbWidth="+thumbWidth+"<br>"); 
 		
 	//connect handlers
 	if(isTouchDevice)
@@ -1374,6 +1406,9 @@ function getViewIndicatorPosition(event)
 	return o;
 }
 
+/*
+ * handles mouse move of viewindicator
+ */
 function startMouseThumbMove(event)
 {
 	if (!event){ event = window.event;}
@@ -1383,7 +1418,9 @@ function startMouseThumbMove(event)
 	thumbDragging = true; 
 	return false;
 }
+
 /*
+ * handles touch move of view indicator
  * Note: uses direct event.touches for performance, to prevent flipping out on touch devices that are less powerful than desktops
  */
 function startTouchThumbMove(event)
@@ -1400,7 +1437,9 @@ function startTouchThumbMove(event)
 }
 
 /*
- * Note : does not move viewIndicatorSenser, but only in the final stopThumb. viewIndicatorSenser is not needed here as movement is sensed on the thumbContainer 
+ * Moves the viewindicator (cyan rectangle on thumb) when dragging it by mouse
+ * Note: for performance: does not move viewIndicatorSenser (the senser), but only in the final stopThumb. viewIndicatorSenser is not needed here as movement is sensed on the thumbContainer 
+ *  
  */
 function processMouseThumbMove(event)
 { 
@@ -1412,8 +1451,8 @@ function processMouseThumbMove(event)
 }
 
 /*
- * 
- * for performance, to prevent flipping out on touch devices that are less powerful than desktops:
+ * Moves the viewindicator (cyan rectangle on thumb) when dragging it by touch
+ * Notes: for performance, to prevent flipping out on touch devices that are less powerful than desktops:
  * 1: uses direct event.changedTouches 
  * 2: does not move viewIndicatorSenser, but only in the final stopThumb. viewIndicatorSenser is not needed here as movement is sensed on the thumbContainer 
  */
@@ -1445,6 +1484,8 @@ function stopTouchThumb(event)
 
 /*
  * handles both end of drag viewIndicator and random click positioning on thumb
+ * repositions the slide to the new position
+ * repositions viewIndicator and viewindicatorsenser (cyan rectangle on thumb) to the new position (needed when clicked or tapped on thumb)
  */
 function stopThumb(eventX,eventY)
 {
@@ -1520,55 +1561,56 @@ function moveViewIndicator()
 
 //////////////////////////////////////////////////////////////////////
 //
-// LENGTH INDICATOR BAR
+// SCALE INDICATOR BAR
 //
 /////////////////////////////////////////////////////////////////////
 
 
 function updateLengthBar() 
-{//settings.res = um/px
-//you want a bar between 50 and 125px long
-var um50 = Math.pow(2,gTierCount-1-now.zoom)*settings.res*50; // micrometers equiv. with 50 px
-var um125 = um50 * 2.5; // micrometers equiv. with 100 px
-
-var step=[1,2,5];
-var pow10 = 1;
-var found= false;
-var barUm; //amount of micrometers of bar
-
-//get round amount of micrometers that correlates with a bar between 50 and 125 px
-loop: 
-while (!found)
-	{for(var i=0; i < 3; i++)
-		{barUm = step[i] * pow10; //makes steps: 1,2,5,10,20,50,100,200,500,1000, etc.
-		if( um50 <= barUm && barUm <= um125)
-			{found= true;
-			break loop;
+{
+	//settings.res = um/px
+	//you want a bar between 50 and 125px long
+	var um50 = Math.pow(2,gTierCount-1-now.zoom)*settings.res*50; // micrometers equiv. with 50 px
+	var um125 = um50 * 2.5; // micrometers equiv. with 100 px
+	
+	var step=[1,2,5];
+	var pow10 = 1;
+	var found= false;
+	var barUm; //amount of micrometers of bar
+	
+	//get round amount of micrometers that correlates with a bar between 50 and 125 px
+	loop: 
+	while (!found)
+		{for(var i=0; i < 3; i++)
+			{barUm = step[i] * pow10; //makes steps: 1,2,5,10,20,50,100,200,500,1000, etc.
+			if( um50 <= barUm && barUm <= um125)
+				{found= true;
+				break loop;
+				}
 			}
+		pow10 *= 10;
 		}
-	pow10 *= 10;
-	}
-
-//get width of bar (in fact it's length, but as it is a horizontal bar it is the width in css)
-var barWidth = Math.round( barUm  * 50 / um50) - 4; //4 = 2 * vert. bars are each 2 px wide
-
-//calculate and set positions of bar-divs
-var barMidPos = 100; //barContainer = 200 px, middle = 100 !this is not an example!, these are the actual values
-var barLeftPos =  barMidPos - Math.round (barWidth/2); 
-ref("bar_left").style.left = (barLeftPos - 2) +"px"; //vert bar= 2px width
-ref("bar_mid").style.left = barLeftPos +"px";
-ref("bar_mid").style.width = barWidth +"px";
-ref("bar_right").style.left = (barLeftPos + barWidth) +"px";
-
-//set resunits to um, mm or cm.
-var resunits ="";
-if 		(pow10  < 1000) 	{resunits= "&micro;m";}
-else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
-else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
-
-// display bar-length
-var txt= barUm + "  " + resunits + "<br />zoom level: " + now.zoom + "/" + (gTierCount-1);
-ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
+	
+	//get width of bar (in fact it's length, but as it is a horizontal bar it is the width in css)
+	var barWidth = Math.round( barUm  * 50 / um50) - 4; //4 = 2 * vert. bars are each 2 px wide
+	
+	//calculate and set positions of bar-divs
+	var barMidPos = 100; //barContainer = 200 px, middle = 100 !this is not an example!, these are the actual values
+	var barLeftPos =  barMidPos - Math.round (barWidth/2); 
+	ref("bar_left").style.left = (barLeftPos - 2) +"px"; //vert bar= 2px width
+	ref("bar_mid").style.left = barLeftPos +"px";
+	ref("bar_mid").style.width = barWidth +"px";
+	ref("bar_right").style.left = (barLeftPos + barWidth) +"px";
+	
+	//set resunits to um, mm or cm.
+	var resunits ="";
+	if 		(pow10  < 1000) 	{resunits= "&micro;m";}
+	else if (pow10 == 1000) 	{resunits= "mm"; barUm = (barUm / 1000);}
+	else if (pow10 >= 10000)	{resunits= "cm"; barUm = (barUm / 10000);}
+	
+	// display bar-length
+	var txt= barUm + "  " + resunits + "<br />zoom level: " + now.zoom + "/" + (gTierCount-1);
+	ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
 
 }
 
@@ -1583,7 +1625,9 @@ ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
 //
 ///////////////////////////////////////////
 
-	
+/*
+ * Creates and displays the fixed labels (ie not the 'new' labels in edit label mode)
+ */	
 function renderLabels() 
 {
 	if(!dimensionsKnown()) 
@@ -1851,7 +1895,10 @@ function setLabelOffsetHeight()
 }
 
 
-
+/*
+ * Positions the slide with the specified label shown in the middle of the viewport. If called 'focus=labelname' in URL-query
+ * @TODO: check if this still functions
+ */
 function focusOnLabel()
 {
 	if(settings.focusLabel)
@@ -1864,6 +1911,17 @@ function focusOnLabel()
 	}
 }
 
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// EDIT OR ADD LABELS
+//
+//////////////////////////////////////////////////////////////////////////////
+/*
+ * INFO: New label is the same as a label in edit mode. 'New label' and 'label in edit mode' are used interchangeably.
+ * Upon setting a label from a fixed label to edit mode (click on pencil icon), the fixed label is deleted and a new label with the content of the fixed label is created.
+ * When a new label is fixed (click on green checkmark on new label), the new/edit label is deleted and a fixed label with the content of the new/edit label is created.
+ */
 
 /*
  * Creates a newLabelData object in data.newLabels and creates the newlabel in the DOM
@@ -2071,6 +2129,9 @@ function createNewLabelInDom(labelData)
 	
 }
 
+/*
+ * Opens the textarea below label in which user can enter the text that is to be shown on tooltip on label
+ */
 function  openNewLabelTooltipTextArea(newLabelId)
 {
 	var newLabelTooltipId = newLabelId  +"Tooltip"; 
@@ -2091,6 +2152,9 @@ function closeNewLabelTooltipTextArea(newLabelId)
 	now.newLabelTooltipIsOpen[newLabelTooltipId] = false;
 }
 
+/*
+ * At mouseover down-arrow transparently shows the textarea below label with the text that is to be shown on tooltip on label
+ */
 function previewNewLabelToolTipTextArea(newLabelId)
 {
 	var newLabelTooltipId = newLabelId  +"Tooltip"; 
@@ -2112,7 +2176,9 @@ function hidePreviewNewLabelToolTipTextArea(newLabelId)
 	//ih("arwdown mouseout")
 }
 
-
+/*
+ * reenables previewing of tooltip textarea (see disablePreviewNewLabelToolTipTextArea() ) 
+ */
 function enablePreviewNewLabelToolTipTextArea(newLabelId)
 {
 	var newLabelTooltipId = newLabelId  +"Tooltip"; 
@@ -2120,6 +2186,9 @@ function enablePreviewNewLabelToolTipTextArea(newLabelId)
 	//ih("enabled preview of "+newLabelTooltipId)	
 }
 
+/*
+ * previewing tooltip textarea is disabled after user clicked the arw-up to close textarea, until user has moused out the arw button (otherwise closing textarea by clicking arw would seem not to work, as mouse is still above arw up button
+ */
 function disablePreviewNewLabelToolTipTextArea(newLabelId)
 {
 	var newLabelTooltipId = newLabelId  +"Tooltip"; 
@@ -2128,7 +2197,6 @@ function disablePreviewNewLabelToolTipTextArea(newLabelId)
 }
 /*
  * variant on the general addTooltips function. This positions the tooltip differently to not overlap the textarea
- * 
  */
 function initNewLabelTooltips()
 {
@@ -2150,7 +2218,9 @@ function initNewLabelTooltips()
 }
 
 
-
+/*
+ * positions the crosshair on the new label, at front of and at half the height of the first line of text
+ */
 function positionCrossHairs()
 {
 	var left = - settings.crosshairWidth/2;
@@ -2160,12 +2230,18 @@ function positionCrossHairs()
 	jQ(".newLabelCrosshair").css({ "left": left +"px", "top": top +"px"});
 }
 
+/*
+ * positions the red x on new labels
+ */
 function positionNewLabelCloseButtons(labelWidth)
 {
 	labelWidth = labelWidth -14;
 	jQ(".newLabelClose").css({ "left": labelWidth +"px", "top": "-16px"});
 }
 
+/*
+ * deletes a new/edited label
+ */
 function removeNewLabel(newLabelId)
 {
 	//alert("remove "+newLabelId)
@@ -2203,7 +2279,11 @@ function setLabelsToEditMode()
 	now.labelMode = "edit";
 }
 
-
+/*
+ * Makes an existing 'fixed' bale editable
+ * The fixed label is deleted and a new label with the content of the fixed label is created.
+ * 
+ */
 function makeLabelEditable(labelId)
 {
 	createNewLabel(data.labels[labelId]);
@@ -2238,7 +2318,8 @@ function fixLabels()
 }
 
 /*
- * converts editable new label to a fixed label
+ * Converts editable / new label to a fixed label (click on green checkmark on new label or close edit mode for all labels)
+ * The new/edit label is deleted and a fixed label with the content of the new/edit label is created.
  */
 function fixLabel(newLabelId)
 {
@@ -2266,6 +2347,7 @@ function fixLabel(newLabelId)
 /*
  * Get present view settings
  * Is called by the navframe to create an url that calls the present view
+ * @return object with zoom, x,y-position and label data
  */
 function getDataForUrl()
 {
@@ -2470,6 +2552,7 @@ function extractLabelDataStepToObject(thisLabel)
 	return labelData;
 }
 
+
 //////////////////////////////////////////////////////////////////////
 //
 // TOOLS AND ADDONS
@@ -2505,16 +2588,17 @@ function showHideCoordinatesPanel(showOrHide)
 
 /*
  * wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
+ * Temporarily not used
  */
 function wheelMode1(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev'; settings.wheelmode=0;}
 
 function wheelMode2(){ ref('wheelMode').innerHTML='<b>Mouse Wheel:</b><br><input type="radio" onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" checked  onClick="wheelMode2()" >&nbsp;Next/Prev'; settings.wheelmode=1;}
 
 
-
-
 /*
- * positions the sizeIndicators
+ * positions the sizeIndicators: grey rectangles indicating visible area on small screens, shown overlaid when a direct url is requested. 
+ * Replace by SVG when IE8 and lower has lost enough market share. Disadvantage: prevents access to edit label buttons on modern browsers.
+ * @TODO: create alternative SVG method for modern browsers, alongside the present 'showing div' method for old IE
  */
 function positionSizeIndicators()
 {
@@ -2560,7 +2644,10 @@ function hideUrlBarAndSizeIndicators()
 //  MOBILE FUNCTIONS
 //
 /////////////////////////////////////////////////////////////////////
-
+/*
+ * Still basic work arounds, already partially made superfluous due to implementation of touch
+ * @TODO: replace by media queries, viewport setting and responsive design 
+ */
 
 function hasSmallViewport()	
 	{
@@ -2667,6 +2754,10 @@ function getHtmlElemDim()
 	
 	}	
 
+/*
+ * blue arrow buttons up, down, left, right, that autopans slide at click on one of the buttons
+ * Is not anymore used now as touch panning works now
+ */
 function showArrows()
 	{ref("btUpCont").style.display="block";
 	ref("btDownCont").style.display="block";
@@ -2720,7 +2811,11 @@ function clickArw(elemId)
 		}
 	else {stopAutoPan();} //click on arrow of running pan-direction or click anywhere on image
 	}
-	
+
+/*
+ * autopans slide at click on one of the blue arrow buttons
+ * Is not anymore used now as touch panning works now
+ */
 function autoPanMap(dir)
 	{var dir=dir;
 	function panIt()
@@ -2750,6 +2845,12 @@ function panMap(dir)
 	moveViewIndicator();
 	}		
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+// TOUCH FUNCTIONALITY: PAN AND ZOOM SLIDE
+//
+//////////////////////////////////////////////////////////////////////////////////////////
 
 //*** START OF: Apple Device Event Handlers Block
 //iPhone/iPad modifications written by Matthew K. Lindley; August 25, 2010
@@ -2805,7 +2906,7 @@ function appleMove(event)
 
 //////////////////////////////////////////////////////////////////////
 //
-// FUNCTIONS FOR STACKS OF IMAGES (under development)
+// FUNCTIONS FOR STACKS OF IMAGES (temporarily not used)
 //
 /////////////////////////////////////////////////////////////////////
 
@@ -2962,11 +3063,6 @@ function xmlread(data)
 
 }
 
-/*
- * 
- * 
- */
-
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -2998,6 +3094,9 @@ function automaticImageLoadingIsAllowed()
     return true;	
 }
 
+/*
+ * Are we loading images?
+ */
 function isImageOk(img) {
     // During the onload event, IE correctly identifies any images that
     // weren't downloaded as not complete. Others should too. Gecko-based

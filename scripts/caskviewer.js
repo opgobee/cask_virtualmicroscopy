@@ -1,13 +1,26 @@
 /*
- * Navigation-pane scripts used together with the microscopy viewer
+ * Navigation-pane scripts used together with the microscopy viewer "tiledviewer.html"
  * Written 2013 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o--dot--p--dot--gobee--at--lumc--dot--nl
- * See also: http://www.caskanatomy.info
- * license: Creative Commons: BY NC SA
- * Basically: You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+ * See also: http://www.caskanatomy.info/microscopy and www.caskanatomy.info/products/caskviewer
+ * You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
  * This notification should be kept intact, also in minified versions of the code. 
  *
  */
 
+/*
+ * Expected global vars in loaded files:
+ * 
+ * var slides; //global var 'slides' containing the list of slides. Is now defined and set in file slides.js
+ * var menus;  //global var 'menus' containing the menus of slideSets. Is now defined and set in file menus.js
+ * var views;  //global var 'views' containing stored URL-queries to load specific slide with pre-set position, zoom and labels. Is defined and set in file views.js
+ *
+ * Expected scripts:
+ * 
+ * file common.js with support scripts
+ * jQuery 
+ * jQuery ui
+ * 
+ */
     
 //Settings
 var initialSlideSetMenu = "collectionsAnatomicalRegions"; //default
@@ -34,14 +47,6 @@ now.urlViewing = false;
 //now.labelingIsDisabled = false; //for workaround to prevent labelpanel on touch devices where it doesn't work well yet
 
 //Variable declarations
-
-/*
- * Expected global vars in loaded files:
- * 
- * var slides; //global var 'slides' containing the list of slides. Is now defined and set in slides.js
- * var menus; //global var 'menus' containing the menus of slideSets. Is now defined and set in menus.js
- */
-
 var currentSlideSetMenu = null;
 var loadedSlideSetMenuNames = Array(); //array with names of the slideSetsMenus that have been created and inserted in the slideSetsMenuPane
 var currentSlideSetSlideNames = Array(); //array of the slideNames in the current slideSet
@@ -94,7 +99,6 @@ function init()
 	{
 		setForAndroid();
 	}
-	
 	
 	//sets default options in the options menu
 	checkChosenOptions();
@@ -704,7 +708,7 @@ function checkFit()
 
 //////////////////////////////////////////////////////////////////////
 //
-// LOADING VIRTUAL SLIDE IN MAIN PANEL
+// LOADING VIRTUAL SLIDE IN MAIN PANEL (tiledviewer.html in iFrame named 'viewerFrame')
 //
 /////////////////////////////////////////////////////////////////////
 
@@ -716,6 +720,7 @@ function checkFit()
  * 	"auto"		: - uses all settings (+ slideName) entered to create the query 
  * 	"view"		: - uses viewName (+ slideName) and discards other details
  * 	"details" 	: - uses the details (x, y, zoom, labels,..) (+ slideName) and discards viewName
+ *  "unchanged" : - returns settings.query unchanged (i.e. basically extracts query from object settings)
  * 
  */
 function loadVirtualSlide(settings, mode)
@@ -820,12 +825,24 @@ function applySettings()
 	}
 }
 
+
 //////////////////////////////////////////
 //
 // 	USER SETTINGS AND TOOLS
 //
 ////////////////////////////////////////////
+
 /*
+ * shows or hides the info page
+ */
+function showHideInfo()
+{
+	jQ("#infoPanel").toggle();
+}
+
+
+/*
+ * Attempts on touch-devices - not yet working well, disabled.
  * Catch a touch on the labels icon:
  * - gives message: you can only label on desktop
  * - temporarily disables the labelpanel from opening on click
@@ -836,15 +853,6 @@ function applySettings()
  * test for ("ontouchstart" in window) to detect touch support. Failed: gave 'true' over RDP on Chrome on desktop
  * detecting touch even doesnt work now Why?
  */
-
-/*
- * shows or hides the info page
- */
-function showHideInfo()
-{
-	jQ("#infoPanel").toggle();
-}
-
 /*
 function touchOpenSetLabelPanel()
 {
@@ -909,7 +917,6 @@ function addLabel()
 	}	
 }
 
-
 /*
  * Gets and shows url in url-bar, and in the in main window shows sizeindicators and starts url updating
  */
@@ -936,8 +943,6 @@ function showUrlBar()
 		showWarningChromeLocal();
 	}
 }
-
-
 
 /*
  * closes url-bar
@@ -977,11 +982,13 @@ function showHideSettings()
 }
 
 function showSettings()
-{ref("settingsDiv").style.display="block";	
+{
+	ref("settingsDiv").style.display="block";	
 }
 
 function hideSettings()
-{ref("settingsDiv").style.display="none";	
+{
+	ref("settingsDiv").style.display="none";	
 }
 
 /*
@@ -1043,8 +1050,10 @@ function showHideCoordsPanel()
 	}
 }
 
-
-
+/*
+ * shows a warning panel on Chrome when used locally (not from webserver), that the additional functionalities (labelling, getting direct link, settings) do not work, when user attempts to use these functions
+ * Chrome on local interprets the document in the iFrame to be on a different domain than this document in the menu panel and blocks communication between these documents under cross-domain-scripting security policy
+ */
 function showWarningChromeLocal()
 {
 	if(!window.viewerFrame.document)
@@ -1085,8 +1094,6 @@ function queryArgsToSettings(queryArgs)
 	//add or replace the requested properties according to how it is set in parentQueryArgs, may overwrite default settings
 	//querySettings = mergeObjects(querySettings,queryArgs);
 }
-
-
 
 /*
  * updates url in url-bar
@@ -1201,61 +1208,63 @@ function winsize()
 }
 
 function handleClick(e)
-	{e = (e)? e : window.event;
+{
+	e = (e)? e : window.event;
 	if(e)
-		{var elem=getSrcElem(e);
+	{
+		var elem=getSrcElem(e);
 		var id=elem.id;
 
 		if(!inElem(elem,ref("settingsDiv")) && id!="buttonWrench")
 			{hideSettings();}
 		if(inElem(elem,ref("slidesContOverlay")))
 			{hideSlideSetsMenuPane();}
-		}
-	
 	}
+}
 
 
 //workaround because doesn't recognize first time else...
 
-function delayedClose()
-	{clearTimeout(settingsCloseTimer);
-	settingsCloseTimer = setTimeout("hideSettings()",1000);
-	}
+function delayedClose() 
+{
+	clearTimeout(settingsCloseTimer);
+	settingsCloseTimer = setTimeout("hideSettings()", 1000);
+}
 
-function cancelClose()
-	{clearTimeout(settingsCloseTimer);
-	}
-
-
-	
-
-	
+function cancelClose() 
+{
+	clearTimeout(settingsCloseTimer);
+}
 
 function readradio(radioFormId, inputName) 
-    {
-	var choices= document.getElementById(radioFormId)[inputName];
-	//loop to check one option after the other..
-	for (var i=0;i<choices.length;i++)  
-		{if(choices[i].checked) //if this option is the selected one...
-			{//..collect the value 
+{
+	var choices = document.getElementById(radioFormId)[inputName];
+	// loop to check one option after the other..
+	for ( var i = 0; i < choices.length; i++) 
+	{
+		if (choices[i].checked) // if this option is the selected one...
+		{// ..collect the value
 			return choices[i].value;
-			} 
-		} 
-    } 
-	 
-	 
-function getSrcElem(evt) //
-    {//W3C/NN: event=object passed to func/ IE: event= prop. of window
-	var evt= (evt) ? evt : ((window.event)? window.event : null); 	
-
-	if(evt)
-		{return (evt.target)? evt.target : ((evt.srcElement)? evt.srcElement : null); // target=W3C/srcElement=IE
 		}
-    }	
+	}
+}
+
+function getSrcElem(evt) //
+{
+	// W3C/NN: event=object passed to func/ IE: event= prop. of window
+	var evt = (evt) ? evt : ((window.event) ? window.event : null);
+
+	if (evt) 
+	{
+		return (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement
+				: null); // target=W3C/srcElement=IE
+	}
+}	
 	
 //determines whether elem 'elem' is in elem 'cont'
 function inElem(elem,cont) //
-    {//safety: if one of the two passed elems does not exist, return 
+{
+	//safety: if one of the two passed elems does not exist, return 
 	if(!elem || !cont)	{return null}	
 
 	var levelxelem=elem //start element
@@ -1273,7 +1282,7 @@ function inElem(elem,cont) //
 
 	//if the container elem was not encountered..
 	return false    
-    }
+}
 
 function getElemDim(elemRef) 
 {

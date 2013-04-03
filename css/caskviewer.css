@@ -207,6 +207,7 @@ div#infoPanel {
 	div#infoPanel li {list-style:disc;font-size:0.8em;padding-top:0.3em;}
 	div#infoPanel a {color:#aaaaaa; text-decoration:none;}
 	div#infoPanel a:hover {color:#404040; text-decoration:underline;}
+	div#infoPanel .small {font-size:0.8em;}
 	
 div#chromeLocalWarning
 {

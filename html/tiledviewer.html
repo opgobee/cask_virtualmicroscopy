@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 
-<html style="height:100%;">
-<head>
-<!-- 
-5-8-2010 ADD credit info
-11-8-10 ADD body css overflow hidden hides scroll bar on IE
+<!--
+	Originally based on brainmaps, written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.  
+	This version with extended functionality (online labelling, direct URLs, IE support, touch support, credits, etc) written 2013 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o-dot-p-dot-gobee-at-lumc-dot-nl
+	See also: http://www.caskanatomy.info/microscopy and www.caskanatomy.info/products/caskviewer
+	You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+	This notification should be kept intact, also in minified versions of the code.  
 -->
+
+<html style="height:100%;">
+
+<head>
+
 <meta http-equiv="imagetoolbar" content="no">
 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
 <title>CASK Virtual Microscopy Viewer</title>
@@ -109,7 +115,9 @@ div#coordsPane{
 	left:-19px;
 	top:0px;
 }
+
 /* class .tooltip : see common.css*/
+
 /* new labels - inserted dynamically in GUI function to make labels*/
 .newLabelContainer
 {
@@ -208,6 +216,7 @@ span#signalj {display:none;}
 
 
 
+<!-- IE workarounds -->
 <script>
 var islteIE8 = false;
 </script>
@@ -224,6 +233,8 @@ var islteIE8 = false;
 <!--[if IE]>
 	<link rel="stylesheet" href="../css/tiledviewer_ie.css" type="text/css" />
 <![endif]-->
+
+
 
 
 <!-- SCRIPTS & SLIDES DATA /////////////////////////////-->
@@ -252,12 +263,13 @@ var islteIE8 = false;
     
 <body onload="init()">
 
-
+<!-- debug stuff: not displayed on production site-->
 <div id="test" onclick="testMobile()"></div>
 <div id="log"></div>
 <div id="warning"></div>
 <div id="signal"><span id="signalI">I</span><span id="signalj">j</span></div>
 
+<!-- scale size bar -->
 <div id="barCont">
 	<div id="bar_left"  class="bar verticalLine" ></div>
 	<div id="bar_mid" class="bar horizontalLine"></div>
@@ -268,15 +280,17 @@ var islteIE8 = false;
 <div id="outerDiv0">
 	<div id="outerDiv">
 	
-		<!--  for stacks of images ->
+		<!-- for stacks of images ->
 		<!-- 
 			<div id="Nav">
 			<div><a href="javascript:slidePrev();" id="slidePrev"><img src="../img/prev.gif" border="0"/></a></div>
 			<div id="divNext"><a href="javascript:slideNext();" id="slideNext"><img src="../img/next.gif" border="0"/></a></div>
 		</div>
 		-->
+		<!-- leftover from brainmaps -->
 		<div id="wheelMode"><b>Mouse Wheel:</b><br><input type="radio" checked  onClick="wheelMode1()">&nbsp;Zoom<br><input type="radio" onClick="wheelMode2()" >&nbsp;Next/Prev</div>
 		
+		<!-- innerDiv holds the whole virtual slide image -->
 		<div id="innerDiv">
 			<noscript><big><b><br><br><br><br><br><br><br><br><br><blockquote>JavaScript must be enabled to use the CASK Viewer.</b>  However, it seems JavaScript is disabled in your browser. To view this page, please enable JavaScript by changing your browser options, and then try again.</big></noscript>			
 			<div id="bgDiv"></div>
@@ -284,14 +298,16 @@ var islteIE8 = false;
 			<div id="imageLabels" ></div>		
 		</div>
 
+		<!-- credit area bottom left-->
 		<div id="credit" >
 			<a id="creditLinkLogo" href="#" target="_blank"><img id="creditSlideLogo" src="../img/emptyimage.gif" ></a>
 			<div id="creditText">
 				<a id="creditLinkText" href="#" target="_blank"><p id="creditSlideText" class="creditText"></p></a>
 				<p id="creditViewer" class="creditText"><a href="http://www.caskanatomy.info/caskonlumc/" target="_blank">CASK</a> Viewer, based on <a href="http://brainmaps.org/index.php?p=brain-maps-api" target="_blank">BrainMaps API</a>.</p>
 			</div>
-		</div> <!--eof credit -->
+		</div> 
 		
+		<!-- sizeIndicators: grey rectangles indicating visible area on small screens, shown overlaid when a direct url is requested. Replace by SVG when IE8 and lower has lost enough market share. Disadvantage: prevents access to edit label buttons on modern browsers. -->
 		<div id="sizeIndicators">
 		<div id="hor1024x768" class="sizeIndicator"><div class="sizeLabel">Small screen, Low-mid range Tablet (1024x768px)</div></div>	
 		<div id="hor800x600" class="sizeIndicator"><div class="sizeLabel">Netbook (800x600px)</div></div>
@@ -302,7 +318,7 @@ var islteIE8 = false;
 <br>
 </div> <!--eof outerdiv0 -->
 		
-
+<!-- little info panels at top of page: name of slide, mouseover coordinates-->
 <div id="centeringContainer">
 	<!-- to display name of slide -->
 	<div id="namePanel"></div>
@@ -310,7 +326,7 @@ var islteIE8 = false;
 	<div id="coordsPane"></div>
 </div>
 		
-
+<!-- Controls: thumbnail with view indicator, zoom buttons-->
 <div id="controlsContainer">
 	<div id="thumbContainer">
 		<div id="thumbImageHolder"></div>
@@ -326,7 +342,16 @@ var islteIE8 = false;
 	<div id="tips"></div>
 </div><!--eof controlsContainer -->
 
+<!-- mobile icon -->
+<div id="iconMobileCont">
+	<img id="iconMobile2" class="iconMobile" src="../img/iconmobile2.gif" >
+	<img id="iconMobile" class="iconMobile" src="../img/iconmobile.gif" >
+	<img id="iconMobileSens" class="iconMobile hastooltip" src="../img/emptyimage.gif"  onclick="mobileOnOff()" >
+	<div id="mobileHint" class="tooltip">View mobile-friendly</div>
+</div>
 
+
+<!-- Arrows to pan: were solution on mobile before panning by touch was added. Not used anymore, can be removed if touch pan works well over time -->
 <div id="btUpCont" class="arwCont">
 	<img id="up2" class="arw" src="../img/up2.gif">
 	<img id="up1" class="arw" src="../img/up1.gif">
@@ -351,17 +376,10 @@ var islteIE8 = false;
 	<img id="downSens" class="arw" src="../img/emptyimage.gif"  onclick="clickArw('down')" alt="Pan down">
 </div>	
 
-<div id="iconMobileCont">
-	
-	<img id="iconMobile2" class="iconMobile" src="../img/iconmobile2.gif" >
-	<img id="iconMobile" class="iconMobile" src="../img/iconmobile.gif" >
-	<img id="iconMobileSens" class="iconMobile hastooltip" src="../img/emptyimage.gif"  onclick="mobileOnOff()" >
-	<div id="mobileHint" class="tooltip">View mobile-friendly</div>
-</div>
-
-<!-- hidden stuff needed for system -->
+<!-- hidden stuff needed for system. Do NOT remove.-->
 <div id="hiddenLabel" class="label">TEST</div>
 <img id="testimage" src="" />
+
 </body>
 
 </html>
