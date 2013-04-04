@@ -53,7 +53,8 @@ var currentSlideSetSlideNames = Array(); //array of the slideNames in the curren
 var loadedSlides = {}; //assoc array with the slideData-objects that are loaded, with key= slideName
 var querySettings = Array(); //assoc arary with name/value pairs settings that are communicated via the URL's query.  If a slide is requested, the viewer iframe is loaded, the query is transferred to the URL of the viewer iframe
 var fitDone= {},fitAttempt=1; //fitDone= assoc array slideName = true/false indicating whether the thumb-fitting has (already) succeeded
-var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
+var isIE = (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE workarounds
+var ieIE7 = false; //is set in conditional comments in caskviewer.html, declare the variable here too for safety
 var isOpera= (navigator.userAgent.indexOf("Opera") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
 var isiPhone= (navigator.userAgent.indexOf("iPhone") != -1)? true : false;
@@ -307,8 +308,17 @@ function createSlideSetsMenu(slideSetMenuName)
 	jQ("#SlideSetsMenuPane").append(slideSetsMenuHtml);	
 	//set accordion behaviour
 	//CHG 15-2-2012 option alwaysOpen:false changed to collapsible: true  AND active:false //was changed in ui 1.7, 
-	//CHG 6-4-2013 option autoHeight:false changed to heightStyle:"content", seems to have been replaced by this
-	jQ(".slideSetsMenu").accordion({collapsible:true,active:false,heightStyle:"content"});
+	//CHG 3-4-2013 removed option autoHeight:false; added heightStyle:"content", heightStyle apparently replaced autoHeight
+	//CHG/BUG 4-4-2013 ie7 faults on heightStyle:"content": accordion entries flash on and disappear, reappear at 2x mouseover underlying header. Turn it off for ie7. Unfortunately browser sniff....
+	if(!isIE7)
+	{
+		jQ(".slideSetsMenu").accordion({collapsible:true,active:false,heightStyle:"content"});
+	}
+	else if(isIE7)
+	{
+		jQ(".slideSetsMenu").accordion({collapsible:true,active:false});
+	}	
+	
 }
 
 

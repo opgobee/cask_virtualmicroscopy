@@ -35,7 +35,14 @@
 <script src="../slides/views.js" type="text/javascript"></script>
 
 
+<!--IE workarounds-->
+<script>
+isIE7 = false;
+</script>
 <!--[if lte IE 7]>
+	<script>
+	isIE7 = true;
+	</script>
 	<link rel="stylesheet" href="../css/caskviewer_ie7.css" type="text/css" />
 <![endif]-->
 <!--[if lte IE 8]>
@@ -124,12 +131,16 @@
 	<div id="chromeLocalWarning">This browser does not support settings and tools when used from a <em>local source (e.g. from a harddisk or USB device)</em>.<br/><br />Firefox, Internet Explorer, Safari <em>DO</em> work locally.
 	</div>
 	
+	
+	
+	
+	
 	<div id="infoPanel">
 		<img id="buttonCloseInfoPanel" src="../img/close.png" title="Close" >
 
 		<h1>About CASK Virtual Microscopy Viewer</h1>
 
-			<p>Version: 2.1.734</p>
+			<p>Version: 2.1.736</p>
 			<p>Developed by Paul Gob&eacute;e; Leiden University Medical Center, dept. of Anatomy &amp; Embryology, <a href="http://www.caskanatomy.info">CASK (Clinical Anatomical Skills) e-learning group</a>.</p>
 			<p><a href="http://www.caskanatomy.info/products/caskviewer"><span class="strong">This viewer and manuals can be obtained at: http://www.caskanatomy.info/products/caskviewer</span></a></p>
 		<br />
