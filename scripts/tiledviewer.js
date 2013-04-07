@@ -1289,7 +1289,8 @@ function checkTiles()
 		if (!img) 
 			{ img = document.createElement("img"); 
 			img.src = imgPath + tileName; 
-			//ih("GETTING IMAGE: "+tileName+"</br>");
+			nrImagesLoaded++;
+			ih("GETTING IMAGE: "+tileName+", No. Images:"+nrImagesLoaded+"</br>");
 			img.style.position = "absolute"; 
 			img.style.left = (tileArray[0] * tileSize) + "px"; 
 			img.style.top = (tileArray[1] * tileSize) + "px"; 
@@ -1308,6 +1309,8 @@ function checkTiles()
 			}
 			
 		}
+
+var nrImagesLoaded=0;
 	
 function deleteTiles()
 {
