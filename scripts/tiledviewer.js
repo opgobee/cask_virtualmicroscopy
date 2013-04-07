@@ -1252,69 +1252,117 @@ function resizeBackgroundDiv()
 // LOADING TILES
 //
 /////////////////////////////////////////////////////////////////////
-	
+
+//var nrImagesLoaded=0;
+//var nrDivImagesLoaded=0;
+
+/*
+ * Loads the images!
+ */
 function checkTiles() 
-	{
-	//ih("CHECKTILES()");// called by: "+checkTiles.caller+"<br>");
+{
+	// ih("CHECKTILES()");// called by: "+checkTiles.caller+"<br>");
 
 	if (!dimensionsKnown()) {return;}
 	
 	var visibleTiles = getVisibleTiles(); 
 	var visibleTilesMap = {}; 
-	for (i = 0; i < visibleTiles.length; i++)  //each entry is a tile, contains an array [x,y], number of tiles that would fit in the viewport
-		{ var tileArray = visibleTiles[i]; //for this tile
+	for (i = 0; i < visibleTiles.length; i++)  // each entry is a tile,
+												// contains an array [x,y],
+												// number of tiles that would
+												// fit in the viewport
+	{ 
+		var tileArray = visibleTiles[i]; // for this tile
 		
-		//ih("imgWidthMaxZoom="+ (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))) +"viewportWidth="+viewportWidth+"<br>");
+		// ih("imgWidthMaxZoom="+
+		// (imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))
+		// +"viewportWidth="+viewportWidth+"<br>");
 		pCol=tileArray[0]; 
 		pRow=tileArray[1]; 
-		//ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels there are far more pCol and pRow than actually called (and available) pictures
+		// ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels
+		// there are far more pCol and pRow than actually called (and available)
+		// pictures
 
-		//determine tilegroupnum, each tilegroup contains 256 images, theoffset is sequential num of img
+		// determine tilegroupnum, each tilegroup contains 256 images, theoffset
+		// is sequential num of img
 		tier=now.zoom; 
-		var theOffset=parseFloat(pRow*gTileCountWidth[tier]+pCol); //is this parseFloat doing sthing?
+		var theOffset=parseFloat(pRow*gTileCountWidth[tier]+pCol); // is this parseFloat doing sthing?
 		for (var theTier=0; theTier<tier; theTier++) theOffset += gTileCountWidth[theTier]*gTileCountHeight[theTier]; 
 		_tileGroupNum=Math.floor(theOffset/256.0); 
 		
-		//ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
-
+		// ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
 
 		if (pCol<gTileCountWidth[now.zoom] && pRow<gTileCountHeight[now.zoom])
 			{var tileName = "TileGroup" + _tileGroupNum + "/" + now.zoom + "-" + pCol + "-" + pRow + ".jpg";
-			//ih("TILENAME CREATED</br>");
+			// ih("TILENAME CREATED</br>");
 			}
 
 		visibleTilesMap[tileName] = true; 
 		var img = document.getElementById(tileName); 
-		//if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
+		// if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
+
 		if (!img) 
-			{ img = document.createElement("img"); 
-			img.src = imgPath + tileName; 
-			nrImagesLoaded++;
-			ih("GETTING IMAGE: "+tileName+", No. Images:"+nrImagesLoaded+"</br>");
+		{
+			//on iOs load the image as a backgroundimage in a div instead of a regular image as workaround for the image limit on iOs
+			//http://stackoverflow.com/questions/2986039/ipad-iphone-browser-crashing-when-loading-images-in-javascript
+			if(isiPad || isiPhone)
+			{
+				img = document.createElement("div");
+				//img.style.backgroundImage = "url(" + imgPath + tileName + ")";
+				img.style.background = "transparent url(" + imgPath + tileName + ") no-repeat";
+				img.style.width = tileSize +"px";
+				img.style.height = tileSize +"px";
+				//nrDivImagesLoaded++;
+			}
+			else
+			{
+				img = document.createElement("img"); 
+				img.src = imgPath + tileName; 
+				//nrImagesLoaded++;
+			}
+			
+			//jQ("#log").html("Loading: "+tileName+", No.Img:"+nrImagesLoaded+", No.DivImg:"+nrDivImagesLoaded+" </br> src= " + imgPath + tileName);
 			img.style.position = "absolute"; 
 			img.style.left = (tileArray[0] * tileSize) + "px"; 
 			img.style.top = (tileArray[1] * tileSize) + "px"; 
 			img.style.zIndex = 0; 
 			img.setAttribute("id", tileName); 
-			elem.imageTiles.appendChild(img);
-			}
+			elem.imageTiles.appendChild(img);			
 		}
+	}
 		
+	if(isiPad || isiPhone)
+	{
+		var imgs = elem.imageTiles.getElementsByTagName("div"); 
+	}
+	else
+	{
 		var imgs = elem.imageTiles.getElementsByTagName("img"); 
-		for (i = 0; i < imgs.length; i++) 
-			{ var id = imgs[i].getAttribute("id"); 
-			if (!visibleTilesMap[id]) 
-				{ elem.imageTiles.removeChild(imgs[i]); i--;
-				}
-			}
-			
+	}
+	for (i = 0; i < imgs.length; i++) 
+	{ 
+		var id = imgs[i].getAttribute("id"); 
+		if (!visibleTilesMap[id]) 
+		{ 
+			elem.imageTiles.removeChild(imgs[i]); i--;
 		}
+	}
+			
+}
 
-var nrImagesLoaded=0;
+
 	
 function deleteTiles()
 {
-	jQ(elem.imageTiles).children("img").remove();
+	if(isiPad || isiPhone)
+	{
+		jQ(elem.imageTiles).children("div").remove();
+	}
+	else
+	{
+		jQ(elem.imageTiles).children("img").remove();
+	}
+	
 }
 		
 function getVisibleTiles() 
