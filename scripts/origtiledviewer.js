@@ -8,18 +8,6 @@
  *
  */
 
-
-
-/*
- * 		
-		//BUSY WITH USING REDUCED INNERDIV - ONLY VISIBLE TILES SIZE AND NOT FAR OUTSIDE VIEWPORT - TO REDUCE PERFORMANCE NEED FOR iPAD
-		SEE FUNCTION repositionContentInnerDiv() and checkTiles()
-		 -- ONLY WORKS PARTIALLY STILL - LEFT works, TOP not yet, also labels to be done
-
- */
-
-
-
 /*
  * Expected global vars in loaded files:
  * 
@@ -90,7 +78,6 @@ var labelTimer;
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
-var visibleTilesMap = {}; // {"tileName" : [row,col]} of each visible tile
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
 var innerStyle; //global refs to elements,  
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
@@ -745,9 +732,8 @@ function startMove(event)
 	if (!event){ event = window.event;}
 	var dragStartLeft = event.clientX; 
 	var dragStartTop = event.clientY; 
-	var imgLeft = getInnerDivLeft();
-	var imgTop = getInnerDivTop();
-	//ih("imgLeft="+imgLeft+",imgTop="+imgTop);
+	var imgLeft = stripPx(elem.innerDiv.style.left); 
+	var imgTop = stripPx(elem.innerDiv.style.top); 
 	dragOffsetLeft= Math.round(imgLeft - dragStartLeft);
 	dragOffsetTop= Math.round(imgTop - dragStartTop);
 	dragging = true; return false;
@@ -780,8 +766,9 @@ function processMove(event)
 	if (dragging) 
 	{
 		//ih("event.clientX="+event.clientX+", dragOffsetLeft="+dragOffsetLeft);
-		setInnerDivLeft( event.clientX + dragOffsetLeft );
-		setInnerDivTop(  event.clientY + dragOffsetTop  );
+		var newX = event.clientX + dragOffsetLeft;
+		var newY = event.clientY + dragOffsetTop;
+		setInnerDiv(newX,newY);
 		checkTiles();
 		moveViewIndicator();
 	}
@@ -802,8 +789,8 @@ function stopMove()
 function getImgCoords(cursorX,cursorY)	
 	{
 	var imgCoords={};
-	imgCoords.x = Math.round(((cursorX - getInnerDivLeft())/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
-	imgCoords.y = Math.round(((cursorY - getInnerDivTop())/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
+	imgCoords.x = Math.round(((cursorX - stripPx(elem.innerDiv.style.left))/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
+	imgCoords.y = Math.round(((cursorY - stripPx(elem.innerDiv.style.top))/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
 
@@ -844,8 +831,8 @@ function getVisibleImgCenter()
 	
 //	ih("visLeft="+visLeft+",visRight="+visRight+", imgCenter.x="+imgCenter.x+"visTop="+visTop+",visBottom="+visBottom+", imgCenter.y="+imgCenter.y)
 //	ih("imgCenter.x="+imgCenter.x+", imgCenter.y="+imgCenter.y+"<br>")	 
-//	imgCenter.x = Math.round( getInnerDivLeft() + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
-//	imgCenter.y = Math.round( getInnerDivTop()  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
+//	imgCenter.x = Math.round( stripPx(elem.innerDiv.style.left) + imgWidthMaxZoom/  (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
+//	imgCenter.y = Math.round( stripPx(elem.innerDiv.style.top)  + imgHeightMaxZoom/ (2 * Math.pow(2,gTierCount-1-now.zoom) ) );
 	return imgCenter;
 	}
 	
@@ -882,8 +869,8 @@ function ZoomIn()
 	
 	if (now.zoom!=gTierCount-1)
 	{
-		var imgLeft = getInnerDivLeft(); 
-		var imgTop = getInnerDivTop(); 
+		var imgTop = stripPx(elem.innerDiv.style.top); 
+		var imgLeft = stripPx(elem.innerDiv.style.left); 
 		//ih("imgLeft=" +imgLeft + ", imgTop="+imgTop +", cursorX="+cursorX+", cursorY="+cursorY+", lockedZoomCenterX="+lockedZoomCenterX+", lockedZoomCenterY="+lockedZoomCenterY+"<br>");
 
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
@@ -907,10 +894,11 @@ function ZoomIn()
 		//ih("DETERMINED zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
 		//reposition the innerDiv that contains the image
-		setInnerDivLeft( 2 * imgLeft - zoomCenterX);
-		setInnerDivTop(  2 * imgTop  - zoomCenterY);
+		var newX = 2 * imgLeft - zoomCenterX;
+		var newY = 2 * imgTop  - zoomCenterY;
+		setInnerDiv(newX,newY);
 		
-		//ih("AFTER: elem.innerDiv.style.left="+getInnerDivLeft()+", elem.innerDiv.style.top="+getInnerDivTop())		
+		//ih("AFTER: elem.innerDiv.style.left="+elem.innerDiv.style.left+", elem.innerDiv.style.top="+elem.innerDiv.style.top)		
 		now.zoom=now.zoom+1; 
 		imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
 		imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
@@ -940,8 +928,8 @@ function ZoomOut()
 { 
 	if (now.zoom!=0)
 	{
-		var imgLeft = getInnerDivLeft(); 
-		var imgTop = getInnerDivTop(); 
+		var imgTop = stripPx(elem.innerDiv.style.top); 
+		var imgLeft = stripPx(elem.innerDiv.style.left); 
 	
 		if (lockedZoomCenterX && lockedZoomCenterY) // (if continuously zoomin/out. Unlock by mouse-move)
 		{
@@ -963,8 +951,9 @@ function ZoomOut()
 		}
 
 		//reposition the innerDiv that contains the image
-		setInnerDivLeft( 0.5 * imgLeft + 0.5 * zoomCenterX );
-		setInnerDivTop(  0.5 * imgTop  + 0.5 * zoomCenterY );
+		var newX = 0.5 * imgLeft + 0.5 * zoomCenterX;
+		var newY = 0.5 * imgTop  + 0.5 * zoomCenterY;
+		setInnerDiv(newX,newY);
 
 		//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
@@ -1144,82 +1133,20 @@ function countTilesPerTier()
 	//let the function return gTierWidth and gTierHeight instead of setting globals hidden in function
 	return {"gTierWidth":gTierWidth,"gTierHeight":gTierHeight}; 
 	}
-
-var innerDivOffsetLeft;
-var innerDivOffsetTop;
+	
 /*
  * repositions innerDiv, the large main div that holds and positions the image tiles, and newLabels div that holds and positions the newLabels
  * Div newlabels is a separate div because it needs to be outside outerDiv, hence it needs separate repositioning  
  */
-/*
-function setInnerDiv(virtualPositionLeft,virtualPositionTop)
+function setInnerDiv(xPosition,yPosition)
 {
-	var DOMPositionLeft = virtualPositionLeft % tileSize;
-	var DOMPositionTop = virtualPositionTop % tileSize;
-	innerDivOffsetLeft = virtualPositionLeft - DOMPositionLeft;
-	innerDivOffsetTop = virtualPositionTop - DOMPositionTop;
-	
-	elem.innerDiv.style.left  = DOMPositionLeft  + "px";
-	elem.innerDiv.style.top   = DOMPositionTop  + "px";
-	elem.newLabels.style.left = DOMPositionLeft  + "px";
-	elem.newLabels.style.top  = DOMPositionTop  + "px";
-}
-*/
-
-/*
- * repositions innerDiv, the large main div that holds and positions the image tiles, and newLabels div that holds and positions the newLabels
- * Div newlabels is a separate div because it needs to be outside outerDiv, hence it needs separate repositioning  
- */
-function setInnerDivLeft(virtualPositionLeft)
-{
-	var oldInnerDivOffsetLeft = innerDivOffsetLeft;
-	
-	if(virtualPositionLeft < 0 )
-	{
-		DOMPositionLeft = virtualPositionLeft % tileSize;
-		innerDivOffsetLeft = virtualPositionLeft - DOMPositionLeft;
-	}
-	else
-	{
-		DOMPositionLeft = virtualPositionLeft;
-		innerDivOffsetLeft = 0;
-	}
-	//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
-	if (oldInnerDivOffsetLeft != innerDivOffsetLeft)
-	{
-		repositionContentInnerDiv();
-	}
-	
-	ih("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",oLeft="+innerDivOffsetLeft)
-	elem.innerDiv.style.left  = DOMPositionLeft  + "px";
-	elem.newLabels.style.left = DOMPositionLeft  + "px";
+	elem.innerDiv.style.left  = xPosition  + "px";
+	elem.innerDiv.style.top   = yPosition  + "px";
+	elem.newLabels.style.left = xPosition  + "px";
+	elem.newLabels.style.top  = yPosition  + "px";
 }
 
-function setInnerDivTop(virtualPositionTop)
-{
-	if(virtualPositionTop < 0)
-	{
-		DOMPositionTop = virtualPositionTop % tileSize;
-		innerDivOffsetTop = virtualPositionTop - DOMPositionTop;		
-	}
-	else
-	{
-		DOMPositionTop = virtualPositionTop;
-		innerDivOffsetTop = 0;
-	}
-	elem.innerDiv.style.top   = DOMPositionTop  + "px";
-	elem.newLabels.style.top  = DOMPositionTop  + "px";
-}
 
-function getInnerDivLeft()
-{
-	return stripPx(elem.innerDiv.style.left) + innerDivOffsetLeft;
-}
-
-function getInnerDivTop()
-{
-	return stripPx(elem.innerDiv.style.top) + innerDivOffsetTop;
-}
 
 /*
  * Sets the innerDiv that contains the image, so that the passed x and y coords are in the center of the viewPort
@@ -1228,8 +1155,9 @@ function getInnerDivTop()
  */
 function centerOn(xcoord,ycoord)
 {
-	setInnerDivLeft( viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom)) );
-	setInnerDivTop(  viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)) );
+	var x = viewportWidth /2 - xcoord*imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom));
+	var y = viewportHeight/2 - ycoord*imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom));
+	setInnerDiv(x,y);
 }
 
 /*
@@ -1239,11 +1167,11 @@ function centerMap()
 {//ih("in centerMap1");
 	if(dimensionsKnown())
 	{
-		setInnerDivLeft( viewportWidth /2 - imgWidthPresentZoom /2 );
-		setInnerDivTop(  viewportHeight/2 - imgHeightPresentZoom/2 );
-		
+		var x = viewportWidth /2 - imgWidthPresentZoom /2;
+		var y = viewportHeight/2 - imgHeightPresentZoom/2;
+		setInnerDiv(x,y);
 		//ih("in centerMap2");
-		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", elem.innerDiv="+elem.innerDiv+", elem.innerDiv.style="+elem.innerDiv.style+", elem.innerDiv.style.left="+getInnerDivLeft())
+		//alert( "centerMap: imgWidthMaxZoom="+imgWidthMaxZoom+", gTierCount="+gTierCount+", viewportWidth="+viewportWidth+", elem.innerDiv="+elem.innerDiv+", elem.innerDiv.style="+elem.innerDiv.style+", elem.innerDiv.style.left="+elem.innerDiv.style.left)
 	}	
 	else 
 	{//ih("dimensionsUnknown");
@@ -1338,8 +1266,11 @@ function checkTiles()
 	if (!dimensionsKnown()) {return;}
 	
 	var visibleTiles = getVisibleTiles(); 
-	visibleTilesMap = {}; //empty the global
-	for (i = 0; i < visibleTiles.length; i++)  // each entry is a tile, contains an array [x,y],number of tiles that would fit in the viewport
+	var visibleTilesMap = {}; 
+	for (i = 0; i < visibleTiles.length; i++)  // each entry is a tile,
+												// contains an array [x,y],
+												// number of tiles that would
+												// fit in the viewport
 	{ 
 		var tileArray = visibleTiles[i]; // for this tile
 		
@@ -1366,16 +1297,10 @@ function checkTiles()
 			// ih("TILENAME CREATED</br>");
 			}
 
-		//store the col and row for fast retrieval in repositionContentInnerDiv
-		visibleTilesMap[tileName] = [pCol,pRow]; 
+		visibleTilesMap[tileName] = true; 
 		var img = document.getElementById(tileName); 
 		// if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
 
-/*		if (img)
-		{
-			positionTileOnInnerDiv(img,pCol,pRow); 
-		}
-	*/	
 		if (!img) 
 		{
 			//on iOs load the image as a backgroundimage in a div instead of a regular image as workaround for the image limit on iOs
@@ -1399,14 +1324,12 @@ function checkTiles()
 			jQ("#test").html(nrImagesLoaded +","+nrDivImagesLoaded);
 			//jQ("#log").html("Loading: "+tileName+", No.Img:"+nrImagesLoaded+", No.DivImg:"+nrDivImagesLoaded+" </br> src= " + imgPath + tileName);
 			img.style.position = "absolute"; 
-			img.style.left = ((pCol * tileSize) + innerDivOffsetLeft) + "px"; 
-			img.style.top =  ((pRow * tileSize) + innerDivOffsetTop) +"px"
+			img.style.left = (tileArray[0] * tileSize) + "px"; 
+			img.style.top = (tileArray[1] * tileSize) + "px"; 
 			img.style.zIndex = 0; 
 			img.setAttribute("id", tileName); 
 			elem.imageTiles.appendChild(img);			
 		}
-		//ih("imgLeft ="+ img.style.left);
-
 	}
 		
 	if(isiPad || isiPhone)
@@ -1445,8 +1368,8 @@ function deleteTiles()
 		
 function getVisibleTiles() 
 	{
-	var mapX = getInnerDivLeft(); //whole image position rel to top left of viewport
-	var mapY = getInnerDivTop();
+	var mapX = stripPx(elem.innerDiv.style.left); //whole image position rel to top left of viewport
+	var mapY = stripPx(elem.innerDiv.style.top);
 	var startX = (mapX < 0)? Math.abs(Math.ceil(mapX / tileSize)) : 0; //x number of first tile to be called. Added: if inside viewport startX == 0
 	var startY = (mapY < 0)? Math.abs(Math.ceil(mapY / tileSize)) : 0; 
 
@@ -1464,38 +1387,10 @@ function getVisibleTiles()
 
 	return visibleTileArray; //seems to contain more entries than actually afterwards really called in page
 	}
+		
 
-/*
-function positionTileOnInnerDiv(img,pCol,pRow)
-{
-	img.style.left = ((pCol * tileSize) + innerDivOffsetLeft) + "px"; 
-	img.style.top =  ((pRow * tileSize) + innerDivOffsetTop) +"px"
-}
-*/
-
-/*
- * repositions the tiles and labels in innerDiv when innerDiv has been cut off when it came further than 1 tileSize left/top outside viewport
- */
-function repositionContentInnerDiv()
-{
-	jQ(elem.imageTiles).children("img,div").each(function(){
-		var tileName = jQ(this).attr("id");
-		var pCol = visibleTilesMap[tileName][0];
-		var pRow = visibleTilesMap[tileName][1];
 	
-		
-		
-		
-		
-		//BUSY HERE -- ONLY WORKS PARTIALLY STILL - LEFT works, TOP not yet, also labels to be done
 	
-		
-		
-		
-		jQ(this).css({"left":((pCol * tileSize) + innerDivOffsetLeft) + "px", "top":((pRow * tileSize) + innerDivOffsetTop) +"px"})
-	});
-	
-}
 	
 //////////////////////////////////////////////////////////////////////
 //
@@ -1680,8 +1575,8 @@ function stopThumb(eventX,eventY)
 				}
 */		
 		//reposition the main image according to how the viewIndicator was set by user
-		setInnerDivLeft( (viewportWidth/2  - gTierWidth[now.zoom]  * fractionLR) ) ;
-		setInnerDivTop(  (viewportHeight/2 - gTierHeight[now.zoom] * fractionTB) );
+		elem.innerDiv.style.left= (viewportWidth/2  - gTierWidth[now.zoom]  * fractionLR) +"px";
+		elem.innerDiv.style.top = (viewportHeight/2 - gTierHeight[now.zoom] * fractionTB) +"px";
 		keepInViewport();
 		checkTiles();
 		
@@ -1696,8 +1591,8 @@ function stopThumb(eventX,eventY)
 function moveViewIndicator()
 	{
 	//ih("moveViewIndicator()"+moveViewIndicator.caller);
-	var innerDivLeft = getInnerDivLeft();
-	var innerDivTop  = getInnerDivTop();
+	innerDivLeft = stripPx(elem.innerDiv.style.left);
+	innerDivTop  = stripPx(elem.innerDiv.style.top);
 	viewIndicatorWidth  = viewportWidth/Math.pow(2,now.zoom);
 	viewIndicatorHeight = viewportHeight/Math.pow(2,now.zoom); 
 
@@ -2992,10 +2887,10 @@ function stopAutoPan()
 function panMap(dir)
 	{
 	var map= getElemPos(elem.innerDiv);
-	if(dir=="up") 			{ setInnerDivTop((map.top  + 10) +"px"); }
-	else if(dir=="down") 	{ setInnerDivTop((map.top  - 10) +"px"); }
-	else if(dir=="left") 	{ setInnerDivLeft((map.left + 10) +"px"); }
-	else if(dir=="right") 	{ setInnerDivLeft((map.left - 10) +"px"); }
+	if(dir=="up") 			{ elem.innerDiv.style.top  = (map.top  + 10) +"px"; }
+	else if(dir=="down") 	{ elem.innerDiv.style.top  = (map.top  - 10) +"px"; }
+	else if(dir=="left") 	{ elem.innerDiv.style.left = (map.left + 10) +"px"; }
+	else if(dir=="right") 	{ elem.innerDiv.style.left = (map.left - 10) +"px"; }
 	var result= keepInViewport();
 	if (result=="corrected") {stopAutoPan(dir);}
 	checkTiles();
@@ -3020,8 +2915,8 @@ function appleStartTouch(event)
 		touchIdentifier = event.touches[0].identifier;
 		dragStartLeft = event.touches[0].clientX;
 		dragStartTop = event.touches[0].clientY;
-		mLeft = getInnerDivLeft();
-		mTop = getInnerDivTop();	
+		mTop = stripPx(innerDiv.style.top);
+		mLeft = stripPx(innerDiv.style.left);
 		  
 		dragging = true;
 		return true;
@@ -3047,9 +2942,8 @@ function appleMove(event)
 	//	ih("applemove");
 	if ((event.changedTouches.length == 1) && (dragging == true) && (touchIdentifier == event.changedTouches[0].identifier)) 
 	{
-		setInnerDivLeft( mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px');
-		setInnerDivTop(  mTop +  (event.changedTouches[0].clientY - dragStartTop)  + 'px');
-	   
+	    innerDiv.style.top = mTop + (event.changedTouches[0].clientY - dragStartTop) + 'px';
+	    innerDiv.style.left = mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px';
 	}
 	event.preventDefault();
 	checkTiles();
