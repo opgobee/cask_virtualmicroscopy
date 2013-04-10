@@ -40,6 +40,8 @@ settings["zoom"] = null;
 settings["x"] = null; //the x coordinate (fraction of image) to center on
 settings["y"] = null; //the y coordinate (fraction of image) to center on
 settings["label"] = null; // a single label to be set on the center x,y location
+settings["manual"] = null; // a 'manual'
+
 
 //to hold track of actual things
 now= {}; 
@@ -107,15 +109,24 @@ function init()
 	createSlideSetsMenus();
 	//load an initial slideSet in the slide-selection panel [=that is: here]) 
 	loadSlideSet(initialSlideSet);
+	//manual mode
+	if(settings["manual"] != null )
+	{
+		jQ("#nav").hide();
+		jQ("#leftDiv").show().load(settings["manual"]);
+		jQ("#tabOpenMenu").show();
+		jQ("#container").css({"padding-left":"400px"});
+	}
 	//If a slide or view is requested in the URL (e.g. '...?slide=carotis' or '...?view=xxxx' ), load the requested slide or view in the main panel
 	//Note 1: all additional specific requests in the URL (e.g. zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()
 	//Note 2: a slide may also be loaded by a click on one of the slides-thumbs in the menus
-	if(settings["slideName"] != null || settings["viewName"] != null)  
+	else if(settings["slideName"] != null || settings["viewName"] != null)  
 	{
 		var query = getQuery();
 		//mode= 'unchanged': pass the query through unchanged
 		loadVirtualSlide({"query":query},"unchanged"); 
 	}
+
 }
 
 function resetSettings()
@@ -210,6 +221,13 @@ function setHandlers()
 	jQ(".wheelZoomDir").change(setWheelZoomDirection);
 	jQ("#checkBoxShowCoords").change(showHideCoordsPanel);
 	//ref("checkBoxShowCoords").ontouchstart = showHideCoordsPanel;
+		
+	//open menu pane
+	ref("tabOpenMenu").onclick = showMenuPane;
+	
+	//close menu pane
+	ref("tabCloseMenu").onclick = hideMenuPane;
+	ref("leftDivOverlay").onclick = hideMenuPane;
 	
 	initTooltips();
 	slidesCont = ref("slidesCont");
@@ -431,8 +449,21 @@ function hideAllSlideSetMenus()
 	}
 }
 
+function showMenuPane()
+{
+	jQ("#nav").show();
+	jQ("#leftDivOverlay").show();
+	jQ("#tabCloseMenu").show();
+	jQ("#tabOpenMenu").hide();
+}
 
-
+function hideMenuPane()
+{
+	jQ("#nav").hide();
+	jQ("#leftDivOverlay").hide();
+	jQ("#tabCloseMenu").hide();
+	jQ("#tabOpenMenu").show();
+}
 
 ////////////////////////////////////////////
 //
@@ -1073,8 +1104,6 @@ function showWarningChromeLocal()
 }
 
 
-
-
 //////////////////////////////////////////////////////////////////////
 //
 // URL handling
@@ -1098,6 +1127,8 @@ function queryArgsToSettings(queryArgs)
 	if (queryArgs.y) 					{ settings["y"]  = Number(queryArgs.y); }
 	if (queryArgs.label) 				{ settings["label"] = queryArgs.label;}
 	if (queryArgs.labels) 				{ settings["labels"] = queryArgs.labels;}
+	if (queryArgs.manual) 				{ settings["manual"] = queryArgs.manual;}
+	
 //	if (queryArgs.focus) { focusLabel = queryArgs.focus;}
 //	if (queryArgs.hidethumb) {hideThumb = queryArgs.hidethumb;}; 
 

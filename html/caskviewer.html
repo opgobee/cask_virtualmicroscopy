@@ -57,6 +57,11 @@ isIE7 = false;
 </head>
 
 <body onload="init()" style="height:100%;" >
+
+<!-- for showing manual etc-->
+<div id="leftDiv">
+</div>
+
 	
 <div id="nav" > 
 	<img id="logoCask" src="../img/logo_cask_micr_darkblue_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
@@ -69,7 +74,7 @@ isIE7 = false;
 	</a>
 	
 	<div id="buttonInfo" class="hastooltip">i</div>
-		<div class="tooltip">About CASK Virtual Microscopy, credits and legal matters.</div>
+		<div class="tooltip">About CASK Virtual Microscopy, credits and legal information.</div>
 	<img id="buttonEditLabelsOn" src="../img/flag3_24.png" class="hastooltip"  title="Add or edit labels.">
 		<div class="tooltip">Add or edit labels.</div>
 	<img id="buttonEditLabelsOff" src="../img/flag3_24_strikethrough.png" class="hastooltip hidden"  title="Stop editing labels.">
@@ -114,6 +119,14 @@ isIE7 = false;
 	
 </div> <!--eof nav -->
 
+<div id="leftDivOverlay"></div>
+
+<img id="tabOpenMenu" src="../img/tabNavPaneLeft.gif" class="hastooltip" alt="Menu's">
+<div class="tooltip">Show menu</div>
+
+<img id="tabCloseMenu" src="../img/tabNavPaneLeftClose.gif" class="hastooltip" alt="Close Menu's">
+<div class="tooltip">Close menu panel</div>
+
 <div id="container">
 	<!-- correct automatic iFrame extension //http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/-->
 	<div id="iFrameContainer">
@@ -131,16 +144,13 @@ isIE7 = false;
 	<div id="chromeLocalWarning">This browser does not support settings and tools when used from a <em>local source (e.g. from a harddisk or USB device)</em>.<br/><br />Firefox, Internet Explorer, Safari <em>DO</em> work locally.
 	</div>
 	
-	
-	
-	
-	
+	<!-- info page -->
 	<div id="infoPanel">
 		<img id="buttonCloseInfoPanel" src="../img/close.png" title="Close" >
 
 		<h1>About CASK Virtual Microscopy Viewer</h1>
 
-			<p>Version: 2.1.738</p>
+			<p>Version: 2.1.741</p>
 			<p>Developed by Paul Gob&eacute;e; Leiden University Medical Center, dept. of Anatomy &amp; Embryology, <a href="http://www.caskanatomy.info">CASK (Clinical Anatomical Skills) e-learning group</a>.</p>
 			<p><a href="http://www.caskanatomy.info/products/caskviewer"><span class="strong">This viewer and manuals can be obtained at: http://www.caskanatomy.info/products/caskviewer</span></a></p>
 		<br />
@@ -166,7 +176,7 @@ isIE7 = false;
 		<p>Slides:
 			<ul>
 				<li><a href="https://www.lumc.nl/con/3090/?setlanguage=English&setcountry=en">The most slides are from: Leiden University Medical Center, dept. of Anatomy &amp; Embryology.</a></li>	
-				<li><a href="http://images.nlm.nih.gov/pathlab/">A demo slide (carotis with atherosclerosis) was kindly supplied by Paul Fontelo, from the National Library of Medicine, U.S.</a></li>	
+				<li><a href="http://images.nlm.nih.gov/pathlab/">A demo slide (carotis with atherosclerosis) was kindly provided by Paul Fontelo, from the National Library of Medicine, U.S.</a></li>	
 			</ul>
 		</p>
 		
@@ -186,10 +196,10 @@ isIE7 = false;
 		<h1>Legal</h1>
 
 		<p class="small">
-		You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used.
+		You are free to this software for non-commercial use only, and only if proper credit is clearly visibly given wherever it is used.
 		</p>	
 		<p class="small">
-		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.	
+		THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.	
 		</p>	
 	
 	</div>
