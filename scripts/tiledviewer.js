@@ -90,7 +90,7 @@ var labelTimer;
 var gTierCount; //nr of zoom levels
 var gTierWidth = new Array(), gTierHeight = new Array(); //width and height of image at certain zoomlevel
 var	gTileCountWidth = new Array(), gTileCountHeight = new Array(); //number of tiles at certain zoomlevel
-var visibleTilesMap = {}; // {"tileName" : [row,col]} of each visible tile
+var visibleTilesMap = {}; // {"tileName" : [row,col]} of each visible row/col
 var viewportWidth = null, viewportHeight = null; //dimensions in pixels of viewport
 var innerStyle; //global refs to elements,  
 var dragOffsetLeft, dragOffsetTop, dragging= false; //used in dragging image
@@ -481,8 +481,8 @@ function showInitialView()
 	gTierWidth= o.gTierWidth; //unpack the return object and set the globals
 	gTierHeight= o.gTierHeight;
 
-	imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
-	imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
+	currentInnerDivWidth  = imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut, currentInnerDivWidth can be smaller than imgWidthPresentZoom (if innerDiv is cut off left or top to keep it not too large)
+	currentInnerDivHeight = imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
 	
 	//ih("init-winsize");
 	winsize();//do after onload for IE
@@ -906,15 +906,16 @@ function ZoomIn()
 			}
 		//ih("DETERMINED zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
+		now.zoom=now.zoom+1; 
+		imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
+		imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
+		//ih("ZOOMIN to zoom: "+now.zoom+"<br>");
+
 		//reposition the innerDiv that contains the image
 		setInnerDivLeft( 2 * imgLeft - zoomCenterX);
 		setInnerDivTop(  2 * imgTop  - zoomCenterY);
 		
 		//ih("AFTER: elem.innerDiv.style.left="+getInnerDivLeft()+", elem.innerDiv.style.top="+getInnerDivTop())		
-		now.zoom=now.zoom+1; 
-		imgWidthPresentZoom= gTierWidth[now.zoom]; //shortcut
-		imgHeightPresentZoom= gTierHeight[now.zoom]; //shortcut
-		//ih("ZOOMIN to zoom: "+now.zoom+"<br>");
 		
 		//remove present tiles
 		deleteTiles();
@@ -962,16 +963,17 @@ function ZoomOut()
 			lockedZoomCursorY = cursorY;
 		}
 
+		now.zoom=now.zoom-1; 
+		imgWidthPresentZoom= gTierWidth[now.zoom]; // shortcut
+		imgHeightPresentZoom= gTierHeight[now.zoom]; // shortcut
+		//ih("ZOOMOUT to zoom: "+now.zoom+"<br>");
+
 		//reposition the innerDiv that contains the image
 		setInnerDivLeft( 0.5 * imgLeft + 0.5 * zoomCenterX );
 		setInnerDivTop(  0.5 * imgTop  + 0.5 * zoomCenterY );
 
 		//ih("zoomCenterX="+zoomCenterX+", zoomCenterY="+zoomCenterY+"<br>")
 		
-		now.zoom=now.zoom-1; 
-		imgWidthPresentZoom= gTierWidth[now.zoom]; // shortcut
-		imgHeightPresentZoom= gTierHeight[now.zoom]; // shortcut
-		//ih("ZOOMOUT to zoom: "+now.zoom+"<br>");
 		
 		//remove present tiles
 		deleteTiles();
@@ -1178,11 +1180,13 @@ function setInnerDivLeft(virtualPositionLeft)
 	{
 		DOMPositionLeft = virtualPositionLeft % tileSize;
 		innerDivOffsetLeft = virtualPositionLeft - DOMPositionLeft;
+		currentInnerDivWidth = gTierWidth[now.zoom] + innerDivOffsetLeft; //used to cut off grey bgDiv
 	}
 	else
 	{
 		DOMPositionLeft = virtualPositionLeft;
 		innerDivOffsetLeft = 0;
+		currentInnerDivWidth = gTierWidth[now.zoom]
 	}
 	//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
 	if (oldInnerDivOffsetLeft != innerDivOffsetLeft)
@@ -1190,22 +1194,33 @@ function setInnerDivLeft(virtualPositionLeft)
 		repositionContentInnerDiv();
 	}
 	
-	ih("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",oLeft="+innerDivOffsetLeft)
+	//ih("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",oLeft="+innerDivOffsetLeft)
 	elem.innerDiv.style.left  = DOMPositionLeft  + "px";
+//	elem.bgDiv.style.width = DOMPositionLeft  + "px";
+	
 	elem.newLabels.style.left = DOMPositionLeft  + "px";
 }
 
 function setInnerDivTop(virtualPositionTop)
 {
+	var oldInnerDivOffsetTop = innerDivOffsetTop;
+
 	if(virtualPositionTop < 0)
 	{
 		DOMPositionTop = virtualPositionTop % tileSize;
-		innerDivOffsetTop = virtualPositionTop - DOMPositionTop;		
+		innerDivOffsetTop = virtualPositionTop - DOMPositionTop;
+		currentInnerDivHeight = gTierHeight[now.zoom] + innerDivOffsetTop; //used to cut off grey bgDiv
 	}
 	else
 	{
 		DOMPositionTop = virtualPositionTop;
 		innerDivOffsetTop = 0;
+		currentInnerDivHeight = gTierHeight[now.zoom]
+	}
+	//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
+	if (oldInnerDivOffsetTop != innerDivOffsetTop)
+	{
+		repositionContentInnerDiv();
 	}
 	elem.innerDiv.style.top   = DOMPositionTop  + "px";
 	elem.newLabels.style.top  = DOMPositionTop  + "px";
@@ -1310,12 +1325,11 @@ function keepInViewport()
 
 /*
  * resizes the background div
- * not used at present
  */
 function resizeBackgroundDiv()
 {
-	elem.bgDiv.style.width = imgWidthPresentZoom + "px";
-	elem.bgDiv.style.height = imgHeightPresentZoom + "px";	
+	elem.bgDiv.style.width = currentInnerDivWidth + "px";
+	elem.bgDiv.style.height = currentInnerDivHeight + "px";	
 }
 
 
@@ -1337,9 +1351,10 @@ function checkTiles()
 
 	if (!dimensionsKnown()) {return;}
 	
-	var visibleTiles = getVisibleTiles(); 
-	visibleTilesMap = {}; //empty the global
-	for (i = 0; i < visibleTiles.length; i++)  // each entry is a tile, contains an array [x,y],number of tiles that would fit in the viewport
+	var visibleTiles = getVisibleTiles(); //is all rows and cols within viewPort
+	visibleTilesMap = {}; //empty the global, is used outside this function in repositionContentInnerDiv()
+	
+	for (i = 0; i < visibleTiles.length; i++)  // each entry is a location in viewport tht could have a tile, contains an array [x,y],number of tiles that would fit in the viewport
 	{ 
 		var tileArray = visibleTiles[i]; // for this tile
 		
@@ -1351,61 +1366,58 @@ function checkTiles()
 		// ih("pCol="+pCol+", pRow="+pRow+"<br>"); //at the smaller zoom levels
 		// there are far more pCol and pRow than actually called (and available)
 		// pictures
-
-		// determine tilegroupnum, each tilegroup contains 256 images, theoffset
-		// is sequential num of img
-		tier=now.zoom; 
-		var theOffset=parseFloat(pRow*gTileCountWidth[tier]+pCol); // is this parseFloat doing sthing?
-		for (var theTier=0; theTier<tier; theTier++) theOffset += gTileCountWidth[theTier]*gTileCountHeight[theTier]; 
-		_tileGroupNum=Math.floor(theOffset/256.0); 
-		
 		// ih("HANDLING= "+"TileGroup" + _tileGroupNum + " /Zoom: " + now.zoom + ", pCol: " + pCol + ", pRow: " + pRow + "<br>");
 
+		//if row and col are within the image..
 		if (pCol<gTileCountWidth[now.zoom] && pRow<gTileCountHeight[now.zoom])
-			{var tileName = "TileGroup" + _tileGroupNum + "/" + now.zoom + "-" + pCol + "-" + pRow + ".jpg";
-			// ih("TILENAME CREATED</br>");
-			}
+		{		
+			// determine tilegroupnum, each tilegroup contains 256 images, theoffset is sequential num of img
+			tier=now.zoom; 
+			var theOffset=parseFloat(pRow*gTileCountWidth[tier]+pCol); // is this parseFloat doing sthing?
+			for (var theTier=0; theTier<tier; theTier++) theOffset += gTileCountWidth[theTier]*gTileCountHeight[theTier]; 
+			_tileGroupNum=Math.floor(theOffset/256.0); 
 
-		//store the col and row for fast retrieval in repositionContentInnerDiv
-		visibleTilesMap[tileName] = [pCol,pRow]; 
-		var img = document.getElementById(tileName); 
-		// if(img) {ih("IMAGE PRESENT:"+tileName+"<br>");}
-
-/*		if (img)
-		{
-			positionTileOnInnerDiv(img,pCol,pRow); 
-		}
-	*/	
-		if (!img) 
-		{
-			//on iOs load the image as a backgroundimage in a div instead of a regular image as workaround for the image limit on iOs
-			//http://stackoverflow.com/questions/2986039/ipad-iphone-browser-crashing-when-loading-images-in-javascript
-			if(isiPad || isiPhone)
-			{
-				img = document.createElement("div");
-				//img.style.backgroundImage = "url(" + imgPath + tileName + ")";
-				img.style.background = "transparent url(" + imgPath + tileName + ") no-repeat";
-				img.style.width = tileSize +"px";
-				img.style.height = tileSize +"px";
-				nrDivImagesLoaded++;
-			}
-			else
-			{
-				img = document.createElement("img"); 
-				img.src = imgPath + tileName; 
-				nrImagesLoaded++;
-			}
+			var tileName =  now.zoom + "-" + pCol + "-" + pRow + ".jpg";
+			var tilePath = "TileGroup" + _tileGroupNum + "/" + tileName;
 			
-			jQ("#test").html(nrImagesLoaded +","+nrDivImagesLoaded);
-			//jQ("#log").html("Loading: "+tileName+", No.Img:"+nrImagesLoaded+", No.DivImg:"+nrDivImagesLoaded+" </br> src= " + imgPath + tileName);
-			img.style.position = "absolute"; 
-			img.style.left = ((pCol * tileSize) + innerDivOffsetLeft) + "px"; 
-			img.style.top =  ((pRow * tileSize) + innerDivOffsetTop) +"px"
-			img.style.zIndex = 0; 
-			img.setAttribute("id", tileName); 
-			elem.imageTiles.appendChild(img);			
+			//ih("TILEPATH CREATED:"+tilePath+"</br>");
+			var img = document.getElementById(tileName); 
+	
+			if (!img ) 
+			{
+				//on iOs load the image as a backgroundimage in a div instead of a regular image as workaround for the image limit on iOs
+				//http://stackoverflow.com/questions/2986039/ipad-iphone-browser-crashing-when-loading-images-in-javascript
+				if(isiPad || isiPhone)
+				{
+					img = document.createElement("div");
+					//img.style.backgroundImage = "url(" + imgPath + tileName + ")";
+					img.style.background = "transparent url(" + imgPath + tilePath + ") no-repeat";
+					img.style.width = tileSize +"px";
+					img.style.height = tileSize +"px";
+					nrDivImagesLoaded++;
+				}
+				else
+				{
+					img = document.createElement("img"); 
+					img.src = imgPath + tilePath; 
+					nrImagesLoaded++;
+				}
+				
+				jQ("#test").html(nrImagesLoaded +","+nrDivImagesLoaded);
+				//jQ("#log").html("Loading: "+tileName+", No.Img:"+nrImagesLoaded+", No.DivImg:"+nrDivImagesLoaded+" </br> src= " + imgPath + tileName);
+				img.style.position = "absolute"; 
+				img.style.left = ((pCol * tileSize) + innerDivOffsetLeft) + "px"; 
+				img.style.top =  ((pRow * tileSize) + innerDivOffsetTop) +"px"
+				img.style.zIndex = 0; 
+				img.setAttribute("id", tileName); 
+				elem.imageTiles.appendChild(img);
+	
+			}
+			//store the col and row for fast retrieval in repositionContentInnerDiv
+			visibleTilesMap[tileName] = [pCol,pRow]; 
+			//ih("imgLeft ="+ img.style.left);
 		}
-		//ih("imgLeft ="+ img.style.left);
+
 
 	}
 		
@@ -1478,22 +1490,23 @@ function positionTileOnInnerDiv(img,pCol,pRow)
  */
 function repositionContentInnerDiv()
 {
+	//reposition the tiles
 	jQ(elem.imageTiles).children("img,div").each(function(){
 		var tileName = jQ(this).attr("id");
 		var pCol = visibleTilesMap[tileName][0];
 		var pRow = visibleTilesMap[tileName][1];
 	
-		
-		
-		
-		
-		//BUSY HERE -- ONLY WORKS PARTIALLY STILL - LEFT works, TOP not yet, also labels to be done
-	
-		
-		
-		
+		//debug(visibleTilesMap)
+			//BUSY HERE -- ONLY WORKS PARTIALLY STILL - LEFT works, TOP not yet, also labels to be done
+		var l= (pCol * tileSize) + innerDivOffsetLeft;
+		var t= (pRow * tileSize) + innerDivOffsetTop;
+		//ih("tileName="+tileName+",pCol="+pCol+",pRow="+pRow+"innerDivOffsetLeft="+innerDivOffsetLeft+",innerDivOffsetTop="+innerDivOffsetTop+",l="+l+",t="+t+"<br>");
 		jQ(this).css({"left":((pCol * tileSize) + innerDivOffsetLeft) + "px", "top":((pRow * tileSize) + innerDivOffsetTop) +"px"})
 	});
+	//cut off grey bg if needed
+	resizeBackgroundDiv();
+	//also
+	repositionLabels();
 	
 }
 	
@@ -1919,15 +1932,15 @@ function createLabelInDom(labelData)
 }
 
 /*
- * Calculates the position of the label, dependent on the present zoom
+ * Calculates the position of the label, dependent on the present zoom and the offset (the amount cut off from innerDiv for iPad performance
  * @param object labelData - this should contain properties x and y with the locations of the label (in fractions of the image)
  * @return object {o.x,o.y} holding x and y positions in pixels in relation to the div that contains the labels (without "px")
  */
 function calculateLabelPosition(labelData)
 {
 	var o = {};
-	o.x = labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom)); 
-	o.y = labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)); 
+	o.x = (labelData.x * imgWidthMaxZoom /(Math.pow(2,gTierCount-1-now.zoom))) + innerDivOffsetLeft; 
+	o.y = (labelData.y * imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom))) + innerDivOffsetTop; 
 	return o;	
 }
 
