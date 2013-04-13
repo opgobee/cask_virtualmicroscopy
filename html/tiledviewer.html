@@ -2,7 +2,7 @@
 
 <!--
 	Originally based on brainmaps, written by Shawn Mikula, 2007.   Contact: brainmaps--at--gmail.com.  
-	This version with extended functionality (online labelling, direct URLs, IE support, touch support, credits, etc) written 2013 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o-dot-p-dot-gobee-at-lumc-dot-nl
+	This version with extended functionality (online labelling, direct URLs, IE support, support for touch devices, credits, etc) written 2013 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o-dot-p-dot-gobee-at-lumc-dot-nl
 	See also: http://www.caskanatomy.info/microscopy and www.caskanatomy.info/products/caskviewer
 	You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
 	This notification should be kept intact, also in minified versions of the code.  
@@ -71,6 +71,10 @@ div#barCont {position:absolute;left:0px;top:25px;width:200px;height:20px; z-inde
 .horizontalLine {top:5px;height:2px;}
 #theScale1 {position:absolute;left:0px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;}
 #theScale2 {position:absolute;left:1px;top:23px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:white;}
+/*can be replaced by text-shadow when IE9 and lower are sufficiently out of market, they don't support text-shadow
+#theScale {position:absolute;left:1px;top:22px;width:100%;text-align:center;font-weight:bold;font-size:0.9em;font-family:Arial, sans-serif;color:blue;text-shadow: 1px 1px 0px #ffffff;}
+*/
+.largerFont {font-size:2em !important;}
 
 div#credit {position:absolute;bottom:10px;left:30px;z-index:1;font-family:sans-serif;color:blue;font-size:80%}
 	#creditSlideLogo {display:none;float:left;border:none;}
@@ -103,7 +107,7 @@ div#coordsPane{
 }
 .label {
 	font-family:Arial,sans-serif;font-weight:bold;
-	color:black;text-shadow: 1px 1px 0px #ffffff;
+	color:black; text-shadow: 1px 1px 0px #ffffff; /*note: text shadow not supported on <=IE9*/
 	font-size:80%;
 	max-width:200px; /*used max-width instead of width to not trigger the tooltip at a place where there is no text*/
 	text-align:left; vertical-align:top;
@@ -206,7 +210,7 @@ div#warning {display:none;font-size:200%;font-weight:bold;color:red;text-align:c
 
 
 /*debug*/
-div#log {display:none;position:absolute;top:210px;left:10px;width:400px;height:300px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
+div#log {display:block;position:absolute;top:210px;left:10px;width:600px;height:50px;padding:1px;background:white;border:solid 1px black;z-index:101;font-family:sans-serif;color:blue;font-size:70%;overflow:auto;}
 #test {display:block;position:absolute;right:1px;bottom:0px;height:20px;background:none;z-index:1000;font-size:0.7em;}
 div#signal {position:absolute;right:1px;top:0px;font-size:10px;color:#c0c0c0;}
 span#signalI {display:none;}
@@ -275,6 +279,7 @@ var islteIE8 = false;
 	<div id="bar_mid" class="bar horizontalLine"></div>
 	<div id="bar_right" class="bar verticalLine"></div>
 	<div id="theScale2"></div><div id="theScale1"></div> 
+	<!--the two scales can be replaced by one div when <=IE9 is out of market, they don't support text-shadow <div id="theScale"></div> -->
 </div> 
 
 <div id="outerDiv0">

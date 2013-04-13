@@ -11,14 +11,6 @@
 
 
 /*
- * 		
-		//BUSY WITH USING REDUCED INNERDIV - ONLY VISIBLE TILES SIZE AND NOT FAR OUTSIDE VIEWPORT - TO REDUCE PERFORMANCE NEED FOR iPAD
-		SEE FUNCTION repositionContentInnerDiv() and checkTiles()
-		 -- ONLY WORKS PARTIALLY STILL - LEFT works, TOP not yet, also labels to be done
-
- */
-
-
 
 /*
  * Expected global vars in loaded files:
@@ -75,6 +67,8 @@ now.zoom = 2 ;// start zoom level
 now.newLabelTooltipIsOpen = {}; //holds ids of newlabeltooltips that are open
 now.newLabelPreviewTooltipEnabled ={}; //holds ids of newlabeltooltips where user has not yet mouseouted the arw after closing tooltiptextarea
 now.labelMode = "fixed"; //"edit" labels can be editable or fixed
+now.isDisplayingUrl = false //boolean indicating that urlBar with deeplink url is presently displayed
+now.monitorPosition = false //boolean that is true if either now.isDisplayingUrl or settings.showCoordinatesPanel is true
 
 //image
 var slideData = {}; //object that will contain the data of the presently shown slide
@@ -99,7 +93,7 @@ var lockedZoomCenterX= null, lockedZoomCenterY= null; //if using +/- keys or zoo
 var lockedZoomCursorX= null, lockedZoomCursorY= null; //
 var cursorX, cursorY; //continuously keeps track of cursorposition to enable scrolling with centerpoint cursorposition
 var downX=null,downY=null;//IE workaround for autozoomout
-var isDisplayingUrl = false; //boolean indicating that urlBar with deeplink url is presently displayed
+//var isDisplayingUrl = false; //boolean indicating that urlBar with deeplink url is presently displayed
 
 //controls and thumbnail
 var thumbContainerWidth, thumbContainerHeight, viewIndicatorWidth, viewIndicatorHeight; 
@@ -125,6 +119,7 @@ var isIE= (navigator.userAgent.indexOf("MSIE") != -1)? true : false; //for IE wo
 var isMobile= (navigator.userAgent.indexOf("Mobile") != -1)? true : false;
 var isiPad= (navigator.userAgent.indexOf("iPad") != -1)? true : false;
 var isiPhone= (navigator.userAgent.indexOf("iPhone") != -1)? true : false;
+var isiOs = (isiPad || isiPhone)? true : false;
 var isTouchDevice = ("ontouchstart" in window)? true : false;
 
 
@@ -156,6 +151,7 @@ function init()
 	
 	//Specific settings
 	if ((isMobile || isiPhone) && !isiPad) {setMobileOn();}
+	if (isiPad) {setFontScaleBarLarge(true);}
 	//if (isiPad) {trackOrientation();}	//was neccessary on iPad 1, doesn't seem needed anymore
 
 	//shows or hides the coords panel
@@ -342,7 +338,7 @@ function queryArgsToSettings(queryArgs1)
 		if (queryArgs.start){ settings.slidePointer = queryArgs.start;} //not yet well implemented, for viewing stacks
 		if (queryArgs.slide) {settings.slideName = queryArgs.slide;}
 		if (queryArgs.view) {settings.viewName = queryArgs.view;}	
-		if (queryArgs.showcoords) {settings.showCoordinatesPanel = (queryArgs.showcoords == 1)? true : false;} 
+		if (queryArgs.showcoords) { setShowCoordinatesPanel( (queryArgs.showcoords == 1)? true : false); } 
 		if (queryArgs.wheelzoomindirection) { setWheelZoomInDirection(queryArgs.wheelzoomindirection); }; 
 		if (queryArgs.zoom){ settings.zoom = Number(queryArgs.zoom);}
 		if (queryArgs.x) { settings.x = Number(queryArgs.x);}
@@ -366,7 +362,7 @@ function discardDetailSettings()
 	settings.x = null;
 	settings.y = null;
 	settings.labels = null;
-	settings.showCoordinatesPanel = false;
+	setShowCoordinatesPanel(false);
 	setWheelZoomInDirection("down");
 	settings.hideThumb = false;
 	//settings.label = null; //dont know if we want this one still
@@ -409,7 +405,7 @@ function setHandlers()
 	//Workaround for iPad and iPhone feature/bug: on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
 	//prevent this from happening on iPad as on iPad an iFrame resizes to accomodate its content, this repositions content, that in turn again resizes iFrame, etc. this causes an endless loop
 	//http://dev.magnolia-cms.com/blog/2012/05/strategies-for-the-iframe-on-the-ipad-problem/
-	if(!isiPad && !isiPhone) 
+	if(!isiOs) 
 	{
 		window.onresize=winsize; //moved to here to prevent error on Chrome
 	}
@@ -756,26 +752,34 @@ function startMove(event)
 /*
  * Does all things needed when slide is dragged: moves slide and updates URL in URL bar
  * Also shows mouse coordinates in coordinates panel, if show coords is true
- * @TODO: For performance: replace duplicate if (settings.showCoordinatesPanel) and if(isDisplayingUrl) by a single if checking a single setting.
+ *
  */
 function processMove(event) 
 {//ih("processmove ");
 	if (!event){ event = window.event;}
 	
-	//display current mouse coordinates in coordinates panel
-	if (settings.showCoordinatesPanel)  
+	//is coordinatespanel is shown or Url is shown, the position should be represented there. Both situations are combined in now.monitorPosition for performance to reduce to a single 'if' in the most usual case (no monitoring) 
+	if(now.monitorPosition)
 	{
-		var imgCoords= getImgCoords(cursorX,cursorY);	
-		coordX = imgCoords.x;
-		coordY = imgCoords.y;
-		if( coordX <= 0 || coordX >=1 || coordY <= 0 || coordY >=1)
-			{
-				coordX = coordY = "<span class='deemphasize'>Outside slide</span>";
-			}
-		
-		ref('coordsPane').innerHTML= "x: " + coordX + ", y: " + coordY ;
+		//display current mouse coordinates in coordinates panel
+		if (settings.showCoordinatesPanel)  
+		{
+			var imgCoords= getImgCoords(cursorX,cursorY);	
+			coordX = imgCoords.x;
+			coordY = imgCoords.y;
+			if( coordX <= 0 || coordX >=1 || coordY <= 0 || coordY >=1)
+				{
+					coordX = coordY = "<span class='deemphasize'>Outside slide</span>";
+				}
+			
+			ref('coordsPane').innerHTML= "x: " + coordX + ", y: " + coordY ;
+		}
+		if(now.isDisplayingUrl) 
+		{
+			parent.updateUrl();
+		}
 	}
-	if(isDisplayingUrl) {parent.updateUrl();}
+
 	//move the image
 	if (dragging) 
 	{
@@ -931,7 +935,7 @@ function ZoomIn()
 		updateLengthBar();	
 		moveViewIndicator();
 		//lowZoomHideLabels();
-		if(isDisplayingUrl) {parent.updateUrl();}
+		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMIN done<br>")
 	}	
 }
@@ -989,7 +993,7 @@ function ZoomOut()
 		updateLengthBar(); 
 		moveViewIndicator();
 		// lowZoomHideLabels();
-		if(isDisplayingUrl) {parent.updateUrl();}
+		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMOUT done<br>")
 	}
 }
@@ -1174,54 +1178,81 @@ function setInnerDiv(virtualPositionLeft,virtualPositionTop)
  */
 function setInnerDivLeft(virtualPositionLeft)
 {
-	var oldInnerDivOffsetLeft = innerDivOffsetLeft;
 	
-	if(virtualPositionLeft < 0 )
+	//for iOs: to prevent greying out at large zoom levels (probably due to performance limits) keep the innerDiv small (max 1 tile outside screen) and reposition the tiles on the cut innerDiv. 
+	if(isiOs )
 	{
-		DOMPositionLeft = virtualPositionLeft % tileSize;
-		innerDivOffsetLeft = virtualPositionLeft - DOMPositionLeft;
-		currentInnerDivWidth = gTierWidth[now.zoom] + innerDivOffsetLeft; //used to cut off grey bgDiv
+		var oldInnerDivOffsetLeft = innerDivOffsetLeft;
+
+		if(virtualPositionLeft < 0)
+		{
+			DOMPositionLeft = virtualPositionLeft % tileSize;
+			innerDivOffsetLeft = virtualPositionLeft - DOMPositionLeft;
+			currentInnerDivWidth = gTierWidth[now.zoom] + innerDivOffsetLeft; //used to cut off grey bgDiv, innerDivOffsetLeft is usually a negative number
+		}
+		else
+		{
+			DOMPositionLeft = virtualPositionLeft;
+			innerDivOffsetLeft = 0;
+			currentInnerDivWidth = gTierWidth[now.zoom]
+		}
+		//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
+		if (oldInnerDivOffsetLeft != innerDivOffsetLeft)
+		{
+			repositionContentInnerDiv();
+		}
 	}
 	else
 	{
 		DOMPositionLeft = virtualPositionLeft;
 		innerDivOffsetLeft = 0;
-		currentInnerDivWidth = gTierWidth[now.zoom]
+		currentInnerDivWidth = gTierWidth[now.zoom];
 	}
-	//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
-	if (oldInnerDivOffsetLeft != innerDivOffsetLeft)
-	{
-		repositionContentInnerDiv();
-	}
+
 	
-	//ih("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",oLeft="+innerDivOffsetLeft)
 	elem.innerDiv.style.left  = DOMPositionLeft  + "px";
-//	elem.bgDiv.style.width = DOMPositionLeft  + "px";
-	
 	elem.newLabels.style.left = DOMPositionLeft  + "px";
+
+	//debug
+	var setLeft = jQ("#innerDiv").css("left");
+	jQ("#log").html("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",setLeft="+setLeft+",offsetLeft="+innerDivOffsetLeft+",offsetTop="+innerDivOffsetTop);
 }
 
 function setInnerDivTop(virtualPositionTop)
 {
-	var oldInnerDivOffsetTop = innerDivOffsetTop;
 
-	if(virtualPositionTop < 0)
+	//for iOs: to prevent greying out at large zoom levels (probably due to performance limits) keep the innerDiv small (max 1 tile outside screen) and reposition the tiles on the cut innerDiv. 
+	if(isiOs)
 	{
-		DOMPositionTop = virtualPositionTop % tileSize;
-		innerDivOffsetTop = virtualPositionTop - DOMPositionTop;
-		currentInnerDivHeight = gTierHeight[now.zoom] + innerDivOffsetTop; //used to cut off grey bgDiv
+		var oldInnerDivOffsetTop = innerDivOffsetTop;
+
+		if(virtualPositionTop < 0)
+		{
+			DOMPositionTop = virtualPositionTop % tileSize;
+			innerDivOffsetTop = virtualPositionTop - DOMPositionTop;
+			currentInnerDivHeight = gTierHeight[now.zoom] + innerDivOffsetTop; //used to cut off grey bgDiv, innerDivOffsetTop is usually a negative number
+		}
+		else
+		{
+			DOMPositionTop = virtualPositionTop;
+			innerDivOffsetTop = 0;
+			currentInnerDivHeight = gTierHeight[now.zoom];	
+		}
+		//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
+		if (oldInnerDivOffsetTop != innerDivOffsetTop)
+		{
+			repositionContentInnerDiv();
+		}
 	}
 	else
 	{
 		DOMPositionTop = virtualPositionTop;
 		innerDivOffsetTop = 0;
-		currentInnerDivHeight = gTierHeight[now.zoom]
+		currentInnerDivHeight = gTierHeight[now.zoom];
 	}
-	//if a modulo jump was made, reposition the tiles and the labels on the innerDiv
-	if (oldInnerDivOffsetTop != innerDivOffsetTop)
-	{
-		repositionContentInnerDiv();
-	}
+
+	//jQ("#log").html("vTop="+virtualPositionTop+",DOMTop="+DOMPositionTop+",offsetLeft="+innerDivOffsetLeft+",offsetTop="+innerDivOffsetTop);
+	
 	elem.innerDiv.style.top   = DOMPositionTop  + "px";
 	elem.newLabels.style.top  = DOMPositionTop  + "px";
 }
@@ -1387,7 +1418,7 @@ function checkTiles()
 			{
 				//on iOs load the image as a backgroundimage in a div instead of a regular image as workaround for the image limit on iOs
 				//http://stackoverflow.com/questions/2986039/ipad-iphone-browser-crashing-when-loading-images-in-javascript
-				if(isiPad || isiPhone)
+				if(isiOs)
 				{
 					img = document.createElement("div");
 					//img.style.backgroundImage = "url(" + imgPath + tileName + ")";
@@ -1421,7 +1452,7 @@ function checkTiles()
 
 	}
 		
-	if(isiPad || isiPhone)
+	if(isiOs)
 	{
 		var imgs = elem.imageTiles.getElementsByTagName("div"); 
 	}
@@ -1444,7 +1475,7 @@ function checkTiles()
 	
 function deleteTiles()
 {
-	if(isiPad || isiPhone)
+	if(isiOs)
 	{
 		jQ(elem.imageTiles).children("div").remove();
 	}
@@ -1698,7 +1729,7 @@ function stopThumb(eventX,eventY)
 		keepInViewport();
 		checkTiles();
 		
-		if(isDisplayingUrl) {parent.updateUrl();}
+		if(now.isDisplayingUrl) {parent.updateUrl();}
 	}
 }
 
@@ -1780,7 +1811,7 @@ function updateLengthBar()
 	
 	// display bar-length
 	var txt= barUm + "  " + resunits + "<br />zoom level: " + now.zoom + "/" + (gTierCount-1);
-	ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt;
+	ref('theScale1').innerHTML = ref('theScale2').innerHTML = txt; //if <=IE9 out of market can be replaced by: ref('theScale').innerHTML = txt; (<=IE9 doesn't support text=shadow)
 
 }
 
@@ -2742,12 +2773,11 @@ function setWheelZoomInDirection(zoomInDirection)
 /*
  * shows or hides the little panel at the top of the page displaying the coords
  * @param boolean showOrHide : true = show, false = hide
- * if not given, it uses the settings.showCoordinatesPanel 
+ * 
  */
 function showHideCoordinatesPanel(showOrHide)
 {
-	//if a setting is passed, set 'settings.showCoordinatesPanel' that determines the showing to this value, else keep the default one  
-	settings.showCoordinatesPanel = (typeof showOrHide == "boolean")? showOrHide : settings.showCoordinatesPanel;
+	setShowCoordinatesPanel(showOrHide);
 	//ih("in viewerframe showHideCoordinatesPanel, settings.showCoordinatesPanel ="+ settings.showCoordinatesPanel)
 	//show coords panel
 	ref("coordsPane").style.display = (settings.showCoordinatesPanel)? "block" : "none";
@@ -2755,6 +2785,17 @@ function showHideCoordinatesPanel(showOrHide)
 	ref("namePanel").style.display = (settings.showCoordinatesPanel)?  "none" : "inline-block";
 }
 
+/*
+ * sets setting showcoordinatesPanel (and the container setting monitorPosition)
+ * @param boolean trueOrFalse :  true = show, false = hide
+ * if not given, it uses the settings.showCoordinatesPanel (keeps unchanged)
+ */
+function setShowCoordinatesPanel(trueOrFalse)
+{
+	//if a setting is passed, set 'settings.showCoordinatesPanel' that determines the showing to this value, else keep the default one  
+	settings.showCoordinatesPanel = (typeof trueOrFalse == "boolean")? trueOrFalse : settings.showCoordinatesPanel;
+	setNowMonitorPosition();
+}
 
 /*
  * wheelmode: what does wheel do: zoomin/zoomout or next/prev in stack of images
@@ -2785,14 +2826,14 @@ function startUrlViewing()
 {
 	positionSizeIndicators();
 	jQ("#sizeIndicators").show();
-	isDisplayingUrl = true; 
+	setIsDisplayingUrl(true);
 }
 
 
 function stopUrlViewing()
 {
 	jQ("#sizeIndicators").hide();
-	isDisplayingUrl = false;
+	setIsDisplayingUrl(false);
 }
 
 
@@ -2801,13 +2842,32 @@ function stopUrlViewing()
  */
 function hideUrlBarAndSizeIndicators()
 {
-	if(isDisplayingUrl && parent.closeUrlBar)
+	if(now.isDisplayingUrl && parent.closeUrlBar)
 		{
 		parent.closeUrlBar();//this will also call stopUrlViewing()
 		}	
 }
 
+/*
+ * sets setting now.isDisplayingUrl (and the container setting now.monitorPosition)
+ * @param boolean trueOrFalse : true or false
+ * if not a valid boolean is passed the setting remains unchanged
+ */
+function setIsDisplayingUrl(trueOrFalse)
+{
+	now.isDisplayingUrl = (typeof trueOrFalse == "boolean")? trueOrFalse : now.isDisplayingUrl;
+	setNowMonitorPosition();
+}
 
+/*
+ * sets the combined setting monitorPosition true if either now.isDisplayingUrl or settings.showCoordinatesPanel is true
+ * this combined setting is used to reduce the number of ifs during moving in processmove()
+ * 
+ */
+function setNowMonitorPosition()
+{
+	now.monitorPosition = (now.isDisplayingUrl || settings.showCoordinatesPanel)? true : false;
+}
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -2826,19 +2886,35 @@ function hasSmallViewport()
 
 
 function adaptDimensions()
-	{
+{
 	//ref('credit').style.width=viewportWidth/2;
 	//ref('credit').style.fontSize="8px";
 	//enlarge zoom buttons
 	jQ("#zoomButtonsContainer,#zoomin,#zoomout").addClass("enlarged");	
-	}
+}
 
 function resetDimensions()
-	{ref('credit').style.width="";
-	ref('credit').style.fontSize="";
+{
 	jQ("#zoomButtonsContainer,#zoomin,#zoomout").removeClass("enlarged");	
+}
+
+/*
+ * sets the font on the scale bar larger or removes this setting, ie on iPad and mobile
+ * @param boolean trueOrFalse 
+ */
+function setFontScaleBarLarge(trueOrFalse)
+{
+	var setLarge = (typeof trueOrFalse == "boolean")? trueOrFalse : false;
+	if(setLarge)
+	{
+		jQ("#theScale1,#theScale2").addClass("largerFont");
+	}
+	else
+	{
+		jQ("#theScale1,#theScale2").removeClass("largerFont");
 	}
 	
+}
 
 function setMobileOn()
 	{mobile=true;
@@ -2848,8 +2924,9 @@ function setMobileOn()
 	elem.controlsContainer.style.right=""; //left positioning elem.thumbImageHolder to prevent discrepancy viewport-positions vs. visual-viewport-eventX  which breaks thumb 
 	elem.controlsContainer.style.left="0px";
 	elem.controlsContainer.style.top="0px";
-	ref("barCont").style.left= "100px";//move the bar aside of the elem.thumbImageHolder that has now come to the left
+	ref("barCont").style.left= "200px";//move the bar aside of the elem.thumbImageHolder that has now come to the left
 	//ref('test').style.display="block";
+	setFontScaleBarLarge(true);
 	}
 	
 function setMobileOff()
@@ -2864,6 +2941,7 @@ function setMobileOff()
 	//ref('test').style.display="none";
 	ref("log").style.display="none";
 	logwin.innerHTML="";
+	setFontScaleBarLarge(false);
 	}
 	
 	
@@ -3060,8 +3138,8 @@ function appleMove(event)
 	//	ih("applemove");
 	if ((event.changedTouches.length == 1) && (dragging == true) && (touchIdentifier == event.changedTouches[0].identifier)) 
 	{
-		setInnerDivLeft( mLeft + (event.changedTouches[0].clientX - dragStartLeft) + 'px');
-		setInnerDivTop(  mTop +  (event.changedTouches[0].clientY - dragStartTop)  + 'px');
+		setInnerDivLeft( mLeft + (event.changedTouches[0].clientX - dragStartLeft));
+		setInnerDivTop(  mTop +  (event.changedTouches[0].clientY - dragStartTop));
 	   
 	}
 	event.preventDefault();
