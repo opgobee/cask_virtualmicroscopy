@@ -94,6 +94,8 @@ var lockedZoomCursorX= null, lockedZoomCursorY= null; //
 var cursorX, cursorY; //continuously keeps track of cursorposition to enable scrolling with centerpoint cursorposition
 var downX=null,downY=null;//IE workaround for autozoomout
 //var isDisplayingUrl = false; //boolean indicating that urlBar with deeplink url is presently displayed
+var innerDivOffsetLeft = 0; //default start
+var innerDivOffsetTop = 0;
 
 //controls and thumbnail
 var thumbContainerWidth, thumbContainerHeight, viewIndicatorWidth, viewIndicatorHeight; 
@@ -151,7 +153,7 @@ function init()
 	
 	//Specific settings
 	if ((isMobile || isiPhone) && !isiPad) {setMobileOn();}
-	if (isiPad) {setFontScaleBarLarge(true);}
+	if (isiPad) {setFontSizeScaleBar(1);}
 	//if (isiPad) {trackOrientation();}	//was neccessary on iPad 1, doesn't seem needed anymore
 
 	//shows or hides the coords panel
@@ -1151,8 +1153,6 @@ function countTilesPerTier()
 	return {"gTierWidth":gTierWidth,"gTierHeight":gTierHeight}; 
 	}
 
-var innerDivOffsetLeft;
-var innerDivOffsetTop;
 /*
  * repositions innerDiv, the large main div that holds and positions the image tiles, and newLabels div that holds and positions the newLabels
  * Div newlabels is a separate div because it needs to be outside outerDiv, hence it needs separate repositioning  
@@ -1214,8 +1214,8 @@ function setInnerDivLeft(virtualPositionLeft)
 	elem.newLabels.style.left = DOMPositionLeft  + "px";
 
 	//debug
-	var setLeft = jQ("#innerDiv").css("left");
-	jQ("#log").html("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",setLeft="+setLeft+",offsetLeft="+innerDivOffsetLeft+",offsetTop="+innerDivOffsetTop);
+	//var setLeft = jQ("#innerDiv").css("left");
+	//jQ("#log").html("vLeft="+virtualPositionLeft+",DOMLeft="+DOMPositionLeft+",setLeft="+setLeft+",offsetLeft="+innerDivOffsetLeft+",offsetTop="+innerDivOffsetTop);
 }
 
 function setInnerDivTop(virtualPositionTop)
@@ -1259,6 +1259,9 @@ function setInnerDivTop(virtualPositionTop)
 
 function getInnerDivLeft()
 {
+	//alert(elem.innerDiv.style.left)
+	//alert(innerDivOffsetLeft)
+	
 	return stripPx(elem.innerDiv.style.left) + innerDivOffsetLeft;
 }
 
@@ -1646,6 +1649,7 @@ function processMouseThumbMove(event)
 { 
 	if (thumbDragging) 
 	{
+		if (!event){ event = window.event;}
 		elem.viewIndicator.style.left  = event.clientX + viewIndicatorDragOffsetLeft + "px"; 
 		elem.viewIndicator.style.top   = event.clientY + viewIndicatorDragOffsetTop  + "px"; 
 	}
@@ -2900,20 +2904,23 @@ function resetDimensions()
 
 /*
  * sets the font on the scale bar larger or removes this setting, ie on iPad and mobile
- * @param boolean trueOrFalse 
+ * @param number 0 = base font, 1 = largerFont1, 2 = largerFont2 
  */
-function setFontScaleBarLarge(trueOrFalse)
+function setFontSizeScaleBar(size)
 {
-	var setLarge = (typeof trueOrFalse == "boolean")? trueOrFalse : false;
-	if(setLarge)
+	if(typeof size != "number") {return;}
+	if(size==0)
 	{
-		jQ("#theScale1,#theScale2").addClass("largerFont");
+		jQ("#theScale1,#theScale2").removeClass("largerFont1 largerFont2");			
 	}
-	else
+	else if(size==1)
+	{		
+		jQ("#theScale1,#theScale2").addClass("largerFont1");		
+	}
+	else if (size==2)
 	{
-		jQ("#theScale1,#theScale2").removeClass("largerFont");
+		jQ("#theScale1,#theScale2").addClass("largerFont2");
 	}
-	
 }
 
 function setMobileOn()
@@ -2926,7 +2933,7 @@ function setMobileOn()
 	elem.controlsContainer.style.top="0px";
 	ref("barCont").style.left= "200px";//move the bar aside of the elem.thumbImageHolder that has now come to the left
 	//ref('test').style.display="block";
-	setFontScaleBarLarge(true);
+	setFontSizeScaleBar(2);
 	}
 	
 function setMobileOff()
@@ -2941,7 +2948,7 @@ function setMobileOff()
 	//ref('test').style.display="none";
 	ref("log").style.display="none";
 	logwin.innerHTML="";
-	setFontScaleBarLarge(false);
+	setFontSizeScaleBar(0);
 	}
 	
 	
