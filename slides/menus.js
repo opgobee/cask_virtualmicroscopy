@@ -24,7 +24,9 @@ var menus= {
 			"sets":[
 				{title:"Stomach",slides:"056_maag_mens_he"},
 				{title:"Small Bowel",slides:"115_ileum_mens_he"},
-				{title:"(empty)",slides:""}
+				{title:"Liver",slides:"001_lever_varken_he,069_lever_mens_he_magn2"},
+				{title:"Gall bladder",slides:"070a_galblaas_mens_he_magn2,070b_galblaas_mens_azan,071_galblaas_mens_infected_he_01"},
+				{title:"Pancreas",slides:"016_pancreas_kat_he"}
 				]	
 		},		
 		{
@@ -65,7 +67,8 @@ var menus= {
 	    {
 			"header":{title:"LUMC - gnk1 - Sturing en Stofwisseling",slides:""},
 			"sets":[
-				{title:"Microscopie Gonaden",slides:"077_testis_mens_neonaat_he_01,078_testis_muis_he_01,081_ductus_deferens_mens_azan,083_ovarium_mens_foetaal_he_01,084_ovarium_kat_he_02,084_ovarium_kat_he_03,085_ovarium_mens_he_01_magn4,085_ovarium_mens_he_02_magn4,085_ovarium_mens_he_02_part1,085_ovarium_mens_he_02_part2,085_ovarium_mens_he_02_part3,086_ovarium_varken_he_magn2,087_uterus_mens_he_magn2,087_uterus_mens_he_02_magn2,088_uterus_mens_he_magn2,088_uterus_mens_he_02_magn2,089_uterus_mens_he_01_magn2,089_uterus_mens_he_03"}
+				{title:"Microscopie Gonaden",slides:"077_testis_mens_neonaat_he_01,078_testis_muis_he_01,081_ductus_deferens_mens_azan,083_ovarium_mens_foetaal_he_01,084_ovarium_kat_he_02,084_ovarium_kat_he_03,085_ovarium_mens_he_01_magn4,085_ovarium_mens_he_02_magn4,085_ovarium_mens_he_02_part1,085_ovarium_mens_he_02_part2,085_ovarium_mens_he_02_part3,086_ovarium_varken_he_magn2,087_uterus_mens_he_magn2,087_uterus_mens_he_02_magn2,088_uterus_mens_he_magn2,088_uterus_mens_he_02_magn2,089_uterus_mens_he_01_magn2,089_uterus_mens_he_03"},
+				{title:"Microscopie Darmklieren",slides:"001_lever_varken_he,016_pancreas_kat_he,069_lever_mens_he_magn2,070a_galblaas_mens_he_magn2,070b_galblaas_mens_azan,071_galblaas_mens_infected_he_01"}
 				]
 	    },
 	    {

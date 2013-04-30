@@ -115,7 +115,7 @@ function init()
 		jQ("#nav").hide();
 		jQ("#leftDiv").show().load(settings["manual"]);
 		jQ("#tabOpenMenu").show();
-		jQ("#container").css({"padding-left":"400px"});
+		jQ("#container").css({"padding-left":"300px"});
 	}
 	//If a slide or view is requested in the URL (e.g. '...?slide=carotis' or '...?view=xxxx' ), load the requested slide or view in the main panel
 	//Note 1: all additional specific requests in the URL (e.g. zoom, x, y, labels) have already been read to global object 'settings' and will be passsed in when the query is constructed in createQuery()

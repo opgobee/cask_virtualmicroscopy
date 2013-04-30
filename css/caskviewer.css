@@ -69,10 +69,10 @@ a
 /* Simplified version, according to idea on http://alistapart.com/article/holygrail */
 div#nav {position:absolute;width:220px;height:100%;background-color:#ECEFED}
 div#container {padding-left:220px;height:100%;}
-div#leftDiv {display:none;position:absolute;width:400px;height:100%;}
+div#leftDiv {display:none;position:absolute;width:300px;height:100%;}
 img#tabOpenMenu {display:none;position:absolute;left:0px;top:40px;cursor:pointer;}
 img#tabCloseMenu {display:none;position:absolute;left:220px;top:40px;cursor:pointer;}
-div#leftDivOverlay {display:none;position:absolute;left:220px;width:180px;height:100%;background-color:#202020;	opacity: 0.90;	filter: alpha(opacity=90);}
+div#leftDivOverlay {display:none;position:absolute;left:220px;width:80px;height:100%;background-color:#202020;	opacity: 0.90;	filter: alpha(opacity=90);}
 /* The iFrame with the viewer  */
 #viewerFrame {height:100%;width:100%;background-color:#FFFFFF;}
 #iFrameContainer {width:100%;height:100%;}

@@ -1,9 +1,15 @@
 ;
 var slides={
+"001_lever_varken_he" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/001_lever_varken_he/","res":0.2325,"width":32248,"height":53747,"credits":"LUMC_Anat","title":"001 Liver pig HE"},
 "013_blaas_fret_of_rat_azan" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/013_blaas_fret_of_rat_azan/","res":0.2325,"width":27833,"height":27013,"credits":"LUMC_Anat","title":"013 Bladder ferret or rat Azan"},
+"016_pancreas_kat_he" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/016_pancreas_kat_he/","res":0.2325,"width":53418,"height":33754,"credits":"LUMC_Anat","title":"016 Pancreas cat HE"},
 "056_maag_mens_he" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/056_maag_mens_he/","res":0.2325,"width":64001,"height":64969,"credits":"LUMC_Anat","title":"056 Stomach human HE"},
 "062_ureter_mens_adult_azan" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/062_ureter_mens_adult_azan/","res":0.2325,"width":21096,"height":18043,"credits":"LUMC_Anat","title":"062 Ureter human adult Azan"},
 "062_ureter_mens_foetaal_azan" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/062_ureter_mens_foetaal_azan/","res":0.2325,"width":13046,"height":7633,"credits":"LUMC_Anat","title":"062 Ureter human fetal Azan"},
+"069_lever_mens_he_magn2" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/069_lever_mens_he_magn2/","res":0.465,"width":40451,"height":51548,"credits":"LUMC_Anat","title":"069 Liver human HE"},
+"070a_galblaas_mens_he_magn2" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/070a_galblaas_mens_he_magn2/","res":0.465,"width":36423,"height":30205,"credits":"LUMC_Anat","title":"070 Gal bladder human HE"},
+"070b_galblaas_mens_azan" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/070b_galblaas_mens_azan/","res":0.2325,"width":62737,"height":59818,"credits":"LUMC_Anat","title":"070b Gal bladder human Azan"},
+"071_galblaas_mens_infected_he_01" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/071_galblaas_mens_infected_he_01/","res":0.2325,"width":24875,"height":35270,"credits":"LUMC_Anat","title":"071 Gal bladder human infected HE 01"},
 "077_testis_mens_neonaat_he_01" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/077_testis_mens_neonaat_he_01/","res":0.2325,"width":60057,"height":64578,"credits":"LUMC_Anat","title":"077 Testis human neonate HE 01"},
 "078_testis_muis_he_01" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/078_testis_muis_he_01/","res":0.2325,"width":23245,"height":57440,"credits":"LUMC_Anat","title":"078 Testis mouse HE 01"},
 "081_ductus_deferens_mens_azan" : {"path":"../../../../../../../../LARGE/virtualmicroscopy/slides/081_ductus_deferens_mens_azan/","res":0.2325,"width":14005,"height":11085,"credits":"LUMC_Anat","title":"081 Ductus deferens human Azan"},
