@@ -50,6 +50,15 @@ var menus= {
 				]
 		},
 		{
+			"header":{title:"Endocrine System",slides:""},
+			"sets":[
+				{title:"Pituitary gland",slides:"072_hypophyse_varken_azan,073_hypophyse_mens_azan_rot"},
+				{title:"Thyroid gland",slides:"076_schildklier_he"},
+				{title:"Parathyroid gland",slides:"075_bijschildklier_he"},
+				{title:"Adrenal gland",slides:"074_bijnier_he_magn2"}
+				]
+		},
+		{
 			"header":{title:"ALL SLIDES",slides:"ALL"}
 		
 		}
@@ -68,7 +77,8 @@ var menus= {
 			"header":{title:"LUMC - gnk1 - Sturing en Stofwisseling",slides:""},
 			"sets":[
 				{title:"Microscopie Gonaden",slides:"077_testis_mens_neonaat_he_01,078_testis_muis_he_01,081_ductus_deferens_mens_azan,083_ovarium_mens_foetaal_he_01,084_ovarium_kat_he_02,084_ovarium_kat_he_03,085_ovarium_mens_he_01_magn4,085_ovarium_mens_he_02_magn4,085_ovarium_mens_he_02_part1,085_ovarium_mens_he_02_part2,085_ovarium_mens_he_02_part3,086_ovarium_varken_he_magn2,087_uterus_mens_he_magn2,087_uterus_mens_he_02_magn2,088_uterus_mens_he_magn2,088_uterus_mens_he_02_magn2,089_uterus_mens_he_01_magn2,089_uterus_mens_he_03"},
-				{title:"Microscopie Darmklieren",slides:"001_lever_varken_he,016_pancreas_kat_he,069_lever_mens_he_magn2,070a_galblaas_mens_he_magn2,070b_galblaas_mens_azan,071_galblaas_mens_infected_he_01"}
+				{title:"Microscopie Darmklieren",slides:"001_lever_varken_he,016_pancreas_kat_he,069_lever_mens_he_magn2,070a_galblaas_mens_he_magn2,070b_galblaas_mens_azan,071_galblaas_mens_infected_he_01"},
+				{title:"Microscopie Schildklier, bijnier, hypofyse",slides:"072_hypophyse_varken_azan,073_hypophyse_mens_azan_rot,074_bijnier_he_magn2,075_bijschildklier_he,076_schildklier_he"}
 				]
 	    },
 	    {
