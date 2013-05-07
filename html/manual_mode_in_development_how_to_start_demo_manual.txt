@@ -1,0 +1,3 @@
+manual mode in development:
+demo:
+brainmaps_cask_viewer/html/caskviewer.html?manual=demo_manual_kidney.html
