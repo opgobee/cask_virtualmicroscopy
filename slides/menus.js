@@ -20,8 +20,9 @@ var menus= {
 				]	
 		},	
 		{
-			"header":{title:"Gastrointestinal System",slides:""},
+			"header":{title:"Digestive System",slides:""},
 			"sets":[
+			    {title:"Esophagus",slides:""},
 				{title:"Stomach",slides:"056_maag_mens_he"},
 				{title:"Small Bowel",slides:"115_ileum_mens_he"},
 				{title:"Liver",slides:"001_lever_varken_he,069_lever_mens_he_magn2"},
@@ -46,11 +47,12 @@ var menus= {
 			"sets":[
 				{title:"Brain",slides:"4qw_rot,hippocampus_humaan_normaal_he,hippocampus_humaan_ad_he1,hippocampus_humaan_ad_tau_protein"},
 				{title:"Brain - Normal",slides:"4qw_rot,hippocampus_humaan_normaal_he"},
-				{title:"Brain - Pathology",slides:"hippocampus_humaan_ad_tau_protein,hippocampus_humaan_ad_he1"}
+				{title:"Brain - Pathology",slides:"hippocampus_humaan_ad_tau_protein,hippocampus_humaan_ad_he1"},
+				{title:"Nerves",slides:""},
 				]
 		},
 		{
-			"header":{title:"Endocrine System",slides:""},
+			"header":{title:"Endocrine Organs",slides:""},
 			"sets":[
 				{title:"Pituitary gland",slides:"072_hypophyse_varken_azan,073_hypophyse_mens_azan_rot"},
 				{title:"Thyroid gland",slides:"076_schildklier_he"},
@@ -58,6 +60,16 @@ var menus= {
 				{title:"Adrenal gland",slides:"074_bijnier_he_magn2"}
 				]
 		},
+		{
+			"header":{title:"Immune System",slides:""},
+			"sets":[
+				{title:"Thymus",slides:"imm1_thymus_human_he_01,imm1_thymus_human_he_02"},
+				{title:"Lymphe nodes",slides:"imm2_lymphenode_human_he_type_a,imm3_lymphenode_human_he_type_b"},
+				{title:"Spleen",slides:"imm4_spleen_human_he_01,imm4_spleen_human_he_02_magn2,imm4_spleen_human_he_03"},
+				{title:"Tonsils",slides:"imm7_tonsil_human_b_cell_01,imm7_tonsil_human_b_cell_02,imm8_tonsil_human_t_cell_01,imm8_tonsil_human_t_cell_02"},
+				{title:"Digestive System - MALT",slides:"115_ileum_mens_he,imm5_ileum_cat_he,imm6_appendix_human_pappenheim_01,imm6_appendix_human_pappenheim_02"}
+				]
+		},		
 		{
 			"header":{title:"ALL SLIDES",slides:"ALL"}
 		
@@ -79,6 +91,12 @@ var menus= {
 				{title:"Microscopie Gonaden",slides:"077_testis_mens_neonaat_he_01,078_testis_muis_he_01,081_ductus_deferens_mens_azan,083_ovarium_mens_foetaal_he_01,084_ovarium_kat_he_02,084_ovarium_kat_he_03,085_ovarium_mens_he_01_magn4,085_ovarium_mens_he_02_magn4,085_ovarium_mens_he_02_part1,085_ovarium_mens_he_02_part2,085_ovarium_mens_he_02_part3,086_ovarium_varken_he_magn2,087_uterus_mens_he_magn2,087_uterus_mens_he_02_magn2,088_uterus_mens_he_magn2,088_uterus_mens_he_02_magn2,089_uterus_mens_he_01_magn2,089_uterus_mens_he_03"},
 				{title:"Microscopie Darmklieren",slides:"001_lever_varken_he,016_pancreas_kat_he,069_lever_mens_he_magn2,070a_galblaas_mens_he_magn2,070b_galblaas_mens_azan,071_galblaas_mens_infected_he_01"},
 				{title:"Microscopie Schildklier, bijnier, hypofyse",slides:"072_hypophyse_varken_azan,073_hypophyse_mens_azan_rot,074_bijnier_he_magn2,075_bijschildklier_he,076_schildklier_he"}
+				]
+	    },
+	    {
+			"header":{title:"LUMC - B2Im - Immunology PS2",slides:""},
+			"sets":[
+				{title:"Microscopy Immune System",slides:"imm1_thymus_human_he_01,imm1_thymus_human_he_02,imm2_lymphenode_human_he_type_a,imm3_lymphenode_human_he_type_b,imm4_spleen_human_he_01,imm4_spleen_human_he_02_magn2,imm4_spleen_human_he_03,115_ileum_mens_he,imm5_ileum_cat_he,imm6_appendix_human_pappenheim_01,imm6_appendix_human_pappenheim_02,imm7_tonsil_human_b_cell_01,imm7_tonsil_human_b_cell_02,imm8_tonsil_human_t_cell_01,imm8_tonsil_human_t_cell_02"}
 				]
 	    },
 	    {
