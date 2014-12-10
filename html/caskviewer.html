@@ -12,7 +12,8 @@
 <head>
    
 	<title>CASK Virtual Microscopy</title>
-	<meta name="author" content="O. Paul Gobée, M.D. Leiden University Medical Center, dept. of Anatomy and Embryology">
+	<meta charset="utf-8">
+	<meta name="author" content="O. Paul GobÃ©e, M.D. Leiden University Medical Center, dept. of Anatomy and Embryology">
 	<link rel="shortcut icon" href="../img/faviconcask.ico" >
 
 <link rel="stylesheet" href="../css/common.css" type="text/css" />
@@ -65,6 +66,9 @@ isIE7 = false;
 	
 <div id="nav" > 
 	<img id="logoCask" src="../img/logo_cask_micr_darkblue_220x112.png" width="220" height="112" alt="Logo CASK microscopy">
+	
+	<span id="mobileswitch" style="position:absolute;left:210px;top:55px; z-index:100" onclick="showButtons()">.</span> <!-- click to reenable the disabled buttons on mobile for testing -->
+	
 	<a id="linkToCask" class="hastooltip" href="http://www.caskanatomy.info/caskonlumc/" target="blank"></a>
 		<div class="tooltip"><div class="caskTooltipName">CASK Microscopy Viewer</div><br /><p class="caskTooltipCredit">Developed by the CASK (Clinical Anatomical SKills)-group, at Leiden University Medical Center, Dept. of Anatomy &amp; Embryology.</p></div>	
 	
@@ -206,7 +210,18 @@ isIE7 = false;
 	
 </div> <!-- eof container-->
 
+<script>
 
+
+//testing to reenable the disabled buttons
+function showButtons()
+{
+    jQuery("#buttonEditLabelsOn, #buttonShowUrlBar, #buttonWrench").show();
+    jQuery("#mobileswitch").css("color","red");
+    //alert('buttons enabled');
+}
+
+</script>
 
 </body>
 </html>

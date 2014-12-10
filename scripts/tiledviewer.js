@@ -937,6 +937,13 @@ function ZoomIn()
 		updateLengthBar();	
 		moveViewIndicator();
 		//lowZoomHideLabels();
+		
+		//possible external other actions
+		if(window.ZoomSvg)
+		{
+			ZoomSvg()
+		};
+		
 		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMIN done<br>")
 	}	
@@ -995,6 +1002,13 @@ function ZoomOut()
 		updateLengthBar(); 
 		moveViewIndicator();
 		// lowZoomHideLabels();
+		
+		//possible external other actions
+		if(window.ZoomSvg)
+		{
+			ZoomSvg()
+		};
+		
 		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMOUT done<br>")
 	}
@@ -1471,7 +1485,8 @@ function checkTiles()
 			elem.imageTiles.removeChild(imgs[i]); i--;
 		}
 	}
-			
+	
+	ZoomSvg();
 }
 
 

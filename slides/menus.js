@@ -48,7 +48,7 @@ var menus= {
 				{title:"Brain",slides:"4qw_rot,hippocampus_humaan_normaal_he,hippocampus_humaan_ad_he1,hippocampus_humaan_ad_tau_protein"},
 				{title:"Brain - Normal",slides:"4qw_rot,hippocampus_humaan_normaal_he"},
 				{title:"Brain - Pathology",slides:"hippocampus_humaan_ad_tau_protein,hippocampus_humaan_ad_he1"},
-				{title:"Nerves",slides:""},
+				{title:"Nerves",slides:""}
 				]
 		},
 		{
