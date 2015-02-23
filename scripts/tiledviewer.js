@@ -813,6 +813,23 @@ function getImgCoords(cursorX,cursorY)
 	return imgCoords;
 	}
 
+/*
+ * converts a number of x pixels to a distance expressed in the image-fraction scale (0-1)
+ * return proportional number (e.g. if the number of pixels entered was half the image's width at this zoom, the returned number = 0.5
+ */
+function getImgFractionDeltaX(deltaX)
+{
+	return Math.round((deltaX/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
+}
+
+/*
+ * converts a number of y pixels to a distance expressed in the image-fraction scale (0-1)
+ * return proportional number (e.g. if the number of pixels entered was half the image's height at this zoom, the returned number = 0.5
+ */
+function getImgFractionDeltaY(deltaY)
+{
+	return Math.round((deltaY/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
+}
 
 /*
  * gets the width and height sizes of the 'complete image' at the present zoom level (be it within or outside viewport) 
@@ -938,12 +955,6 @@ function ZoomIn()
 		moveViewIndicator();
 		//lowZoomHideLabels();
 		
-		//possible external other actions
-		if(window.ZoomSvg)
-		{
-			ZoomSvg()
-		};
-		
 		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMIN done<br>")
 	}	
@@ -1002,12 +1013,6 @@ function ZoomOut()
 		updateLengthBar(); 
 		moveViewIndicator();
 		// lowZoomHideLabels();
-		
-		//possible external other actions
-		if(window.ZoomSvg)
-		{
-			ZoomSvg()
-		};
 		
 		if(now.isDisplayingUrl) {parent.updateUrl();}
 		//ih("ZOOMOUT done<br>")

@@ -1,0 +1,12 @@
+/*classes for the svg shapes in segmenter.js*/
+
+.handlePoint {
+	stroke : #404040; 
+	fill : #808080;
+}
+
+.activeShape {
+	fill: #ff0000;
+}
+
+
