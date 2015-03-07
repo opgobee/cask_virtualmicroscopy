@@ -113,9 +113,10 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 {	
 	this.strokeWidth = 50;
 	this.radius = 300;
-	this.imgFractionX = imgFractionX; //expressed in imgage fraction (0-1)
-	this.imgFractionY = imgFractionY; //expressed in imgage fraction (0-1)
-	var fullImgX = imgFractionX * imgWidthMaxZoom; //expressed in max image size
+	this.parentObject = null; //reference to a shape object (e.g. polygon object) that contains this handlepoint
+	this.imgFractionX = imgFractionX; //location on image, expressed in image fraction (0-1)
+	this.imgFractionY = imgFractionY; //location on image, expressed in image fraction (0-1)
+	var fullImgX = imgFractionX * imgWidthMaxZoom; //location on image of max image size, expressed in pixels
 	var fullImgY = imgFractionY * imgHeightMaxZoom;
 	
 	//returns the x position of this handlePoint, expressed in imgage fraction (0-1)
@@ -148,6 +149,12 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		this.svgCircle.removeClass('activeShape');
 	}
 
+	//set reference to possible shapeobject that conatins this handlePoint
+	this.setParentObject = function(parentObject)
+	{
+		this.parentObject = parentObject;
+	}
+	
 	//create the svg circle shape and attach it to the containingObject HandlePoint (=this)
 	this.svgCircle = svgArea.circle(this.radius).center(fullImgX,fullImgY).addClass('handlePoint').style({'stroke-width' : this.strokeWidth});
 	//create reference from the svg shape to the containingObject HandlePoint (this)
@@ -158,7 +165,10 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	this.svgCircle.mousedown( function(event)
 	{
 		event.stopPropagation();
-		this.parentObject.selectAsActiveShape();	
+		var thisHandlePoint = this.parentObject;		
+		thisHandlePoint.selectAsActiveShape();
+		//transfer event to handlePoint
+		thisHandlePoint.mousedown(event);
 	});
 	
 	this.svgCircle.dragstart = function(event)
@@ -179,6 +189,18 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	}.bind(this); 
 
 
+	this.mousedown = function(event)
+	{
+		//connect reference to this handlePoint object in the event
+		event.targetObject = this;
+		
+		//transfer event to any containing shapeObject
+		if(this.parentObject && this.parentObject.mousedown)
+		{
+			this.parentObject.mousedown(event);
+		}
+	}
+	
 	//start the dragging
 	this.svgCircle.draggable.triggerStart(e);
 /*	var evt = document.createEvent('MouseEvents');
@@ -194,18 +216,47 @@ function Polygon()
 {
 	
 	this.points= Array();
-	//create the svg polyline shape and attach it to the containingObject Polygon (=this)
-	this.svgPolyline = svgArea.polyline().fill('none').stroke({ width: 50 });
-	//create reference from the svg shape to the containingObject Polygon (=this)
-	this.svgPolyline.parentObject = this;
+	this.isClosed = false; //is true when polygon has been closed
 	//create polygon for the fill
 	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: 0 })
 	//create reference from the svg shape to the containingObject Polygon (=this)
 	this.svgPolygon.parentObject = this;
+	//create the svg polyline shape and attach it to the containingObject Polygon (=this)
+	this.svgPolyline = svgArea.polyline().fill('none').stroke({ width: 50 });
+	//create reference from the svg shape to the containingObject Polygon (=this)
+	this.svgPolyline.parentObject = this;
+	
+	//custom mousedown (Polygon is a javascript object, not a html or svg element)
+	this.mousedown = function(event)
+	{
+		//if the mousedown originated from a handlePoint of the polygon and that handlePoint was the start HandlePoint...
+		if(event.targetObject && event.targetObject instanceof HandlePoint && this.isStartPoint(event.targetObject))
+		{
+			this.closePolygon();
+		}
+	}
+	
+	//@TODO: insert the added point on the correct line, not at the end of the coordinates array
+	//http://stackoverflow.com/questions/17692922/check-is-a-point-x-y-is-between-two-points-drawn-on-a-straight-line
+	this.svgPolyline.mousedown( function(event)
+	{
+		event.stopPropagation();
+		//add point to the polygon
+		var imgFractionCoords= getImgCoords(cursorX,cursorY);
+		this.parentObject.addPoint(imgFractionCoords.x,imgFractionCoords.y,event);
+	});
+	
+	this.svgPolygon.mousedown( function(event)
+	{
+		event.stopPropagation();
+	});
 	
 	this.addPoint = function(x,y,e)
 	{
 		var newPoint = new HandlePoint(x,y,e);
+		
+		//create reference in the handlePoint to this Polygon object
+		newPoint.setParentObject(this);
 		
 		//extend the dragmove handler to also update this polygon when the point is moved
 		var old_dragmove = newPoint.svgCircle.dragmove;
@@ -217,6 +268,11 @@ function Polygon()
 		
 		this.points.push(newPoint);
 		this.update();
+	}
+	
+	this.isStartPoint = function(handlePoint)
+	{
+		return (handlePoint === this.points[0]);
 	}
 	
 	/*
@@ -244,11 +300,28 @@ function Polygon()
 	
 	this.update = function()
 	{
-		var coordinates = this.getCoordinates('asFullImgCoordinates');		
-		this.svgPolyline.plot(coordinates);
+		var coordinates = this.getCoordinates('asFullImgCoordinates');
+		if(this.isClosed)
+		{
+			//repeat first point at the end to also show a line on the last stretch
+			var closedCoordinates = coordinates.slice(); //slice copies instead of making a reference. http://davidwalsh.name/javascript-clone-array; // stackoverflow.com/questions/7486085/copying-array-by-value-in-javascript
+			closedCoordinates.push(coordinates[0]);			
+			this.svgPolyline.plot(closedCoordinates);	
+		}
+		else
+		{
+			this.svgPolyline.plot(coordinates);			
+		}
 		this.svgPolygon.plot(coordinates);
 	}
 	
+	this.closePolygon = function()
+	{
+		this.isClosed = true;		
+		//stop with drawing of the polygon
+		svgArea.activeTool = null;
+		this.update();
+	}
 }
 
 /////////////////////////////////////////////////////
