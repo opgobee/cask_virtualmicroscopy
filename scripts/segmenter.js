@@ -21,6 +21,10 @@ jQ( document ).ready(function() {
 	//	SVG.Element.draggable.goStart = function() {return start}
 		//test
 		svgArea.activeTool = "createPolygon";
+		
+		//testing
+		document.getElementById("namePanel").innerHTML= "createPolygon";
+		
 	   	var newPolygon = new Polygon();	
     	svgArea.shapeObjects.push(newPolygon);
     	svgArea.activeShapeObject = newPolygon;
@@ -73,8 +77,13 @@ handleMouseDown = function(e)
 	//alert(downX + ", "+ downY);
 	var imgFractionCoords= getImgCoords(cursorX,cursorY);	
 	
+	document.getElementById("namePanel").innerHTML= "mousedown";
+	
 	switch(svgArea.activeTool) {
     case "createPoint":
+   		//testing
+		document.getElementById("namePanel").innerHTML= "createPoint";
+
     	var newHandlePoint = new HandlePoint(imgFractionCoords.x,imgFractionCoords.y,e);
     	svgArea.shapeObjects.push(newHandlePoint);
     	return;
@@ -82,6 +91,9 @@ handleMouseDown = function(e)
     case "createPolygon":
     	if(svgArea.activeShapeObject instanceof Polygon)
    		{
+    		//testing
+    		document.getElementById("namePanel").innerHTML= "createPolygon";
+
     		svgArea.activeShapeObject.addPoint(imgFractionCoords.x,imgFractionCoords.y,e);    		
    		}
     	return;
@@ -149,7 +161,7 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		this.svgCircle.removeClass('activeShape');
 	}
 
-	//set reference to possible shapeobject that conatins this handlePoint
+	//set reference to possible shapeobject that contains this handlePoint
 	this.setParentObject = function(parentObject)
 	{
 		this.parentObject = parentObject;
@@ -217,41 +229,19 @@ function Polygon()
 	
 	this.points= Array();
 	this.isClosed = false; //is true when polygon has been closed
-	//create polygon for the fill
-	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: 0 })
-	//create reference from the svg shape to the containingObject Polygon (=this)
-	this.svgPolygon.parentObject = this;
+	//During the initial drawing phase, when polygon is not yet closed we'll use a polyline
 	//create the svg polyline shape and attach it to the containingObject Polygon (=this)
-	this.svgPolyline = svgArea.polyline().fill('none').stroke({ width: 50 });
+	this.svgPolyline = svgArea.polyline().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
 	//create reference from the svg shape to the containingObject Polygon (=this)
 	this.svgPolyline.parentObject = this;
+	//A soon as the polygon is closed, we'll use a proper polygon. It is created here already, without points, but ready to be used.
+	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	//create reference from the svg shape to the containingObject Polygon (=this)
+	this.svgPolygon.parentObject = this;
+	//this.svgPolyObject holds a reference to the object that presently represents the polygon. During initial drawing (poly not yet closed) this is the polyline, after closing the poly, it is a polygon.
+	this.svgPolyObject =  this.svgPolyline; 
 	
-	//custom mousedown (Polygon is a javascript object, not a html or svg element)
-	this.mousedown = function(event)
-	{
-		//if the mousedown originated from a handlePoint of the polygon and that handlePoint was the start HandlePoint...
-		if(event.targetObject && event.targetObject instanceof HandlePoint && this.isStartPoint(event.targetObject))
-		{
-			this.closePolygon();
-		}
-	}
-	
-	//@TODO: insert the added point on the correct line, not at the end of the coordinates array
-	//http://stackoverflow.com/questions/17692922/check-is-a-point-x-y-is-between-two-points-drawn-on-a-straight-line
-	this.svgPolyline.mousedown( function(event)
-	{
-		event.stopPropagation();
-		//add point to the polygon
-		var imgFractionCoords= getImgCoords(cursorX,cursorY);
-		this.parentObject.addPoint(imgFractionCoords.x,imgFractionCoords.y,event);
-	});
-	
-	this.svgPolygon.mousedown( function(event)
-	{
-		event.stopPropagation();
-	});
-	
-	this.addPoint = function(x,y,e)
+	this.addPoint = function(x,y,e,indexSectionToAddPoint)
 	{
 		var newPoint = new HandlePoint(x,y,e);
 		
@@ -265,8 +255,16 @@ function Polygon()
 			this.update();
 			old_dragmove.apply(newPoint, arguments);
 		}.bind(this)
+				
 		
-		this.points.push(newPoint);
+		if(typeof indexSectionToAddPoint == "undefined")
+		{ 	//add the point to the end of the array
+			this.points.push(newPoint);
+		}	
+		else
+		{	//insert the point into a specific section
+			this.points.splice(indexSectionToAddPoint+1,0,newPoint);
+		}
 		this.update();
 	}
 	
@@ -275,6 +273,92 @@ function Polygon()
 		return (handlePoint === this.points[0]);
 	}
 	
+	/*
+	 * This function will loop all sections between the handlePoints of the poly 
+	 * and determine if the passed point is near enough to any of these line sections to be considered to lie on this line section
+	 * If so, the index of that section (section nearest to point) is returned, else null is returned
+	 */
+	this.findSectionWherePointIs = function(pointX, pointY)
+	{
+		var minDistancePointFromLine = 10; 
+		var distancePointFromLine = 10;
+		var thresholdDistancePointFromLine = 0.01;
+		var indexNearestSection = null;
+		var pointX, pointY;
+		var nrPoints= this.points.length;
+		//loop all line sections between the handlepoints and find line section where point to investigate is nearest to
+		for (var i = 0; i <= nrPoints - 1; i++)
+		{
+			//get coordinates of the handlePoints at the begin (head) and end (foot) of a line section
+			lineHeadX = this.points[i].getImgFractionX();
+			lineHeadY = this.points[i].getImgFractionY();
+			if( i < nrPoints - 1)
+			{
+				lineFootX = this.points[ i + 1 ].getImgFractionX();
+				lineFootY = this.points[ i + 1 ].getImgFractionY();		
+			}
+			else //if last handlepoint reached, take the start handlepoint as foot
+			{
+				lineFootX = this.points[ 0 ].getImgFractionX();
+				lineFootY = this.points[ 0 ].getImgFractionY();		
+			}
+			distancePointFromLine = this.getDistancePointFromLine(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY);
+			//get index of section with smallest deviation to point
+			if(distancePointFromLine < minDistancePointFromLine)
+			{
+				indexNearestSection = i;
+				minDistancePointFromLine = distancePointFromLine;
+			}
+			//var lineLength= Math.sqrt( Math.pow((lineHeadX-lineFootX),2) + Math.pow(lineHeadY-lineFootY,2));//Pythagoras
+			//alert("section "+i+ ", pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", lineLength="+lineLength+",deviation="+deviationPointFromLine); 
+		}
+		//if deviation of point from nearest found section is below threshold, the point is considered to lie on the line section, 
+		//then return section index, else return null (meaning: point is not near enough tio any section to be considered lying on a section line
+		return (minDistancePointFromLine < thresholdDistancePointFromLine)? indexNearestSection : null;
+	}
+
+	/*
+	 * calculates distance from point to a line 
+	 * The line is the line between points lineHead and lineFoot
+	 * The distance is measured along a line that goes through the point and is perpendicular to the given line
+	 * The distance is expressed in imageFraction
+	 */
+	this.getDistancePointFromLine = function(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY)
+	{
+		//calc rico (slope) of line section | a = dy/dx
+		var slopeSection =  (lineFootY - lineHeadY) / (lineFootX - lineHeadX);
+		//perpendicular slope = negative inverse slope
+		var perpendicularSlope = -1 / slopeSection;
+		//determine section formula, determine y=ax+b --> calc b = y-ax
+		var bSection =  lineHeadY - (slopeSection * lineHeadX);
+		//determine formula of line through point, perpendicular to section, determine y=ax+b --> calc b = y-ax
+		var bLineThroughPoint = pointY - (perpendicularSlope * pointX);
+		//calc intersection point of line through point and section line: 
+		//slopeSection*x + bSection = perpendicularSlope*x + bLineThroughPoint ==>
+		//slopeSection*x - perpendicularSlope*x = bLineThroughPoint - bSection
+		//x = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope)==>
+		intersectionX = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope);
+		//calc yIntersection
+		intersectionY = (perpendicularSlope * intersectionX) + bLineThroughPoint;
+		//calc distance point to sectionline = distance to intersection point
+		distancePointFromLine = Math.sqrt( Math.pow( (pointX - intersectionX), 2) + Math.pow( (pointY - intersectionY), 2) );//Pythagoras
+		//alert("pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", slopeSection="+slopeSection+", perpendicularSlope="+perpendicularSlope+", bSection="+bSection+", bLineThroughPoint="+bLineThroughPoint+", intersectionX="+intersectionX+", distancePointFromLine="+distancePointFromLine); 
+		return distancePointFromLine;
+	}
+	
+	//this approach may not be the best because distance is strongly influenced by line length
+	//http://stackoverflow.com/questions/17692922/check-is-a-point-x-y-is-between-two-points-drawn-on-a-straight-line
+/*	this.getDeviationPointFromLine = function(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY)
+	{
+		var lineLength 		  = Math.sqrt( Math.pow( (lineHeadX - lineFootX), 2) + Math.pow( (lineHeadY - lineFootY), 2) );//Pythagoras
+		var headToPointLength = Math.sqrt( Math.pow( (lineHeadX - pointX   ), 2) + Math.pow( (lineHeadY - pointY   ), 2) );//Pythagoras
+		var footToPointLength = Math.sqrt( Math.pow( (pointX    - lineFootX), 2) + Math.pow( (pointY    - lineFootY), 2) );//Pythagoras
+		var deviation = (headToPointLength + footToPointLength) - lineLength;
+		alert("(headToPointLength="+ headToPointLength+ "+ footToPointLength="+ footToPointLength+ ")- lineLength:"+lineLength+" = deviation="+deviation)
+		//alert("pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+",deviation="+deviation);
+		return deviation;
+	}
+*/	
 	/*
 	 * gets an array of coordinates from the points
 	 * @mode = 'asImgFractions' to get the coordinates expressed in image fraction (0-1) //default
@@ -301,27 +385,52 @@ function Polygon()
 	this.update = function()
 	{
 		var coordinates = this.getCoordinates('asFullImgCoordinates');
-		if(this.isClosed)
-		{
-			//repeat first point at the end to also show a line on the last stretch
-			var closedCoordinates = coordinates.slice(); //slice copies instead of making a reference. http://davidwalsh.name/javascript-clone-array; // stackoverflow.com/questions/7486085/copying-array-by-value-in-javascript
-			closedCoordinates.push(coordinates[0]);			
-			this.svgPolyline.plot(closedCoordinates);	
-		}
-		else
-		{
-			this.svgPolyline.plot(coordinates);			
-		}
-		this.svgPolygon.plot(coordinates);
+		this.svgPolyObject.plot(coordinates);
 	}
 	
 	this.closePolygon = function()
 	{
-		this.isClosed = true;		
+		this.isClosed = true;
+		//from mow on we'll use the polygon instead of the polyline
+		this.svgPolyObject = this.svgPolygon;
 		//stop with drawing of the polygon
 		svgArea.activeTool = null;
+		
+		//testing
+		document.getElementById("namePanel").innerHTML= "normal";
+
 		this.update();
+		//clean up
+		this.svgPolyline.remove();
 	}
+	
+	//custom mousedown (Polygon is a javascript object, not a html or svg element)
+	this.mousedown = function(event)
+	{
+		//if the mousedown originated from a handlePoint of the polygon and that handlePoint was the start HandlePoint...
+		if(event.targetObject && event.targetObject instanceof HandlePoint && this.isStartPoint(event.targetObject))
+		{
+			this.closePolygon();
+		}
+	}
+	
+	
+//	this.svgPolyline.mousedown(handleMouseDown);
+//	this.svgPolygon.mousedown(handleMouseDown);
+	this.svgPolygon.on("mousedown",function(event)
+	{
+		this.parentObject.handleMouseDown2(event);	
+	});
+	
+	this.handleMouseDown2 = function(event)
+	{
+		event.stopPropagation();
+		//add point to the polygon
+		var imgFractionCoords= getImgCoords(cursorX,cursorY);
+		indexSectionToAddPoint = this.findSectionWherePointIs(imgFractionCoords.x,imgFractionCoords.y);
+		this.addPoint(imgFractionCoords.x,imgFractionCoords.y,event,indexSectionToAddPoint);		
+	};
+	
 }
 
 /////////////////////////////////////////////////////
