@@ -4,7 +4,19 @@
 *
 */
 
+//temp
+var displayCalc="";
+
 var svgArea; 
+
+/*
+ * checks whether x lies between a and b, indifferent whether a>b or a<b and of pos or neg numbers
+ * http://codegolf.stackexchange.com/questions/8649/shortest-code-to-check-if-a-number-is-in-a-range-in-javascript
+ */
+function isInRange(x,a,b)
+{
+	return ( ((x-a)*(x-b)) < 0 );
+}
 
 //initialize svg canvas
 jQ( document ).ready(function() {
@@ -20,11 +32,8 @@ jQ( document ).ready(function() {
 		
 	//	SVG.Element.draggable.goStart = function() {return start}
 		//test
-		svgArea.activeTool = "createPolygon";
-		
-		//testing
-		document.getElementById("namePanel").innerHTML= "createPolygon";
-		
+	
+				
 	   	var newPolygon = new Polygon();	
     	svgArea.shapeObjects.push(newPolygon);
     	svgArea.activeShapeObject = newPolygon;
@@ -57,12 +66,23 @@ jQ( document ).ready(function() {
 		alert('Your browser unfortunately does not support SVG, the technique used for segmenting.\nPlease switch to one of the following browsers to allow segmenting:\n\nDESKTOP:\n  Firefox 3+\n  Chrome 4+\n  Safari 3.2+\n  Opera 9+\n  Internet Explorer 9+\n\nMOBILE:\n  iOS Safari 3.2+\n  Android Browser 3+\n  Opera Mobile 10+\n  Chrome for Android 18+\n  Firefox for Android 15+');
 	}
 
+	//create and insert the toolpanel at the bottom
+	jQ( "body" ).append( '<div id="drawToolPanel"><button class="down" id="btNormal">Pan/zoom</button><button id="btDrawPolygon">Draw shape</button></div>' );
 	
-	
-	setTimeout("createPoly()",100);
+	//setTimeout("createPoly()",100);
 	
 
+	jQ('button#btDrawPolygon').click(function(){
+	    jQ(this).addClass("down");
+	    jQ('button#btNormal').removeClass("down");
+		svgArea.activeTool = "createPolygon";
+	});
 
+	jQ('button#btNormal').click(function(){
+	    jQ(this).addClass("down");
+	    jQ('button#btDrawPolygon').removeClass("down");
+	    svgArea.activeTool = null;
+	});
 }); //end document ready
 
 /////////////////////////////
@@ -81,9 +101,7 @@ handleMouseDown = function(e)
 	
 	switch(svgArea.activeTool) {
     case "createPoint":
-   		//testing
-		document.getElementById("namePanel").innerHTML= "createPoint";
-
+  
     	var newHandlePoint = new HandlePoint(imgFractionCoords.x,imgFractionCoords.y,e);
     	svgArea.shapeObjects.push(newHandlePoint);
     	return;
@@ -91,10 +109,7 @@ handleMouseDown = function(e)
     case "createPolygon":
     	if(svgArea.activeShapeObject instanceof Polygon)
    		{
-    		//testing
-    		document.getElementById("namePanel").innerHTML= "createPolygon";
-
-    		svgArea.activeShapeObject.addPoint(imgFractionCoords.x,imgFractionCoords.y,e);    		
+    		svgArea.activeShapeObject.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
    		}
     	return;
     	break;
@@ -241,9 +256,21 @@ function Polygon()
 	//this.svgPolyObject holds a reference to the object that presently represents the polygon. During initial drawing (poly not yet closed) this is the polyline, after closing the poly, it is a polygon.
 	this.svgPolyObject =  this.svgPolyline; 
 	
-	this.addPoint = function(x,y,e,indexSectionToAddPoint)
+	/*
+	 * @param params can contain:
+	 * "event" = event object
+	 * "imgFractionX" = number 0-1 x position expressed in image fraction
+	 * "imgFractionY" = number 0-1 y position expressed in image fraction
+	 * "indexSectionToAddPoint" = integer: index of the sectionof the polygon into which the point should be added (optional)
+	 */
+	this.addPoint = function(params)
 	{
-		var newPoint = new HandlePoint(x,y,e);
+		if(typeof params == "undefined") {return;}
+		var e = params["event"];
+		var imgFractionX =  params["imgFractionX"];
+		var imgFractionY =  params["imgFractionY"];
+		var indexSectionToAddPoint = params["indexSectionToAddPoint"];
+		var newPoint = new HandlePoint(imgFractionX,imgFractionY,e);
 		
 		//create reference in the handlePoint to this Polygon object
 		newPoint.setParentObject(this);
@@ -254,8 +281,7 @@ function Polygon()
 		{
 			this.update();
 			old_dragmove.apply(newPoint, arguments);
-		}.bind(this)
-				
+		}.bind(this)		
 		
 		if(typeof indexSectionToAddPoint == "undefined")
 		{ 	//add the point to the end of the array
@@ -304,61 +330,81 @@ function Polygon()
 			}
 			distancePointFromLine = this.getDistancePointFromLine(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY);
 			//get index of section with smallest deviation to point
-			if(distancePointFromLine < minDistancePointFromLine)
+			if(distancePointFromLine != null && distancePointFromLine < minDistancePointFromLine)
 			{
 				indexNearestSection = i;
 				minDistancePointFromLine = distancePointFromLine;
 			}
-			//var lineLength= Math.sqrt( Math.pow((lineHeadX-lineFootX),2) + Math.pow(lineHeadY-lineFootY,2));//Pythagoras
-			//alert("section "+i+ ", pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", lineLength="+lineLength+",deviation="+deviationPointFromLine); 
 		}
+		
+		//test temp
+		//alert(displayCalc);
+		//displayCalc="";
+		
 		//if deviation of point from nearest found section is below threshold, the point is considered to lie on the line section, 
-		//then return section index, else return null (meaning: point is not near enough tio any section to be considered lying on a section line
+		//then return section index, else return null (meaning: point is not near enough to any section to be considered lying on a section line
 		return (minDistancePointFromLine < thresholdDistancePointFromLine)? indexNearestSection : null;
 	}
 
 	/*
 	 * calculates distance from point to a line 
 	 * The line is the line between points lineHead and lineFoot
-	 * The distance is measured along a line that goes through the point and is perpendicular to the given line
-	 * The distance is expressed in imageFraction
+	 * The distance is measured perpendicular to the line, between the point and the intersection of the line and its perpendicular line through the point
+	 * The intersection must lie between lineHead and lineFoot
+	 * The distance is expressed in y imgFractions, corrected such that 0,1 is equal length on screen in y direction as in x direction
 	 */
 	this.getDistancePointFromLine = function(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY)
 	{
+		var sectionIsHorizontal = (lineHeadY == lineFootY);
+		var sectionIsVertical   = (lineHeadX == lineFootX);
 		//calc rico (slope) of line section | a = dy/dx
 		var slopeSection =  (lineFootY - lineHeadY) / (lineFootX - lineHeadX);
-		//perpendicular slope = negative inverse slope
-		var perpendicularSlope = -1 / slopeSection;
+		//perpendicular slope = negative inverse slope; we need to correct for widthHeightRatio: real lengths of x and y as x and y imgFractions are not equally long
+		var widthHeightRatio = imgWidthMaxZoom/imgHeightMaxZoom;
+		var perpendicularSlope = ( -1 / slopeSection ) * Math.pow((widthHeightRatio),2);
 		//determine section formula, determine y=ax+b --> calc b = y-ax
 		var bSection =  lineHeadY - (slopeSection * lineHeadX);
 		//determine formula of line through point, perpendicular to section, determine y=ax+b --> calc b = y-ax
 		var bLineThroughPoint = pointY - (perpendicularSlope * pointX);
-		//calc intersection point of line through point and section line: 
-		//slopeSection*x + bSection = perpendicularSlope*x + bLineThroughPoint ==>
-		//slopeSection*x - perpendicularSlope*x = bLineThroughPoint - bSection
-		//x = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope)==>
-		intersectionX = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope);
-		//calc yIntersection
-		intersectionY = (perpendicularSlope * intersectionX) + bLineThroughPoint;
-		//calc distance point to sectionline = distance to intersection point
-		distancePointFromLine = Math.sqrt( Math.pow( (pointX - intersectionX), 2) + Math.pow( (pointY - intersectionY), 2) );//Pythagoras
-		//alert("pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", slopeSection="+slopeSection+", perpendicularSlope="+perpendicularSlope+", bSection="+bSection+", bLineThroughPoint="+bLineThroughPoint+", intersectionX="+intersectionX+", distancePointFromLine="+distancePointFromLine); 
+		if (sectionIsHorizontal)
+		{
+			var intersectionX = pointX;
+			var intersectionY = lineHeadY;			
+		}
+		else if(sectionIsVertical)
+		{
+			var intersectionX = lineHeadX;
+			var intersectionY = pointY;
+		}
+		else
+		{
+			//calc intersection point of line through point and section line: 
+			//slopeSection*x + bSection = perpendicularSlope*x + bLineThroughPoint ==>
+			//slopeSection*x - perpendicularSlope*x = bLineThroughPoint - bSection
+			//x = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope)==>
+			var intersectionX = (bLineThroughPoint - bSection) / (slopeSection - perpendicularSlope);			
+			//calc yIntersection
+			var intersectionY = (perpendicularSlope * intersectionX) + bLineThroughPoint;
+		}
+			
+		//intersection should lie between the points that border the line
+		if(isInRange(intersectionX,lineHeadX,lineFootX) && isInRange(intersectionY,lineHeadY,lineFootY) )
+		{
+			//calc distance point to sectionline = distance to intersection point; expressed in y imgFractions, corrected such that 0,1 is equal length on screen in y direction as in x direction
+			//we need to correct for widthHeightRatio: real lengths of x and y as x and y imgFractions are not equally long
+			var distancePointFromLine = Math.sqrt( Math.pow( ((pointX - intersectionX) * widthHeightRatio), 2) + Math.pow( (pointY - intersectionY), 2) );//Pythagoras
+		}
+		else
+		{
+			var distancePointFromLine= null;		
+		}
+		//displayCalc+= "pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", widthHeightRatio="+widthHeightRatio+", slopeSection="+slopeSection+", perpendicularSlope="+perpendicularSlope+", bSection="+bSection+", bLineThroughPoint="+bLineThroughPoint+", intersectionX="+intersectionX+", intersectionY="+intersectionY+", distancePointFromLine="+distancePointFromLine+"\n\n"; 
 		return distancePointFromLine;
+		
 	}
 	
-	//this approach may not be the best because distance is strongly influenced by line length
-	//http://stackoverflow.com/questions/17692922/check-is-a-point-x-y-is-between-two-points-drawn-on-a-straight-line
-/*	this.getDeviationPointFromLine = function(pointX,pointY,lineHeadX,lineHeadY,lineFootX,lineFootY)
-	{
-		var lineLength 		  = Math.sqrt( Math.pow( (lineHeadX - lineFootX), 2) + Math.pow( (lineHeadY - lineFootY), 2) );//Pythagoras
-		var headToPointLength = Math.sqrt( Math.pow( (lineHeadX - pointX   ), 2) + Math.pow( (lineHeadY - pointY   ), 2) );//Pythagoras
-		var footToPointLength = Math.sqrt( Math.pow( (pointX    - lineFootX), 2) + Math.pow( (pointY    - lineFootY), 2) );//Pythagoras
-		var deviation = (headToPointLength + footToPointLength) - lineLength;
-		alert("(headToPointLength="+ headToPointLength+ "+ footToPointLength="+ footToPointLength+ ")- lineLength:"+lineLength+" = deviation="+deviation)
-		//alert("pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+",deviation="+deviation);
-		return deviation;
-	}
-*/	
+
+
 	/*
 	 * gets an array of coordinates from the points
 	 * @mode = 'asImgFractions' to get the coordinates expressed in image fraction (0-1) //default
@@ -396,9 +442,6 @@ function Polygon()
 		//stop with drawing of the polygon
 		svgArea.activeTool = null;
 		
-		//testing
-		document.getElementById("namePanel").innerHTML= "normal";
-
 		this.update();
 		//clean up
 		this.svgPolyline.remove();
@@ -417,6 +460,11 @@ function Polygon()
 	
 //	this.svgPolyline.mousedown(handleMouseDown);
 //	this.svgPolygon.mousedown(handleMouseDown);
+	this.svgPolyline.on("mousedown",function(event)
+	{
+		this.parentObject.handleMouseDown2(event);	
+	});
+
 	this.svgPolygon.on("mousedown",function(event)
 	{
 		this.parentObject.handleMouseDown2(event);	
@@ -428,7 +476,11 @@ function Polygon()
 		//add point to the polygon
 		var imgFractionCoords= getImgCoords(cursorX,cursorY);
 		indexSectionToAddPoint = this.findSectionWherePointIs(imgFractionCoords.x,imgFractionCoords.y);
-		this.addPoint(imgFractionCoords.x,imgFractionCoords.y,event,indexSectionToAddPoint);		
+		document.getElementById("namePanel").innerHTML= 'mousedown on section '+indexSectionToAddPoint;
+		if(indexSectionToAddPoint != null)
+		{
+			this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint});					
+		}
 	};
 	
 }
