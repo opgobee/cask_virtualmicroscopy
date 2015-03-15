@@ -7,7 +7,7 @@
 //temp
 var displayCalc="";
 
-var svgArea; 
+var svgArea, svgShapes; 
 
 /*
  * checks whether x lies between a and b, indifferent whether a>b or a<b and of pos or neg numbers
@@ -25,6 +25,7 @@ jQ( document ).ready(function() {
 	{
 		svgArea = SVG('svgContainer');
 		svgArea.attr("style", "border: 1px solid #ff0000;");
+		svgShapes = svgArea.group(); //group to contain all shapes and be scaled
 		svgArea.shapeObjects = Array();
 		svgArea.activeShapeObject = null;
 		svgArea.activeShape = null;
@@ -35,7 +36,7 @@ jQ( document ).ready(function() {
 	
 				
 	   	var newPolygon = new Polygon();	
-    	svgArea.shapeObjects.push(newPolygon);
+	   	svgArea.shapeObjects.push(newPolygon);
     	svgArea.activeShapeObject = newPolygon;
 		
 		//set the passed object to be the active shape
@@ -94,7 +95,7 @@ var old_handleMouseDown = handleMouseDown;
 handleMouseDown = function(e) 
 {
 	//alert('body')
-	//alert(downX + ", "+ downY);
+	//alert(svgArea.activeTool);
 	var imgFractionCoords= getImgCoords(cursorX,cursorY);	
 	
 	document.getElementById("namePanel").innerHTML= "mousedown";
@@ -109,6 +110,7 @@ handleMouseDown = function(e)
     case "createPolygon":
     	if(svgArea.activeShapeObject instanceof Polygon)
    		{
+    		//alert('going to add point')
     		svgArea.activeShapeObject.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
    		}
     	return;
@@ -132,7 +134,9 @@ handleMouseDown = function(e)
 
 function createPoly()
 {
-	var polygon = svgArea.polygon('4992,5888 4512,6336 4320,7648 4928,8480 5824,8416 7072,7424 6560,7584 6176,7072 5120,6784').fill('#0000ff').opacity(0.5).stroke({ width: 3 })
+	//alert('create poly')
+	var polygon = svgArea.polygon('4992,5888 4512,6336 4320,7648 4928,8480 5824,8416 7072,7424 6560,7584 6176,7072 5120,6784').fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	svgShapes.add(polygon);
 }
 
 
@@ -182,8 +186,11 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		this.parentObject = parentObject;
 	}
 	
+	//alert('going to create svgcircle')
 	//create the svg circle shape and attach it to the containingObject HandlePoint (=this)
 	this.svgCircle = svgArea.circle(this.radius).center(fullImgX,fullImgY).addClass('handlePoint').style({'stroke-width' : this.strokeWidth});
+	//add shape to the group
+	svgShapes.add(this.svgCircle);
 	//create reference from the svg shape to the containingObject HandlePoint (this)
 	this.svgCircle.parentObject = this;
 	this.svgCircle.draggable();
@@ -247,10 +254,14 @@ function Polygon()
 	//During the initial drawing phase, when polygon is not yet closed we'll use a polyline
 	//create the svg polyline shape and attach it to the containingObject Polygon (=this)
 	this.svgPolyline = svgArea.polyline().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	//add shape to the group
+	svgShapes.add(this.svgPolyline);
 	//create reference from the svg shape to the containingObject Polygon (=this)
 	this.svgPolyline.parentObject = this;
 	//A soon as the polygon is closed, we'll use a proper polygon. It is created here already, without points, but ready to be used.
 	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	//add shape to the group
+	svgShapes.add(this.svgPolygon);
 	//create reference from the svg shape to the containingObject Polygon (=this)
 	this.svgPolygon.parentObject = this;
 	//this.svgPolyObject holds a reference to the object that presently represents the polygon. During initial drawing (poly not yet closed) this is the polyline, after closing the poly, it is a polygon.
@@ -265,12 +276,14 @@ function Polygon()
 	 */
 	this.addPoint = function(params)
 	{
+		//alert('in add point')
 		if(typeof params == "undefined") {return;}
 		var e = params["event"];
 		var imgFractionX =  params["imgFractionX"];
 		var imgFractionY =  params["imgFractionY"];
 		var indexSectionToAddPoint = params["indexSectionToAddPoint"];
 		var newPoint = new HandlePoint(imgFractionX,imgFractionY,e);
+		//alert(newPoint)
 		
 		//create reference in the handlePoint to this Polygon object
 		newPoint.setParentObject(this);
@@ -458,21 +471,20 @@ function Polygon()
 	}
 	
 	
-//	this.svgPolyline.mousedown(handleMouseDown);
+//	this.svgPolyline.mousedown(handleMouseDown); //doesn't work
 //	this.svgPolygon.mousedown(handleMouseDown);
 	this.svgPolyline.on("mousedown",function(event)
 	{
-		this.parentObject.handleMouseDown2(event);	
+		this.parentObject.handleMouseDownOnPoly(event);	
 	});
 
 	this.svgPolygon.on("mousedown",function(event)
 	{
-		this.parentObject.handleMouseDown2(event);	
+		this.parentObject.handleMouseDownOnPoly(event);	
 	});
 	
-	this.handleMouseDown2 = function(event)
+	this.handleMouseDownOnPoly = function(event)
 	{
-		event.stopPropagation();
 		//add point to the polygon
 		var imgFractionCoords= getImgCoords(cursorX,cursorY);
 		indexSectionToAddPoint = this.findSectionWherePointIs(imgFractionCoords.x,imgFractionCoords.y);
@@ -480,6 +492,7 @@ function Polygon()
 		if(indexSectionToAddPoint != null)
 		{
 			this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint});					
+			event.stopPropagation();			
 		}
 	};
 	
@@ -512,7 +525,15 @@ function ZoomSvg(e)
 		
 		var scale = 1 / (Math.pow(2,(gTierCount - 1 - now.zoom)));
 
-		svgArea.scale(scale);
+		//HELP!
+		//if this line is commented out it works in FF, if this line is present it works (kind of) in Chrome and IE
+		//svgArea.attr("viewBox", "0 0 "+ imgWidthMaxZoom + " " + imgHeightMaxZoom);
+	
+		//this line works fine on ff (but notneeded) but not on chrome
+		//svgArea.attr("viewBox", "0 0 "+ imgWidthPresentZoom + " " + imgHeightPresentZoom);
+		
+		//svgArea.scale(scale);
+		svgShapes.scale(scale);
 		svgArea.attr("width", imgWidthPresentZoom);
 		svgArea.attr("height", imgHeightPresentZoom);
 	}
