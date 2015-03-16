@@ -57,7 +57,7 @@ button {
   text-decoration: none;
   	opacity: 1;
 	filter: alpha(opacity=100);
-
+	margin: 5px;
 }
 
 button:hover {

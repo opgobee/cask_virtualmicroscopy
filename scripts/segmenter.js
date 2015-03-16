@@ -25,42 +25,12 @@ jQ( document ).ready(function() {
 	{
 		svgArea = SVG('svgContainer');
 		svgArea.attr("style", "border: 1px solid #ff0000;");
-		svgShapes = svgArea.group(); //group to contain all shapes and be scaled
+		svgShapes = svgArea.group(); //group that will contain all shapes and will be scaled
 		svgArea.shapeObjects = Array();
-		svgArea.activeShapeObject = null;
-		svgArea.activeShape = null;
+		svgArea.activeHandlePoint = null;
+		svgArea.activePolygon = null;
 		svgArea.activeTool = null;
-		
-	//	SVG.Element.draggable.goStart = function() {return start}
-		//test
-	
-				
-	   	var newPolygon = new Polygon();	
-	   	svgArea.shapeObjects.push(newPolygon);
-    	svgArea.activeShapeObject = newPolygon;
-		
-		//set the passed object to be the active shape
-		svgArea.selectAsActiveShape = function(object) 
-		{
-			svgArea.deselectActiveShape();
-			svgArea.activeShape = object;
-			if(object.showAsActive)
-			{
-				object.showAsActive();
-			}
-		}
-
-		//deslect the registered active object, if any
-		svgArea.deselectActiveShape = function() 
-		{
-			var object = svgArea.activeShape;
-			svgArea.activeShape = null;
-			if(object && object.showAsInactive)
-			{
-				object.showAsInactive();
-			}
-		}
-
+		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
 	} 
 	else 
 	{
@@ -68,22 +38,31 @@ jQ( document ).ready(function() {
 	}
 
 	//create and insert the toolpanel at the bottom
-	jQ( "body" ).append( '<div id="drawToolPanel"><button class="down" id="btNormal">Pan/zoom</button><button id="btDrawPolygon">Draw shape</button></div>' );
+	jQ( "body" ).append( '<div id="drawToolPanel"><button class="down" id="btNormal">Pan/zoom slide</button><button id="btDrawPolygon">Draw outline</button></div>' );
 	
 	//setTimeout("createPoly()",100);
 	
 
-	jQ('button#btDrawPolygon').click(function(){
-	    jQ(this).addClass("down");
-	    jQ('button#btNormal').removeClass("down");
-		svgArea.activeTool = "createPolygon";
-	});
-
+	// tool bar 'draw'
 	jQ('button#btNormal').click(function(){
 	    jQ(this).addClass("down");
 	    jQ('button#btDrawPolygon').removeClass("down");
 	    svgArea.activeTool = null;
 	});
+	
+	jQ('button#btDrawPolygon').click(function(){
+		jQ(this).addClass("down");
+		jQ('button#btNormal').removeClass("down");
+		svgArea.activeTool = "createPolygon";
+		if(svgArea.activePolygon == null)
+		{
+		   	var newPolygon = new Polygon();	
+		   	svgArea.shapeObjects.push(newPolygon);
+	    	svgArea.activePolygon = newPolygon;	
+		}
+		
+	});
+	
 }); //end document ready
 
 /////////////////////////////
@@ -100,6 +79,8 @@ handleMouseDown = function(e)
 	
 	document.getElementById("namePanel").innerHTML= "mousedown";
 	
+	HandlePoint.deselectActiveHandlePoint();
+	
 	switch(svgArea.activeTool) {
     case "createPoint":
   
@@ -108,10 +89,10 @@ handleMouseDown = function(e)
     	return;
         break;
     case "createPolygon":
-    	if(svgArea.activeShapeObject instanceof Polygon)
+    	if(svgArea.activePolygon != null)
    		{
     		//alert('going to add point')
-    		svgArea.activeShapeObject.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
+    		svgArea.activePolygon.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
    		}
     	return;
     	break;
@@ -142,8 +123,6 @@ function createPoly()
 
 function HandlePoint(imgFractionX,imgFractionY,e)
 {	
-	this.strokeWidth = 50;
-	this.radius = 300;
 	this.parentObject = null; //reference to a shape object (e.g. polygon object) that contains this handlepoint
 	this.imgFractionX = imgFractionX; //location on image, expressed in image fraction (0-1)
 	this.imgFractionY = imgFractionY; //location on image, expressed in image fraction (0-1)
@@ -162,10 +141,12 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		return this.imgFractionY;
 	}
 	
-	//sets this handlePoint as the active shape in svgArea. This will consecutively call this.showAsActive
+	//sets this handlePoint as the active shape in svgArea. 
 	this.selectAsActiveShape = function() 
 	{
-		svgArea.selectAsActiveShape(this);	
+		HandlePoint.deselectActiveHandlePoint();
+		svgArea.activeHandlePoint = this;	
+		svgArea.activeHandlePoint.showAsActive();	
 	}
 
 	//apply 'active' style to this handlePoint
@@ -188,7 +169,7 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	
 	//alert('going to create svgcircle')
 	//create the svg circle shape and attach it to the containingObject HandlePoint (=this)
-	this.svgCircle = svgArea.circle(this.radius).center(fullImgX,fullImgY).addClass('handlePoint').style({'stroke-width' : this.strokeWidth});
+	this.svgCircle = svgArea.circle(HandlePoint.getCurrentRadius()).center(fullImgX,fullImgY).addClass('handlePoint').style({'stroke-width' : HandlePoint.getCurrentStrokeWidth()});
 	//add shape to the group
 	svgShapes.add(this.svgCircle);
 	//create reference from the svg shape to the containingObject HandlePoint (this)
@@ -244,22 +225,61 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	this.svgCircle.node.dispatchEvent(evt);
 */
 	
+	/*
+	 * formats sizes of elements so they look good at the current zoom level
+	 */
+	this.formatDisplayToZoom = function()
+	{
+		//adapt to zoom level
+		this.svgCircle.style({'stroke-width' : HandlePoint.getCurrentStrokeWidth()});
+		this.svgCircle.radius(HandlePoint.getCurrentRadius());
+	}
 }
+
+//static properties and methods on HandlePoint
+HandlePoint.deselectActiveHandlePoint = function()
+{
+	if(svgArea.activeHandlePoint != null)
+	{
+		svgArea.activeHandlePoint.showAsInactive();	
+	}
+	svgArea.activeHandlePoint = null;
+}
+/*
+ * returns a strokeWidth in svg units (pixels) that looks good at the present zoom level
+ */
+HandlePoint.baseStrokeWidth = 1;
+HandlePoint.getCurrentStrokeWidth = function()
+{
+	return HandlePoint.baseStrokeWidth * Math.pow(2,(gTierCount - 1 - now.zoom));
+}
+
+HandlePoint.baseRadius = 8;
+HandlePoint.getCurrentRadius = function()
+{
+	return HandlePoint.baseRadius * Math.pow(2,(gTierCount - 1 - now.zoom));
+}
+
 
 function Polygon()
 {
 	
 	this.points= Array();
 	this.isClosed = false; //is true when polygon has been closed
+	this.leftMostCoordinate = null;
+	this.rightMostCoordinate = null;
+	this.topMostCoordinate = null;
+	this.bottomMostCoordinate = null;
+	
 	//During the initial drawing phase, when polygon is not yet closed we'll use a polyline
 	//create the svg polyline shape and attach it to the containingObject Polygon (=this)
-	this.svgPolyline = svgArea.polyline().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	this.svgPolyline = svgArea.polyline().fill('#0000ff').opacity(0.5).stroke({ width: Polygon.getCurrentStrokeWidth() })
 	//add shape to the group
 	svgShapes.add(this.svgPolyline);
 	//create reference from the svg shape to the containingObject Polygon (=this)
 	this.svgPolyline.parentObject = this;
-	//A soon as the polygon is closed, we'll use a proper polygon. It is created here already, without points, but ready to be used.
-	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: 50 })
+	//As soon as the polygon is closed, we'll use a proper polygon. It is created here already, without points, but ready to be used.
+	this.svgPolygon = svgArea.polygon().fill('#0000ff').opacity(0.5).stroke({ width: Polygon.getCurrentStrokeWidth() })
 	//add shape to the group
 	svgShapes.add(this.svgPolygon);
 	//create reference from the svg shape to the containingObject Polygon (=this)
@@ -416,8 +436,6 @@ function Polygon()
 		
 	}
 	
-
-
 	/*
 	 * gets an array of coordinates from the points
 	 * @mode = 'asImgFractions' to get the coordinates expressed in image fraction (0-1) //default
@@ -444,7 +462,18 @@ function Polygon()
 	this.update = function()
 	{
 		var coordinates = this.getCoordinates('asFullImgCoordinates');
+		//update the polyline or polygon
 		this.svgPolyObject.plot(coordinates);
+		
+		//update the limits coordinates of the polygon
+		var nrPoints= coordinates.length;
+		for (var i = 0; i <= nrPoints - 1; i++)
+		{
+			this.leftMostCoordinate = (coordinates[i][0] < this.leftMostCoordinate)? coordinates[i][0] : this.leftMostCoordinate;
+			this.rightMostCoordinate = (coordinates[i][0] > this.rightMostCoordinate)? coordinates[i][0] : this.rightMostCoordinate;
+			this.topMostCoordinate = (coordinates[i][1] < this.topMostCoordinate)? coordinates[i][0] : this.topMostCoordinate;
+			this.bottomMostCoordinate = (coordinates[i][1] > this.bottomMostCoordinate)? coordinates[i][0] : this.bottomMostCoordinate;
+		}
 	}
 	
 	this.closePolygon = function()
@@ -470,8 +499,24 @@ function Polygon()
 		}
 	}
 	
+
 	
-//	this.svgPolyline.mousedown(handleMouseDown); //doesn't work
+	/*
+	 * formats sizes of elements so they look good at the current zoom level
+	 */
+	this.formatDisplayToZoom = function()
+	{
+		//adapt strokewidth to zoom level
+		this.svgPolyObject.stroke({"width":Polygon.getCurrentStrokeWidth()});
+		//also adapt all points of the poly
+		var nrPoints= this.points.length;
+		for (var i = 0; i <= nrPoints - 1; i++)
+		{
+			this.points[i].formatDisplayToZoom();
+		}
+	}	
+	
+	//	this.svgPolyline.mousedown(handleMouseDown); //doesn't work
 //	this.svgPolygon.mousedown(handleMouseDown);
 	this.svgPolyline.on("mousedown",function(event)
 	{
@@ -496,6 +541,15 @@ function Polygon()
 		}
 	};
 	
+}
+//statics
+/*
+ * returns a strokeWidth in svg units (pixels) that looks good at the present zoom level
+ */
+Polygon.baseStrokeWidth = 2;
+Polygon.getCurrentStrokeWidth = function()
+{
+	return Polygon.baseStrokeWidth * Math.pow(2,(gTierCount - 1 - now.zoom));
 }
 
 /////////////////////////////////////////////////////
@@ -536,6 +590,17 @@ function ZoomSvg(e)
 		svgShapes.scale(scale);
 		svgArea.attr("width", imgWidthPresentZoom);
 		svgArea.attr("height", imgHeightPresentZoom);
+		
+		//adapt shapes to zoom level
+		countShapeObjects = svgArea.shapeObjects.length;
+		for(var i = 0; i <= countShapeObjects - 1; i++)
+		{
+			if(svgArea.shapeObjects[i] instanceof Polygon)
+			{	
+				//@TODO: first test if polygon is within view
+				svgArea.shapeObjects[i].formatDisplayToZoom();
+			}
+		}
 	}
 	
 /*	

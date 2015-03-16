@@ -1491,7 +1491,7 @@ function checkTiles()
 		}
 	}
 	
-	ZoomSvg();
+	//ZoomSvg();
 }
 
 
