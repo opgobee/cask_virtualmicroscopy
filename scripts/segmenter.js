@@ -305,7 +305,7 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	{
 		//adapt to zoom level
 		this.svgCircle.style({'stroke-width' : HandlePoint.getCurrentStrokeWidth()});
-		this.svgCircle.radius(HandlePoint.getCurrentRadius());
+		this.svgCircle.radius((HandlePoint.getCurrentRadius())/2); //division factor 2 empirically determined
 	}
 	
 
@@ -333,7 +333,10 @@ HandlePoint.getCurrentStrokeWidth = function()
 HandlePoint.baseRadius = 8;
 HandlePoint.getCurrentRadius = function()
 {
-	return HandlePoint.baseRadius * Math.pow(2,(gTierCount - 1 - now.zoom));
+	var factor= Math.pow(2,(gTierCount - 1 - now.zoom));
+	//alert('calculate baseradius multiplication factor:'+factor);
+
+	return HandlePoint.baseRadius * (Math.pow(2,(gTierCount - 1 - now.zoom)));
 }
 
 
@@ -676,7 +679,13 @@ function ZoomSvg(e)
 	
 		//this line works fine on ff (but notneeded) but not on chrome
 		//svgCanvas.attr("viewBox", "0 0 "+ imgWidthPresentZoom + " " + imgHeightPresentZoom);
-
+		
+		//svgCanvas.scale(scale);
+		//alert('going to scale with factor:'+scale)
+		svgShapes.scale(scale);
+		svgCanvas.attr("width", imgWidthPresentZoom);
+		svgCanvas.attr("height", imgHeightPresentZoom);
+		
 		//adapt shapes to zoom level
 		countShapeObjects = svgCanvas.shapeObjects.length;
 		for(var i = 0; i <= countShapeObjects - 1; i++)
@@ -687,12 +696,6 @@ function ZoomSvg(e)
 				svgCanvas.shapeObjects[i].formatDisplayToZoom();
 			}
 		}
-		
-		//svgCanvas.scale(scale);
-		svgShapes.scale(scale);
-		svgCanvas.attr("width", imgWidthPresentZoom);
-		svgCanvas.attr("height", imgHeightPresentZoom);
-		
 	}
 	
 /*	
