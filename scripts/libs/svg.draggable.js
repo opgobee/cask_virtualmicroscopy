@@ -73,6 +73,7 @@ element.startPosition = {
 							/* while dragging */
 							drag = function(event) {
 								event = event || window.event
+								
 								if (element.startEvent) {
 									/* calculate move position */
 									var x, y, rotation = element.startPosition.rotation, width = element.startPosition.width, height = element.startPosition.height, delta = {
@@ -159,6 +160,8 @@ element.startPosition = {
 							element.on('mousedown', start)
 							
 							/* ADDED LINE: handle for starting through external call*/
+							/* because start is a private variable, and because the meosuedown event that is bound 1 line above seems not be able to be triggered straight away*/
+							/* NOT VERY NICE - LOOK FOR BETTER WAY */
 							element.draggable.triggerStart = start
 							
 							/* disable draggable */
@@ -169,6 +172,7 @@ element.startPosition = {
 								start = drag = end = null
 								return element
 							}
+							
 							return this
 						}
 					})
