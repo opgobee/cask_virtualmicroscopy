@@ -6,8 +6,8 @@
 
 //temp
 var displayCalc="";
-
-var svgCanvas, svgShapes, ButtonDeleteActiveHandlePoint; 
+var svgCanvas, svgShapes, shapeObjects, ButtonDeleteActiveHandlePoint; 
+var allowDrag=false; //testing
 
 /*
  * checks whether x lies between a and b, indifferent whether a>b or a<b and of pos or neg numbers
@@ -21,37 +21,71 @@ function isInRange(x,a,b)
 //initialize svg canvas
 jQ( document ).ready(function() {
 	
+	//test
+	function clearnamepanel()
+	{
+		document.getElementById('namePanel').innerHTML= "";	
+	}
+	//setInterval(clearnamepanel, 4000)
+	//end test
+
 	if (SVG.supported) 
 	{
+		//svgCanvas is about the real svg shapes, it is the area where the  svg shapes will be drawn. 
 		svgCanvas = SVG('svgContainer');
 		svgCanvas.attr("style", "border: 1px solid #ff0000;");
-		svgShapes = svgCanvas.group(); //group that will contain all svg shapes and will be scaled
-		svgCanvas.shapeObjects = Array(); //will contain the JavaScript objects HandlePoint, Polygon etc (Note: these objects in turn contain the svg shapes)
-		svgCanvas.activeHandlePoint = null;
-		svgCanvas.activePolygon = null;
-		svgCanvas.activeTool = null;
+		//svgShapes = group that will contain all svg shapes and will be scaled
+		svgShapes = svgCanvas.group(); 	
+		//shapeObjects are the JavaScript objects that hold and steer the svg shapes
+		shapeObjects = Array(); //will contain the JavaScript objects HandlePoint, Polygon etc (Note: these objects in turn contain the svg shapes)
+		shapeObjects.activeHandlePoint = null;
+		shapeObjects.activePolygon = null;
+		shapeObjects.activeTool = null;
 		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
 		
 		//creates a new polygon and starts drawmode of it, or returns to drawmode of a polygon that is still under construction 
-		svgCanvas.shapeObjects.drawPolygon = function ()
+		shapeObjects.drawPolygon = function ()
 		{
-			svgCanvas.activeTool = "createPolygon";
-			if(svgCanvas.activePolygon == null)
+			shapeObjects.activeTool = "drawPolygon";
+			if(shapeObjects.activePolygon == null)
 			{
 			   	var newPolygon = new Polygon();	
-			   	svgCanvas.shapeObjects.push(newPolygon);
-		    	svgCanvas.activePolygon = newPolygon;	
+			   	shapeObjects.push(newPolygon);
+		    	shapeObjects.activePolygon = newPolygon;	
 			}	
+		}
+
+		shapeObjects.registerActiveHandlePoint = function(handlePoint)
+		{
+			shapeObjects.activeHandlePoint = handlePoint;
+		}
+
+		shapeObjects.unregisterActiveHandlePoint = function()
+		{
+			shapeObjects.activeHandlePoint = null;
+		}
+		
+		/*
+		 * Unregisters active handlePoint AND deactivates the point iself. 
+		 * Is used to deactivate previous active point when clicking other or new point or clicking outside polygon
+		 */
+		shapeObjects.deactivateActiveHandlePoint = function()
+		{
+			if(shapeObjects.activeHandlePoint != null)
+			{
+				shapeObjects.activeHandlePoint.deactivate();	
+				shapeObjects.unregisterActiveHandlePoint()
+			}
 		}
 		
 		//deletes a handlePoint, its svg and updates dependent polygon
-		svgCanvas.shapeObjects.deleteActiveHandlePoint = function ()
+		shapeObjects.deleteActiveHandlePoint = function ()
 		{
-			if(	svgCanvas.activeHandlePoint != null)
+			if(	shapeObjects.activeHandlePoint != null)
 			{
-				svgCanvas.activeHandlePoint.remove(); //calls remove() on the active HandlePoint - removes the internal svgshape, and downstream: removes from the polygon
-				delete svgCanvas.activeHandlePoint; //delete the object refered to in svgCanvas.activeHandlePoint, svgCanvas.activeHandlePoint will become undefined
-				svgCanvas.activeHandlePoint = null; //reset to null
+				shapeObjects.activeHandlePoint.remove(); //calls remove() on the active HandlePoint - removes the internal svgshape, and downstream: removes from the polygon
+				delete shapeObjects.activeHandlePoint; //delete the object refered to in shapeObjects.activeHandlePoint, shapeObjects.activeHandlePoint will become undefined
+				shapeObjects.activeHandlePoint = null; //reset to null
 				ButtonDeleteActiveHandlePoint.unsetDeleteActive(); //reset handlepointdelete button to inactive
 			}
 		}
@@ -79,19 +113,21 @@ jQ( document ).ready(function() {
 	jQ('button#btNormal').click(function(){
 	    jQ(this).addClass("down");
 	    jQ('button#btDrawPolygon').removeClass("down");
-	    svgCanvas.activeTool = null;
+	    shapeObjects.activeTool = null;
+	    allowDrag=false;
 	});
 	
 	// button 'Draw polygon' - action
 	jQ('button#btDrawPolygon').click(function(){
 		jQ(this).addClass("down");
 		jQ('button#btNormal').removeClass("down");
-		svgCanvas.shapeObjects.drawPolygon();
+		shapeObjects.drawPolygon();
+		allowDrag=true;
 	});
 	
 	// button 'Delete handlepoint' - action
 	jQ('button#btDeletePoint').click(function(){
-		svgCanvas.shapeObjects.deleteActiveHandlePoint();
+		shapeObjects.deleteActiveHandlePoint();
 	});
 	
 	// buttons dynamic styling
@@ -122,25 +158,25 @@ var old_handleMouseDown = handleMouseDown;
 handleMouseDown = function(e) 
 {
 	//alert('body')
-	//alert(svgCanvas.activeTool);
+	//alert(shapeObjects.activeTool);
 	var imgFractionCoords= getImgCoords(cursorX,cursorY);	
 	
-	document.getElementById("namePanel").innerHTML= "mousedown";
+	//document.getElementById("namePanel").innerHTML= "mousedown";
 	
-	HandlePoint.deselectActiveHandlePoint();
+	shapeObjects.deactivateActiveHandlePoint();
 	
-	switch(svgCanvas.activeTool) {
+	switch(shapeObjects.activeTool) {
     case "createPoint":
   
     	var newHandlePoint = new HandlePoint(imgFractionCoords.x,imgFractionCoords.y,e);
-    	svgCanvas.shapeObjects.push(newHandlePoint);
+    	shapeObjects.push(newHandlePoint);
     	return;
         break;
-    case "createPolygon":
-    	if(svgCanvas.activePolygon != null)
+    case "drawPolygon":
+    	if(shapeObjects.activePolygon != null)
    		{
     		//alert('going to add point')
-    		svgCanvas.activePolygon.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
+    		shapeObjects.activePolygon.addPoint({"event":e,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		
    		}
     	return;
     	break;
@@ -169,9 +205,10 @@ function createPoly()
 }
 
 
-function HandlePoint(imgFractionX,imgFractionY,e)
+function HandlePoint(imgFractionX,imgFractionY,event)
 {	
 	this.parentObject = null; //reference to a shape object (e.g. polygon object) that contains this handlepoint
+	this.isActive = false; //whether it can be dragged etc.
 	this.imgFractionX = imgFractionX; //location on image, expressed in image fraction (0-1)
 	this.imgFractionY = imgFractionY; //location on image, expressed in image fraction (0-1)
 	var fullImgX = imgFractionX * imgWidthMaxZoom; //location on image of max image size, expressed in pixels
@@ -189,31 +226,55 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		return this.imgFractionY;
 	}
 	
-	//sets this handlePoint as the active shape in svgCanvas. 
-	this.selectAsActiveShape = function() 
+	//sets this handlePoint to active state. 
+	this.activate = function() 
 	{
-		HandlePoint.deselectActiveHandlePoint();
-		svgCanvas.activeHandlePoint = this;	
-		svgCanvas.activeHandlePoint.showAsActive();
+		//deactivate any other handlepoint that may previously be activated
+		shapeObjects.deactivateActiveHandlePoint();
+		this.isActive = true;
+		//register as shapeObjects activePoint
+		shapeObjects.registerActiveHandlePoint(this);	
+		//styling
+		this.showAsActive();
 		ButtonDeleteActiveHandlePoint.setDeleteActive();
 	}
 
+	//sets this handlePoint to inactive state. 
+	this.deactivate = function() 
+	{
+		this.isActive = false;
+		shapeObjects.unregisterActiveHandlePoint();
+		//styling
+		this.showAsInactive();
+		ButtonDeleteActiveHandlePoint.unsetDeleteActive();
+	}
+	
 	//apply 'active' style to this handlePoint
 	this.showAsActive = function()
 	{
-		this.svgCircle.addClass('activeShape');
+		this.svgCircle.addClass('activePoint');
 	}
 	
 	//remove 'active' style from this handlePoint
 	this.showAsInactive = function()
 	{
-		this.svgCircle.removeClass('activeShape');
+		this.svgCircle.removeClass('activePoint');
 	}
 
 	//set reference to possible shapeobject that contains this handlePoint
 	this.setParentObject = function(parentObject)
 	{
 		this.parentObject = parentObject;
+	}
+	
+	/*
+	 * formats sizes of elements so they look good at the current zoom level
+	 */
+	this.formatDisplayToZoom = function()
+	{
+		//adapt to zoom level
+		this.svgCircle.style({'stroke-width' : HandlePoint.getCurrentStrokeWidth()});
+		this.svgCircle.radius((HandlePoint.getCurrentRadius())/2); //division factor 2 empirically determined
 	}
 	
 	//////////////////////////////////////////////////////
@@ -226,11 +287,12 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	svgShapes.add(this.svgCircle);
 	//create reference from the svg shape to the containingObject HandlePoint (this)
 	this.svgCircle.parentObject = this;
-	this.svgCircle.draggable();
-	this.selectAsActiveShape();
+	//a new created handlePoint is activated
+	this.activate();
+
 
 	/////////////////////////////////////////
-	// remove
+	// remove handlePoint
 	/////////////////////////////////////////
 	/*
 	 * downstream removes this handlepoint from the polygon and removes the internal svgcircle
@@ -243,7 +305,7 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		{
 			this.parentObject.removeHandlePoint(this);
 		}
-		//remove svg circle
+		//remove svg circle from the svgCanvas
 		this.svgCircle.remove();
 	}
 	
@@ -255,7 +317,7 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	{
 		event.stopPropagation();
 		var thisHandlePoint = this.parentObject;		
-		thisHandlePoint.selectAsActiveShape();
+		thisHandlePoint.activate();
 		//transfer event to handlePoint
 		thisHandlePoint.mousedown(event);
 	});
@@ -289,8 +351,21 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 		}
 	}
 	
-	//start the dragging
-	this.svgCircle.draggable.triggerStart(e);
+	/////////////////////////////////////////////////////
+	//End event handlers
+	/////////////////////////////////////////////////////
+	
+	
+	//Enable dragging of the handlePoint. Note: must be called after setting of the event handlers, else dragging speed will not be adapted to actual scale
+	//constraint function is used to switch dragging on and off
+	var dragConstraintFunction = function dragOnOff(x,y)
+	{
+		return (allowDrag)? {x:x,y:y} : false;
+	}
+	this.svgCircle.draggable(dragConstraintFunction);
+	//start the dragging. 
+	this.svgCircle.draggable.triggerStart(event);
+	
 /*	var evt = document.createEvent('MouseEvents');
 	evt.initEvent("mousedown", true, true);
 	evt.pageX= e.pageX;
@@ -298,29 +373,13 @@ function HandlePoint(imgFractionX,imgFractionY,e)
 	this.svgCircle.node.dispatchEvent(evt);
 */
 	
-	/*
-	 * formats sizes of elements so they look good at the current zoom level
-	 */
-	this.formatDisplayToZoom = function()
-	{
-		//adapt to zoom level
-		this.svgCircle.style({'stroke-width' : HandlePoint.getCurrentStrokeWidth()});
-		this.svgCircle.radius((HandlePoint.getCurrentRadius())/2); //division factor 2 empirically determined
-	}
-	
 
-}
+} //EOF HandlePoint
 
-//static properties and methods on HandlePoint
-HandlePoint.deselectActiveHandlePoint = function()
-{
-	if(svgCanvas.activeHandlePoint != null)
-	{
-		svgCanvas.activeHandlePoint.showAsInactive();	
-	}
-	svgCanvas.activeHandlePoint = null;
-	ButtonDeleteActiveHandlePoint.unsetDeleteActive();
-}
+/////////////////////////////////////////////////
+//HandlePoint static properties and methods
+/////////////////////////////////////////////////
+
 /*
  * returns a strokeWidth in svg units (pixels) that looks good at the present zoom level
  */
@@ -330,14 +389,17 @@ HandlePoint.getCurrentStrokeWidth = function()
 	return HandlePoint.baseStrokeWidth * Math.pow(2,(gTierCount - 1 - now.zoom));
 }
 
-HandlePoint.baseRadius = 8;
+HandlePoint.baseRadius = 9;
 HandlePoint.getCurrentRadius = function()
 {
 	var factor= Math.pow(2,(gTierCount - 1 - now.zoom));
 	//alert('calculate baseradius multiplication factor:'+factor);
-
 	return HandlePoint.baseRadius * (Math.pow(2,(gTierCount - 1 - now.zoom)));
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Polygon
+////////////////////////////////////////////////////////////////////////////
 
 
 function Polygon()
@@ -367,6 +429,33 @@ function Polygon()
 	this.svgPolyObject =  this.svgPolyline; 
 	
 	/*
+	 * Reads the handlePoints of the polygon and gets an array of coordinates from the points
+	 * @mode = 'asImgFractions' to get the coordinates expressed in image fraction (0-1) //default
+	 * 			'asFullImgCoordinates'  to get the coordinates expressed in pixels on the full size image (=maximally enlarged)
+	 * @return array of x-y-coord-arrays, eg: [[0,0], [0.4,0.22], [0.153,0.77], [0.73,0.2]]
+	 */
+	this.getCoordinates = function(mode)
+	{
+		var multiplierX = (mode == 'asFullImgCoordinates')? imgWidthMaxZoom : 1;  //default = 'asImgFractions' (then no multiplying)
+		var multiplierY = (mode == 'asFullImgCoordinates')? imgHeightMaxZoom : 1; //default = 'asImgFractions' (then no multiplying)
+		
+		var point = {};
+		var coordinates = [];
+		var nrPoints= this.points.length;
+		for (var i = 0; i <= nrPoints - 1; i++)
+		{
+			point.imgCoordX = this.points[i].getImgFractionX() * multiplierX; //expressed in image fraction (0-1) if mode = asImgFractions, expressed in pixels of full image if mode = 'asFullImgCoordinates'
+			point.imgCoordY = this.points[i].getImgFractionY() * multiplierY;
+			coordinates.push([point.imgCoordX,point.imgCoordY]);
+		}
+		return coordinates;
+	}
+	
+	////////////////////////////////////////////////////
+	// Adding and removing handlePoints to the Polygon
+	////////////////////////////////////////////////////
+	
+	/*
 	 * @param params can contain:
 	 * "event" = event object
 	 * "imgFractionX" = number 0-1 x position expressed in image fraction
@@ -387,12 +476,21 @@ function Polygon()
 		//create reference in the handlePoint to this Polygon object
 		newPoint.setParentObject(this);
 		
+		//add method to the HandlePoint that allows it to report whether it is Polygon's startpoint
+		newPoint.isPolygonStartPoint = function()
+		{
+			return (this === this.parentObject.points[0]);
+		}
+
 		//extend the dragmove handler to also update this polygon when the point is moved
 		var old_dragmove = newPoint.svgCircle.dragmove;
 		newPoint.svgCircle.dragmove = function(e)
 		{
-			this.update();
-			old_dragmove.apply(newPoint, arguments);
+			if(allowDrag) 
+			{
+				this.update();
+				old_dragmove.apply(newPoint, arguments);				
+			}
 		}.bind(this)		
 		
 		if(typeof indexSectionToAddPoint == "undefined")
@@ -406,13 +504,13 @@ function Polygon()
 		this.update();
 	}
 	
-	this.isStartPoint = function(handlePoint)
-	{
-		return (handlePoint === this.points[0]);
-	}
+
 	
 	/*
-	 * This function will loop all sections between the handlePoints of the poly 
+	 * This function will test the clicked point (x,y) 
+	 *  1) to see if it is close enough to a section of the polygon so click can be considered as command to add a point
+	 *  2) if so, to determine to which section of the polygon the point should be added.
+	 * In order to this it loops all sections between the handlePoints of the poly 
 	 * and determine if the passed point is near enough to any of these line sections to be considered to lie on this line section
 	 * If so, the index of that section (section nearest to point) is returned, else null is returned
 	 */
@@ -449,17 +547,13 @@ function Polygon()
 			}
 		}
 		
-		//test temp
-		//alert(displayCalc);
-		//displayCalc="";
-		
 		//if deviation of point from nearest found section is below threshold, the point is considered to lie on the line section, 
 		//then return section index, else return null (meaning: point is not near enough to any section to be considered lying on a section line
 		return (minDistancePointFromLine < thresholdDistancePointFromLine)? indexNearestSection : null;
 	}
 
 	/*
-	 * calculates distance from point to a line 
+	 * calculates distance from point to a line, support function for method 'findSectionWherePointIs'
 	 * The line is the line between points lineHead and lineFoot
 	 * The distance is measured perpendicular to the line, between the point and the intersection of the line and its perpendicular line through the point
 	 * The intersection must lie between lineHead and lineFoot
@@ -515,36 +609,15 @@ function Polygon()
 		
 	}
 	
-	/*
-	 * gets an array of coordinates from the points
-	 * @mode = 'asImgFractions' to get the coordinates expressed in image fraction (0-1) //default
-	 * 			'asFullImgCoordinates'  to get the coordinates expressed in pixels on the full size image (=maximally enlarged)
-	 * @return array of x-y-coord-arrays, eg: [[0,0], [0.4,0.22], [0.153,0.77], [0.73,0.2]]
-	 */
-	this.getCoordinates = function(mode)
-	{
-		var multiplierX = (mode == 'asFullImgCoordinates')? imgWidthMaxZoom : 1;  //default = 'asImgFractions' (then no multiplying)
-		var multiplierY = (mode == 'asFullImgCoordinates')? imgHeightMaxZoom : 1; //default = 'asImgFractions' (then no multiplying)
-		
-		var point = {};
-		var coordinates = [];
-		var nrPoints= this.points.length;
-		for (var i = 0; i <= nrPoints - 1; i++)
-		{
-			point.imgCoordX = this.points[i].getImgFractionX() * multiplierX; //expressed in image fraction (0-1) if mode = asImgFractions, expressed in pixels of full image if mode = 'asFullImgCoordinates'
-			point.imgCoordY = this.points[i].getImgFractionY() * multiplierY;
-			coordinates.push([point.imgCoordX,point.imgCoordY]);
-		}
-		return coordinates;
-	}
+
 	
 	this.closePolygon = function()
 	{
 		this.isClosed = true;
-		//from mow on we'll use the polygon instead of the polyline
+		//from now on we'll use the polygon instead of the polyline
 		this.svgPolyObject = this.svgPolygon;
 		//stop with drawing of the polygon
-		svgCanvas.activeTool = null;
+		shapeObjects.activeTool = null;
 		
 		this.update();
 		//clean up
@@ -567,6 +640,9 @@ function Polygon()
 	}
 	
 
+	/*
+	 * Updates the polygon or polyline shape dependent on the present handlePoints positions
+	 */
 	this.update = function()
 	{
 		var coordinates = this.getCoordinates('asFullImgCoordinates');
@@ -604,14 +680,14 @@ function Polygon()
 	this.mousedown = function(event)
 	{
 		//if the mousedown originated from a handlePoint of the polygon and that handlePoint was the start HandlePoint...
-		if(event.targetObject && event.targetObject instanceof HandlePoint && this.isStartPoint(event.targetObject))
+		if(event.targetObject && event.targetObject instanceof HandlePoint && event.targetObject.isPolygonStartPoint() )
 		{
 			this.closePolygon();
 		}
 	}
 	
-	//	this.svgPolyline.mousedown(handleMouseDown); //doesn't work
-//	this.svgPolygon.mousedown(handleMouseDown);
+	//	this.svgPolyline.mousedown(handleMouseDownOnPoly); //doesn't work - why?
+	//	this.svgPolygon.mousedown(handleMouseDownOnPoly);
 	this.svgPolyline.on("mousedown",function(event)
 	{
 		this.parentObject.handleMouseDownOnPoly(event);	
@@ -627,7 +703,7 @@ function Polygon()
 		//add point to the polygon
 		var imgFractionCoords= getImgCoords(cursorX,cursorY);
 		indexSectionToAddPoint = this.findSectionWherePointIs(imgFractionCoords.x,imgFractionCoords.y);
-		document.getElementById("namePanel").innerHTML= 'mousedown on section '+indexSectionToAddPoint;
+		//document.getElementById("namePanel").innerHTML= 'mousedown on section '+indexSectionToAddPoint;
 		if(indexSectionToAddPoint != null)
 		{
 			this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint});					
@@ -635,8 +711,12 @@ function Polygon()
 		}
 	};
 	
-}
-//statics
+} //EOF Polygon
+
+/////////////////////////////////////////////////
+// Polygon static properties and methods
+/////////////////////////////////////////////////
+
 /*
  * returns a strokeWidth in svg units (pixels) that looks good at the present zoom level
  */
@@ -645,6 +725,8 @@ Polygon.getCurrentStrokeWidth = function()
 {
 	return Polygon.baseStrokeWidth * Math.pow(2,(gTierCount - 1 - now.zoom));
 }
+
+
 
 /////////////////////////////////////////////////////
 //Extend Zoom functions with zooming of svg shapes
@@ -687,13 +769,13 @@ function ZoomSvg(e)
 		svgCanvas.attr("height", imgHeightPresentZoom);
 		
 		//adapt shapes to zoom level
-		countShapeObjects = svgCanvas.shapeObjects.length;
+		countShapeObjects = shapeObjects.length;
 		for(var i = 0; i <= countShapeObjects - 1; i++)
 		{
-			if(svgCanvas.shapeObjects[i] instanceof Polygon)
+			if(shapeObjects[i] instanceof Polygon)
 			{	
 				//@TODO: first test if polygon is within view
-				svgCanvas.shapeObjects[i].formatDisplayToZoom();
+				shapeObjects[i].formatDisplayToZoom();
 			}
 		}
 	}
