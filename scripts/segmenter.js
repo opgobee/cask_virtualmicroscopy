@@ -61,20 +61,18 @@ jQ( document ).ready(function() {
 			shapeObjects.activeTool = null;
 		}
 		
-		//creates a new polygon and starts drawmode of it, or returns to drawmode of a polygon that is still under construction 
+		//draw mode
 		shapeObjects.setStateDrawPolygon = function ()
 		{
 			shapeObjects.activeTool = "drawPolygon";
-			if(shapeObjects.polygonUnderConstruction == null)
-			{
-			   	var newPolygon = new Polygon();	
-			   	shapeObjects.push(newPolygon);
-			   	shapeObjects.registerPolygonUnderConstruction(newPolygon);	
-			}
-			else
-			{
-				shapeObjects.polygonUnderConstruction.activate();
-			}
+		}
+		
+		//starts new polygon
+		shapeObjects.newPolygon = function ()
+		{
+			var newPolygon = new Polygon();	
+		   	shapeObjects.push(newPolygon);
+		   	shapeObjects.registerPolygonUnderConstruction(newPolygon);	
 		}
 		
 		shapeObjects.getToolState = function()
@@ -167,6 +165,11 @@ jQ( document ).ready(function() {
 			}
 		}
 		
+		shapeObjects.getCountShapes = function()
+		{
+			return shapeObjects.length;
+		}
+		
 	} 
 	else 
 	{
@@ -179,12 +182,17 @@ jQ( document ).ready(function() {
 	//Toolpanel
 	///////////////////////////////////////
 	
-	
-	text["drawShape"] = "Draw or edit shapes";
-	text["continueDraw"] = "Continue Drawing";
+	text["normalMode"] = "Normal mode";
+	text["start1"] = "Push button 'New Shape' to start a new drawing.";
+	text["start2"] = "Push button 'Draw mode' to continue drawing the shape.";
+	text["start3"] = "Push button 'Draw mode' to edit any existing shapes, or push button 'New Shape' to start a new drawing.";
+	text["drawMode"] = "Draw mode";
+	text["drawModeInfo1"] = "'Click around' a structure to outline it.";
+	text["drawModeInfo2"] = "You can interrupt drawing to move or zoom the slide by pushing 'Normal mode'. To insert a point between existing points, click just inside shape border.";
+	text["drawModeInfo3"] = "Click a shape or point to edit it. To insert a point between existing points, click just inside shape border.";
+	text["newDrawing"] = "New Shape";
+	text["newDrawingInfo"] = "Push button 'New Shape' to start a new drawing, or button 'Normal mode' to stop drawing.";
 	text["deletePoint"] = "Delete Point";
-	text["interruptDraw"] = "Interrupt drawing";
-	text["stopDraw"] = "Stop drawing"; //used in Polygon.closePolygon()
 	text["deleteShape"] = "Delete Shape";
 	text["confirmDeleteShape"] = "Are you sure you want to delete the selected (red) shape?";
 	text["hideShapes"] = "Hide Shapes";
@@ -192,17 +200,30 @@ jQ( document ).ready(function() {
 		
 	//create and insert the toolpanel at the bottom
 	jQ( "body" ).append( '<div id="drawToolPanel">'
-			+'<button id="btDrawPolygon">'+ text["drawShape"] +'</button>'
-			+'<button id="btDeletePoint">'+ text["deletePoint"] +'</button>'
-			+'<button id="btDeletePolygon">'+text["deleteShape"]+'</button>'
+			+'<button id="btNormalMode" class="down">'+ text["normalMode"] +'</button>'
+			+'<button id="btDrawMode">'+ text["drawMode"] +'</button>'
+			+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
+			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
+			+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
 			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'
+			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
 			+'</div>' );
 	
 	// button events
 	
-	// button 'Draw polygon' - action
-	jQ('button#btDrawPolygon').click(function(){
-		ToolButton.toggleDrawState();
+	// button 'Normal mode' - action
+	jQ('button#btNormalMode').click(function(){
+		ToolButton.normalMode();
+	});
+	
+	// button 'Draw mode' - action
+	jQ('button#btDrawMode').click(function(){
+		ToolButton.drawMode();
+	});
+	
+	// button 'Draw mode' - action
+	jQ('button#btNewDrawing').click(function(){
+		ToolButton.newDrawing();
 	});
 	
 	// button 'Delete handlepoint' - action
@@ -232,17 +253,84 @@ jQ( document ).ready(function() {
  */
 var ToolButton = 
 {
+
+	normalMode: function ()
+	{
+		//set to normal state
+		shapeObjects.setStateNormal();
+		shapeObjects.deactivateActivePolygon();
+		shapeObjects.deactivateActiveHandlePoint();
+		jQ('button#btNormalMode').addClass("down");
+		jQ('button#btDrawMode').removeClass("down");
+		jQ('button#btDrawMode').css("color","#808080");
+		if( !shapeObjects.hasPolygonUnderConstruction())
+		{
+			ToolButton.normalizeButtonNewDrawing();
+		}
+		var startText = (shapeObjects.getCountShapes == 0)? text["start1"] : (shapeObjects.hasPolygonUnderConstruction())? text["start2"] : text["start3"];
+		jQ('div#toolBarInfo').html(startText);
+
+	},	
+
+	drawMode: function (param)
+	{
+	 	//set to draw state
+		shapeObjects.setStateDrawPolygon();
+		//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
+		if(param != "justStartedNew" && shapeObjects.hasPolygonUnderConstruction())
+		{
+			shapeObjects.polygonUnderConstruction.activate();			
+		}
+		jQ('button#btNormalMode').removeClass("down");
+		jQ('button#btDrawMode').addClass("down");
+		jQ('button#btDrawMode').css("color","#000000");
+		ToolButton.toggleShowHideShapes("show");
+		var drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
+		jQ('div#toolBarInfo').html(drawModeText);
+
+	},
+	
+	newDrawing: function ()
+	{
+		if( !shapeObjects.hasPolygonUnderConstruction() )
+		{
+			//shapeObjects.deactivateActiveHandlePoint();
+			shapeObjects.newPolygon();
+			//switch to drawMode automatically
+			ToolButton.drawMode("justStartedNew");
+			ToolButton.deactivateButtonNewDrawing();
+		}
+	},
+	
+	activateButtonNewDrawing: function()
+	{
+		jQ('button#btNewDrawing').removeClass('nonActive').addClass('active');
+		jQ('div#toolBarInfo').html(text["newDrawingInfo"]);
+
+	},
+	
+	normalizeButtonNewDrawing: function()
+	{
+		jQ('button#btNewDrawing').removeClass('active').removeClass('nonActive');
+
+	},
+	
+	deactivateButtonNewDrawing: function()
+	{
+		jQ('button#btNewDrawing').removeClass('active').addClass('nonActive');
+
+	},
 	
 	//sets the style on button 'delete active handle point' that indicates that there is a handlepoint active, thus may be deleted
 	activateButtonDeleteHandlePoint: function()
 	{
-		jQ('button#btDeletePoint').addClass('deleteActive');
+		jQ('button#btDeletePoint').removeClass('nonActive').addClass('active');
 	},
 
 	//sets the style on button 'delete active handle point' that indicates that there is no handlepoint active, thus none can be deleted
 	deactivateButtonDeleteHandlePoint:function()
 	{
-		jQ('button#btDeletePoint').removeClass('deleteActive');
+		jQ('button#btDeletePoint').removeClass('active').addClass('nonActive');
 	},
 	
 	deleteHandlePoint: function()
@@ -253,13 +341,13 @@ var ToolButton =
 	//sets the style on button 'delete active handle Polygon' that indicates that there is a handlePolygon active, thus may be deleted
 	activateButtonDeletePolygon: function()
 	{
-		jQ('button#btDeletePolygon').addClass('deleteActive');
+		jQ('button#btDeletePolygon').removeClass('nonActive').addClass('active');
 	},
 
 	//sets the style on button 'delete active handle Polygon' that indicates that there is no handlePolygon active, thus none can be deleted
 	deactivateButtonDeletePolygon: function()
 	{
-		jQ('button#btDeletePolygon').removeClass('deleteActive');
+		jQ('button#btDeletePolygon').removeClass('active').addClass('nonActive');
 	},
 	
 	deletePolygon: function()
@@ -269,33 +357,23 @@ var ToolButton =
 			shapeObjects.deleteActivePolygon();
 	    } 
 	},
-	
-	toggleDrawState: function ()
-	{
-		if(shapeObjects.getToolState() == "drawPolygon")
-		{ 	//set to normal state
-			shapeObjects.setStateNormal();
-			shapeObjects.deactivateActivePolygon();
-			shapeObjects.deactivateActiveHandlePoint();
-			jQ('button#btDrawPolygon').removeClass("down");
-			var buttonText = (shapeObjects.hasPolygonUnderConstruction())? text["continueDraw"] : text["drawShape"];
-			jQ('button#btDrawPolygon').html(buttonText).removeClass("down");
-		}
-		else
-		{ 	//set to draw state
-			shapeObjects.setStateDrawPolygon();
-			jQ('button#btDrawPolygon').html(text["interruptDraw"]).addClass("down");
-		}
-	},	
 		
-	toggleShowHideShapes: function()
+	/*
+	 * normal it toggles, but can also be steered directly with param "show" or "hide"
+	 */
+	toggleShowHideShapes: function(param)
 	{
-		if(jQ('#'+idSvgContainer).css("visibility") == "visible")
+		param = (typeof param != "undefined")? param : null;
+		
+		if( param == "hide" || ( !param && jQ('#'+idSvgContainer).css("visibility") == "visible" ) )
 		{
 			jQ('#'+idSvgContainer).css("visibility", "hidden");
-			jQ('button#btShowHideShapes').html(text["showShapes"]);			
+			jQ('button#btShowHideShapes').html(text["showShapes"]);	
+			ToolButton.normalMode();
+			jQ('div#toolBarInfo').html("");
+			
 		}
-		else
+		else if(param == "show" || ( !param && jQ('#'+idSvgContainer).css("visibility") == "hidden") )
 		{
 			jQ('#'+idSvgContainer).css("visibility", "visible");
 			jQ('button#btShowHideShapes').html(text["hideShapes"]);
@@ -437,7 +515,7 @@ function HandlePoint(imgFractionX,imgFractionY,event)
 	this.formatDisplayToZoom = function()
 	{
 		var strokeFactor = (this.isShownAsStartPoint)? 3 : 1;
-		var radiusFactor = (this.isShownAsStartPoint)? 1.5 : 1;
+		var radiusFactor = (this.isShownAsStartPoint)? 1.3 : 1;
 		
 		//adapt to zoom level
 		this.svgCircle.style({'stroke-width' : strokeFactor * HandlePoint.getCurrentStrokeWidth()});
@@ -822,6 +900,7 @@ function Polygon()
 		{
 			newPoint.showAsStartPoint();
 			ToolButton.activateButtonDeletePolygon();
+			jQ('div#toolBarInfo').html(text["drawModeInfo2"]);
 		}
 	}
 	
@@ -939,10 +1018,12 @@ function Polygon()
 		this.points[0].unshowAsStartPoint();
 		//adapt shape to present point positions
 		this.update();
+		//we have switched to polygon, this must also be adapted to look good
+		this.formatDisplayToZoom(); 
 		//clean up
 		this.svgPolyline.remove();
-		//change text on draw polygon button
-		jQ('button#btDrawPolygon').html(text["stopDraw"]);
+		//make button 'New drawing' prominent
+		ToolButton.activateButtonNewDrawing();
 	}
 	
 	
@@ -1007,7 +1088,7 @@ function Polygon()
 	this.mouseDownInObject = function(event)
 	{
 		//if the mousedown originated from a handlePoint of the polygon and that handlePoint was the start HandlePoint...
-		if(event.targetObject && event.targetObject instanceof HandlePoint && event.targetObject.isPolygonStartPoint() )
+		if(event.targetObject && event.targetObject instanceof HandlePoint && event.targetObject.isPolygonStartPoint() && !this.isClosed)
 		{
 			this.closePolygon();
 		}

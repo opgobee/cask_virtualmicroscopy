@@ -17,7 +17,7 @@
 	position:absolute;bottom:0px; width:100%;min-height:35px;padding:5px;background:#e1e4ed;text-align:center;z-index:10;
 	opacity: 0.95;
 	filter: alpha(opacity=95);
-	} /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
+	 /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
 }
 
 
@@ -38,19 +38,12 @@ button.down {
 	color:#202020;
 }
 
-/*non active deletpoint button: font is light grey*/
-button#btDeletePoint {
-	background: #dbdbdb;
-	color:#c0c0c0;	
+button#btNewDrawing.active {
+	color: #b60000;
+	font-weight: bold;
 }
 
-/*non active deletpoint button: font is light grey*/
-button#btDeletePolygon {
-	background: #dbdbdb;
-	color:#c0c0c0;	
-}
-
-button#btDeletePoint.deleteActive, button#btDeletePolygon.deleteActive {
+button#btDeletePoint.active, button#btDeletePolygon.active {
 	background: #febbbb; /* Old browsers */
 	background: -moz-linear-gradient(top,  #febbbb 0%, #fe9090 45%, #ff5c5c 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#febbbb), color-stop(45%,#fe9090), color-stop(100%,#ff5c5c)); /* Chrome,Safari4+ */
@@ -62,12 +55,34 @@ button#btDeletePoint.deleteActive, button#btDeletePolygon.deleteActive {
 	color:#404040;
 }
 
-#btDrawPolygon {
-/*	-webkit-border-bottom-right-radius:5px 8px;-moz-border-radius-bottomright:5px 8px;border-bottom-right-radius:5px 8px;
-	-webkit-border-bottom-left-radius:5px 8px;-moz-border-radius-bottomleft:5px 8px;border-bottom-left-radius:5px 8px;
-	background: #ffffff; /* Old browsers */
 
+/*non active deletepoint, deletepolygon, newdrawing button: font is light grey on lighter gray background*/
+button.nonActive {
+	background: #dbdbdb;
+	color:#c0c0c0;
+	font-weight: normal;	
+}
 
+button#btNormalMode {
+	min-width:8em;
+	-webkit-border-radius: 11 0 0 11;
+	-moz-border-radius: 11 0 0 11;
+	border-radius: 11px 0px 0px 11px;
+	margin-right: -1px;
+	border: 2px 1px 2px 2px;
+}
+
+button#btDrawMode {
+	min-width:8em;
+	-webkit-border-radius: 0 11 11 0;
+	-moz-border-radius: 0 11 11 0;
+	border-radius: 0px 11px 11px 0px;
+	margin-left: -1px;
+	border: 2px 2px 2px 1px;
+}
+
+button#btDrawMode.down, button#btNormalMode.down {
+	font-weight:bold;
 }
 
 /*must be declared as last to work -why? */
@@ -79,6 +94,7 @@ button {
 	-moz-border-radius: 11;
 	border-radius: 11px;
 	
+	background: #ffffff; /* Old browsers */
 	background: -moz-linear-gradient(top,  #ffffff 0%, #e5e5e5 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e5e5e5)); /* Chrome,Safari4+ */
 	background: -webkit-linear-gradient(top,  #ffffff 0%,#e5e5e5 100%); /* Chrome10+,Safari5.1+ */
@@ -95,4 +111,10 @@ button {
 	margin: 3px;
 	z-index:10;
 }
+div#toolBarInfo {
+	min-height: 1.5em;
+	width:100%;
+	color:#808080;
+	font-style:italic;	
+	font-size:10.95
 
