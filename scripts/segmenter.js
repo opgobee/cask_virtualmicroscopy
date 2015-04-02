@@ -10,7 +10,7 @@
 
 //temp
 var displayCalc="";
-var svgCanvas, svgShapes, shapeObjects, text= Array(); 
+var svgCanvas, svgShapes, shapeObjects, settings, text= Array(); 
 var idSvgContainer = "svgContainer"; //id of element that is to contain the svg
 
 /*
@@ -52,6 +52,7 @@ jQ( document ).ready(function() {
 		shapeObjects.activeHandlePoint = null;
 		shapeObjects.activePolygon = null;
 		shapeObjects.polygonUnderConstruction = null;
+		settings = {"drawMethod" : "clickDraw"}
 		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
 		
 		
@@ -197,6 +198,8 @@ jQ( document ).ready(function() {
 	text["confirmDeleteShape"] = "Are you sure you want to delete the selected (red) shape?";
 	text["hideShapes"] = "Hide Shapes";
 	text["showShapes"] = "Show Shapes";
+	text["trailDraw"] = "Trail Drawing";
+	text["clickDraw"] = "Click Drawing";
 		
 	//create and insert the toolpanel at the bottom
 	jQ( "body" ).append( '<div id="drawToolPanel">'
@@ -206,6 +209,7 @@ jQ( document ).ready(function() {
 			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
 			+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
 			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'
+			+'<button id="btDrawMethod">'+text["clickDraw"]+'</button>'
 			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
 			+'</div>' );
 	
@@ -241,6 +245,10 @@ jQ( document ).ready(function() {
 		ToolButton.toggleShowHideShapes();
 	});
 	
+	// button 'drawmethod' - action
+	jQ('button#btDrawMethod').click(function(){
+		ToolButton.toggleDrawMethod();
+	});
 
 	//////////////////////////////////////////////// 
 	// End toolpanel
@@ -378,6 +386,21 @@ var ToolButton =
 			jQ('#'+idSvgContainer).css("visibility", "visible");
 			jQ('button#btShowHideShapes').html(text["hideShapes"]);
 		}
+	},
+	
+	toggleDrawMethod: function()
+	{
+		if(settings.drawMethod == "clickDraw")
+		{
+			settings.drawMethod = "trailDraw";
+			jQ('button#btDrawMethod').html(text["trailDraw"]);
+			initTrailDraw();
+		}
+		else
+		{
+			settings.drawMethod = "clickDraw";
+			jQ('button#btDrawMethod').html(text["clickDraw"]);
+		}		
 	}
 };
 
@@ -401,15 +424,86 @@ handleMouseDown = function(event)
 	
 	if(shapeObjects.getToolState() == "drawPolygon" && shapeObjects.polygonUnderConstruction != null) 
 	{
-		shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		  
+		if(settings.drawMethod == "trailDraw")
+		{
+			startTrailDrawing(event);
+		}
+		else //clickDrawing
+		{
+			shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		  			
+		}
 	}
-	old_handleMouseDown.apply(this, arguments);
+	else
+	{
+		old_handleMouseDown.apply(this, arguments);		
+	}
 	
 };
 
+/*
+ * Traildrawing
+ */
 
+var originalHandleMouseMove, originalHandleMouseUp;
 
+function initTrailDraw()
+{	
+	//store original mousemove and mouseup handlers
+	originalHandleMouseMove = handleMouseMove;
+	originalHandleMouseUp = handleMouseUp;
+}
 
+var lastAddedPoint, slope, distance; //will store the last dropped/added point (in traildrawing)
+
+function startTrailDrawing(event)
+{
+	outerDiv.style.cursor = "crosshair";
+	var imgFractionCoords= getImgCoords(event.clientX,event.clientY);	
+	lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});
+	lastAddedPoint.deactivate();
+	//alert(lastAddedPoint);
+	// replace original mousemove and mouseup handlers by handlers for traildrawing
+	outerDiv.onmousemove = trailDraw; 
+	outerDiv.onmouseup = endTrailDrawing;
+
+}
+
+var thresholdDistance = 0.025;
+
+function trailDraw(event)
+{
+	var imgFractionCoords= getImgCoords(event.clientX,event.clientY);
+	var lastPointX = lastAddedPoint.getImgFractionX();
+	var lastPointY = lastAddedPoint.getImgFractionY();
+	distance = calculateDistance(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
+	slope = calculateSlope(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
+	document.getElementById('namePanel').innerHTML = "trail: x: " + imgFractionCoords.x + ", y: " + imgFractionCoords.y +", distance:" + distance + ", slope:" + slope;	
+	//drop a new point
+	if(distance > thresholdDistance)
+	{
+		lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});
+		lastAddedPoint.deactivate();
+	}
+}
+
+function calculateDistance(x1,y1,x2,y2)
+{
+	return Math.sqrt( Math.pow((x2-x1),2) + Math.pow((y2-y1),2) ); //Pythagoras
+}
+
+function calculateSlope(x1,y1,x2,y2)
+{
+	return (y2-y1)/(x2-x1);
+}
+
+function endTrailDrawing()
+{
+	outerDiv.style.cursor = "default";
+	// reconnect original mousemove and mouseup handlers
+	outerDiv.onmousemove = originalHandleMouseMove; 
+	outerDiv.onmouseup = originalHandleMouseUp;
+	shapeObjects.polygonUnderConstruction.closePolygon();
+}
 
 
 /////////////////////////////
@@ -482,7 +576,7 @@ function HandlePoint(imgFractionX,imgFractionY,event)
 	this.showAsStartPoint = function()
 	{
 		this.isShownAsStartPoint = true;
-		this.formatDisplayToZoom();		
+		this.formatDisplayToZoom();	//real adaptation happens here, based on boolean isShownAsStartPoint	
 	}
 
 	this.unshowAsStartPoint = function()
@@ -490,20 +584,20 @@ function HandlePoint(imgFractionX,imgFractionY,event)
 		this.isShownAsStartPoint = false;
 		this.formatDisplayToZoom();
 	}
-	
+		
 	//set reference to possible shapeobject that contains this handlePoint
 	this.setParentObject = function(parentObject)
 	{
 		this.parentObject = parentObject;
 	}
 	
-	//returns the x position of this handlePoint, expressed in imgage fraction (0-1)
+	//returns the x position of this handlePoint, expressed in image fraction (0-1)
 	this.getImgFractionX = function()
 	{
 		return this.imgFractionX;
 	}
 
-	//returns the y position of this handlePoint, expressed in imgage fraction (0-1)
+	//returns the y position of this handlePoint, expressed in image fraction (0-1)
 	this.getImgFractionY = function()
 	{
 		return this.imgFractionY;
@@ -625,14 +719,7 @@ function HandlePoint(imgFractionX,imgFractionY,event)
 	this.svgCircle.draggable(dragConstraintFunction);
 	//start the dragging. 
 	this.svgCircle.draggable.triggerStart(event);
-	
-/*	var evt = document.createEvent('MouseEvents');
-	evt.initEvent("mousedown", true, true);
-	evt.pageX= e.pageX;
-	evt.pageY= e.pageY;
-	this.svgCircle.node.dispatchEvent(evt);
-*/
-	
+		
 
 } //EOF HandlePoint
 
@@ -774,6 +861,7 @@ function Polygon()
 		}
 	}
 	
+	
 	/*
 	 * formats sizes of elements so they look good at the current zoom level
 	 */
@@ -851,7 +939,8 @@ function Polygon()
 	 * "event" = event object
 	 * "imgFractionX" = number 0-1 x position expressed in image fraction
 	 * "imgFractionY" = number 0-1 y position expressed in image fraction
-	 * "indexSectionToAddPoint" = integer: index of the sectionof the polygon into which the point should be added (optional)
+	 * "indexSectionToAddPoint" = integer: index of the section of the polygon into which the point should be added (optional)
+	 * "iniator" = "trailDropped" (optional)
 	 */
 	this.addPoint = function(params)
 	{
@@ -861,6 +950,8 @@ function Polygon()
 		var imgFractionX =  params["imgFractionX"];
 		var imgFractionY =  params["imgFractionY"];
 		var indexSectionToAddPoint = params["indexSectionToAddPoint"];
+		var iniator = params["iniator"];
+		
 		var newPoint = new HandlePoint(imgFractionX,imgFractionY,event);
 		//alert(newPoint)
 		
@@ -872,14 +963,14 @@ function Polygon()
 		{
 			return (this === this.parentObject.points[0]);
 		}
-
+		
 		//extend the dragmove handler to also update this polygon when the point is moved
 		var old_dragmove = newPoint.svgCircle.dragmove;
 		newPoint.svgCircle.dragmove = function(e)
 		{
 			if(this.isActive)
 			{
-				this.update();				
+				this.update();									
 			}
 			old_dragmove.apply(newPoint, arguments);				
 		}.bind(this)		
@@ -902,6 +993,8 @@ function Polygon()
 			ToolButton.activateButtonDeletePolygon();
 			jQ('div#toolBarInfo').html(text["drawModeInfo2"]);
 		}
+
+		return newPoint;
 	}
 	
 	/*

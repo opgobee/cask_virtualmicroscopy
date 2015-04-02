@@ -804,12 +804,13 @@ function stopMove()
  * @param number cursorX (in pixels)
  * @param number cursorY (in pixels)
  * return object with keys x and y holding the coords (in fractions of the image)
+ * 01-04-2015 PG CHG upgraded division and multiplication number from 10000 to 100000 for greater accuracy in large slides 
  */
 function getImgCoords(cursorX,cursorY)	
 	{
 	var imgCoords={};
-	imgCoords.x = Math.round(((cursorX - getInnerDivLeft())/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000;
-	imgCoords.y = Math.round(((cursorY - getInnerDivTop())/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*10000))/10000; //removed -16 subtraction in Brainmaps code
+	imgCoords.x = Math.round(((cursorX - getInnerDivLeft())/(imgWidthMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*100000))/100000;
+	imgCoords.y = Math.round(((cursorY - getInnerDivTop())/(imgHeightMaxZoom/(Math.pow(2,gTierCount-1-now.zoom)))*100000))/100000; //removed -16 subtraction in Brainmaps code
 	return imgCoords;
 	}
 
