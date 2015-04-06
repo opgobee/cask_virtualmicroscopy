@@ -12,6 +12,10 @@
 var displayCalc="";
 var svgCanvas, svgShapes, shapeObjects, settings, text= Array(); 
 var idSvgContainer = "svgContainer"; //id of element that is to contain the svg
+var widthHeightRatio; 
+//avg Dimension = average of width and height. heightToAverageDimensionFactor = factor to multiply height with to get the avg dimension. 
+//is used for getting equally far distributed points in traildrawing in x and y direction
+var widthToAverageDimensionFactor, heightToAverageDimensionFactor; 
 
 /*
  * checks whether x lies between a and b, indifferent whether a>b or a<b and of pos or neg numbers
@@ -35,6 +39,7 @@ jQ( document ).ready(function() {
 	//setInterval(clearnamepanel, 4000)
 	//end test
 
+
 	if (SVG.supported) 
 	{
 		/////////////////////////////////////////////////////////
@@ -54,7 +59,6 @@ jQ( document ).ready(function() {
 		shapeObjects.polygonUnderConstruction = null;
 		settings = {"drawMethod" : "clickDraw"}
 		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
-		
 		
 		//turns off any drawing
 		shapeObjects.setStateNormal = function ()
@@ -256,6 +260,8 @@ jQ( document ).ready(function() {
 	
 }); //end document ready
 
+
+
 /*
  * stores all button actions
  */
@@ -410,6 +416,7 @@ var ToolButton =
 //////////////////////////////////////////////////////////////////////
 //http://stackoverflow.com/questions/4578424/javascript-extend-a-function
 
+
 var old_handleMouseDown = handleMouseDown;
 handleMouseDown = function(event) 
 {
@@ -430,7 +437,7 @@ handleMouseDown = function(event)
 		}
 		else //clickDrawing
 		{
-			shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});    		  			
+			shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y, "enableDirectDrag":true});    		  			
 		}
 	}
 	else
@@ -440,9 +447,11 @@ handleMouseDown = function(event)
 	
 };
 
-/*
- * Traildrawing
- */
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Traildrawing
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 
 var originalHandleMouseMove, originalHandleMouseUp;
 
@@ -468,32 +477,161 @@ function startTrailDrawing(event)
 
 }
 
-var thresholdDistance = 0.025;
+
+var thresholdTrailDropMinDistance = 0.010; //safety initial value, will be overwritten by setter
+var thresholdTrailDropMaxDistance = 0.025; //safety initial value, will be overwritten by setter
+var startAngle;
 
 function trailDraw(event)
 {
 	var imgFractionCoords= getImgCoords(event.clientX,event.clientY);
 	var lastPointX = lastAddedPoint.getImgFractionX();
 	var lastPointY = lastAddedPoint.getImgFractionY();
-	distance = calculateDistance(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
-	slope = calculateSlope(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
-	document.getElementById('namePanel').innerHTML = "trail: x: " + imgFractionCoords.x + ", y: " + imgFractionCoords.y +", distance:" + distance + ", slope:" + slope;	
+	var distance = calculateDistance(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
+	var angle = calculateAngleRadian(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
+	var slope = calculateSlope(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
+	document.getElementById('namePanel').innerHTML = "trail: x: " + imgFractionCoords.x + ", y: " + imgFractionCoords.y +", distance:" + distance + ", angle:" + angle + ", slope:" + slope +", thresholdTrailDropMaxDistance:" +thresholdTrailDropMaxDistance;	
 	//drop a new point
-	if(distance > thresholdDistance)
+	if(distance > thresholdTrailDropMinDistance)
 	{
-		lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});
-		lastAddedPoint.deactivate();
+		
+		if(distance > thresholdTrailDropMaxDistance)
+		{
+			//enableDirectDrag = false because the draggability of a point must be turned off by mouseup on point and this doesn't occur on traildraw. Else all handlepoints give errors on all mouseups on window
+			lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"enableDirectDrag":false});
+			lastAddedPoint.deactivate();
+		}
 	}
+	
+}
+
+/*
+ * calculates min distance to drop a new point in trail drawing, dependent on present zoom
+ * returns a distance expressed in imgfraction
+ */
+function setThresholdTrailDropMinDistance()
+{
+	var minPixelThreshold = 10;
+	thresholdTrailDropMinDistance = minPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;	
+}
+
+
+/*
+ * calculates max distance to drop a new point in trail drawing, dependent on present zoom
+ * returns a distance expressed in imgfraction
+ */
+function setThresholdTrailDropMaxDistance()
+{
+	var maxPixelThreshold = 30;
+	thresholdTrailDropMaxDistance = maxPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;
 }
 
 function calculateDistance(x1,y1,x2,y2)
 {
-	return Math.sqrt( Math.pow((x2-x1),2) + Math.pow((y2-y1),2) ); //Pythagoras
+	/*
+	 * Basis: Pythagoras
+	 * Corrections for widthHeightRatio: 
+	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
+	 * 2. calculated hypothenusa is divided by widthHeightRatio to equalize distances over images with different widthHeightRatio 
+	 */
+	
+	return ( Math.sqrt( Math.pow(((x2-x1) * widthHeightRatio),2) + Math.pow(((y2-y1) ),2) )  / Math.sqrt(2) ) / widthHeightRatio; 
 }
 
 function calculateSlope(x1,y1,x2,y2)
 {
-	return (y2-y1)/(x2-x1);
+/*	
+ * var dy = y2-y1;
+	var dx = x2-x1
+	var corrdx = dx * widthHeightRatio;
+	document.getElementById('namePanel').innerHTML = "x1: " + x1 + ", x2: " + x2 + ", y1: " + y1 + ", y2: " + y2 +", Dx:" + dx + ", corrDx:" + corrdx +", Dy:" + dy + ", slope:" + slope ;	
+*/
+	/*
+	 * Corrections for widthHeightRatio: 
+	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
+	 */
+	var slope = (y2-y1)/((x2-x1) * widthHeightRatio);
+	return slope;
+}
+
+var twoPi=Math.PI*2;
+var pi=Math.PI;
+
+function calculateAngleDegrees(x1,y1,x2,y2)
+{
+	/*
+	 * Corrections for widthHeightRatio: 
+	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
+	 * Math.atan gives radians. Radians to degrees: http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-use-degrees-instead-of-radians
+	 */
+	var slope = (y2-y1)/((x2-x1) * widthHeightRatio);
+	var angle = Math.atan(slope) * 180/Math.PI;	
+	return angle;
+}
+
+function calculateAngleRadian(x1,y1,x2,y2)
+{
+	/*
+	 * Corrections for widthHeightRatio: 
+	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
+	 * Math.atan gives radians. Radians to degrees: http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-use-degrees-instead-of-radians
+	 * Also see: www.mathopenref.com/trigangle.html
+	 */
+	var slope = (y2-y1)/ ((x2-x1) * widthHeightRatio);
+	var angle = Math.atan(slope);
+	var quadrant = getQuadrant(x1,y1,x2,y2);
+	
+	switch(quadrant) 
+	{
+    case 1:
+    	return -angle;
+        break;
+    case 2:
+    case 3:
+    	return pi - angle;
+        break;
+    case 4:
+    	return twoPi - angle;
+    default:
+        return null;
+	} 
+}
+
+function getQuadrant(x1,y1,x2,y2)
+{
+	var dy = y2-y1;
+	var dx = x2-x1;
+	if(dy<0)
+	{		
+		//1st Quadrant: dx:+, dy:-
+		if(dx>=0)
+		{
+			return 1;
+		}
+		//2nd Quadrant: dx:-, dy:-
+		else //dx<0
+		{
+			return 2;
+		}
+	}
+	else //dy>=0
+	{
+		//3rd Quadrant: dx:-, dy:+
+		if(dx<0)
+		{
+			return 3;
+		}
+		//4th Quadrant: dx:+, dy:+
+		else //dx>0
+		{
+			return 4;
+		}		
+	}
+}
+
+function calculateAngleChange(angle1, angle2)
+{
+	
 }
 
 function endTrailDrawing()
@@ -518,17 +656,30 @@ function createPoly()
 	svgShapes.add(polygon);
 }
 
-
-function HandlePoint(imgFractionX,imgFractionY,event)
+/* @param params can contain:
+ * "event" = event object
+ * "imgFractionX" = number 0-1 x position expressed in image fraction
+ * "imgFractionY" = number 0-1 y position expressed in image fraction
+ * "indexSectionToAddPoint" = integer: index of the section of the polygon into which the point should be added (optional)
+ * "enableDirectDrag" = true/false (optional)
+*/
+function HandlePoint(params)
 {	
+	if(typeof params == "undefined") {return;}
+	var event = params["event"];
+	var enableDirectDrag = params["enableDirectDrag"];
+
+	this.imgFractionX =  params["imgFractionX"]; //location on image, expressed in image fraction (0-1)
+	this.imgFractionY =  params["imgFractionY"]; //location on image, expressed in image fraction (0-1)
+
 	this.parentObject = null; //reference to a shape object (e.g. polygon object) that contains this handlepoint
 	this.isActive = false; //whether it can be dragged etc.
 	this.isShownAsStartPoint = false; //startpoint will be shown more prominent
-	this.imgFractionX = imgFractionX; //location on image, expressed in image fraction (0-1)
-	this.imgFractionY = imgFractionY; //location on image, expressed in image fraction (0-1)
-	var fullImgX = imgFractionX * imgWidthMaxZoom; //location on image of max image size, expressed in pixels
-	var fullImgY = imgFractionY * imgHeightMaxZoom;
-	
+
+	var fullImgX = this.imgFractionX * imgWidthMaxZoom; //location on image of max image size, expressed in pixels
+	var fullImgY = this.imgFractionY * imgHeightMaxZoom;
+
+
 
 	//sets this handlePoint to active state. 
 	this.activate = function() 
@@ -717,8 +868,12 @@ function HandlePoint(imgFractionX,imgFractionY,event)
 	}.bind(this);
 	
 	this.svgCircle.draggable(dragConstraintFunction);
-	//start the dragging. 
-	this.svgCircle.draggable.triggerStart(event);
+	
+	if(enableDirectDrag)
+	{
+		//enable immediate dragging with mouse still down from the point creation. 	
+		this.svgCircle.draggable.triggerStart(event);
+	}
 		
 
 } //EOF HandlePoint
@@ -750,6 +905,8 @@ HandlePoint.getCurrentRadius = function()
 ////////////////////////////////////////////////////////////////////////////
 // Polygon
 ////////////////////////////////////////////////////////////////////////////
+
+var thresholdDistanceFromPolygonLineToAddPoint = 0.01; //initial
 
 function Polygon()
 {
@@ -940,19 +1097,18 @@ function Polygon()
 	 * "imgFractionX" = number 0-1 x position expressed in image fraction
 	 * "imgFractionY" = number 0-1 y position expressed in image fraction
 	 * "indexSectionToAddPoint" = integer: index of the section of the polygon into which the point should be added (optional)
-	 * "iniator" = "trailDropped" (optional)
+	 * "enableDirectDrag" = true/false (optional)
 	 */
 	this.addPoint = function(params)
 	{
 		//alert('in add point')
 		if(typeof params == "undefined") {return;}
 		var event = params["event"];
-		var imgFractionX =  params["imgFractionX"];
-		var imgFractionY =  params["imgFractionY"];
+		//var imgFractionX =  params["imgFractionX"];
+		//var imgFractionY =  params["imgFractionY"];
 		var indexSectionToAddPoint = params["indexSectionToAddPoint"];
-		var iniator = params["iniator"];
 		
-		var newPoint = new HandlePoint(imgFractionX,imgFractionY,event);
+		var newPoint = new HandlePoint(params);
 		//alert(newPoint)
 		
 		//create reference in the handlePoint to this Polygon object
@@ -996,6 +1152,8 @@ function Polygon()
 
 		return newPoint;
 	}
+
+
 	
 	/*
 	 * This function will test a clicked point (x,y) 
@@ -1009,7 +1167,7 @@ function Polygon()
 	{
 		var minDistancePointFromLine = 10; 
 		var distancePointFromLine = 10;
-		var thresholdDistancePointFromLine = 0.01;
+		
 		var indexNearestSection = null;
 		var pointX, pointY;
 		var nrPoints= this.points.length;
@@ -1040,7 +1198,7 @@ function Polygon()
 		
 		//if deviation of point from nearest found section is below threshold, the point is considered to lie on the line section, 
 		//then return section index, else return null (meaning: point is not near enough to any section to be considered lying on a section line
-		return (minDistancePointFromLine < thresholdDistancePointFromLine)? indexNearestSection : null;
+		return (minDistancePointFromLine < thresholdDistanceFromPolygonLineToAddPoint)? indexNearestSection : null;
 	}
 
 	/*
@@ -1057,7 +1215,7 @@ function Polygon()
 		//calc rico (slope) of line section | a = dy/dx
 		var slopeSection =  (lineFootY - lineHeadY) / (lineFootX - lineHeadX);
 		//perpendicular slope = negative inverse slope; we need to correct for widthHeightRatio: real lengths of x and y as x and y imgFractions are not equally long
-		var widthHeightRatio = imgWidthMaxZoom/imgHeightMaxZoom;
+		//var widthHeightRatio = imgWidthMaxZoom/imgHeightMaxZoom;
 		var perpendicularSlope = ( -1 / slopeSection ) * Math.pow((widthHeightRatio),2);
 		//determine section formula, determine y=ax+b --> calc b = y-ax
 		var bSection =  lineHeadY - (slopeSection * lineHeadX);
@@ -1165,7 +1323,7 @@ function Polygon()
 			//document.getElementById("namePanel").innerHTML= 'mousedown on section '+indexSectionToAddPoint;
 			if(indexSectionToAddPoint != null)
 			{
-				this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint});					
+				this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint, "enableDirectDrag":true});					
 				event.stopPropagation();			
 			}
 			//attach custom flag to event, which will enable the window mousedown handler to know it should not deactivate the polygon
@@ -1258,9 +1416,49 @@ function ZoomSvg(e)
 				shapeObjects[i].formatDisplayToZoom();
 			}
 		}
-	}
 	
-/*	
+		//we need widthHeightRatio to correct for different nr pixels width from height
+		// in fact you only need to calc it once when image is loaded, but the numbers are read by init() in tiledviewer.js. Tiledviewer.js is loaded before segmenter.js, init() is called on body onload
+		// if I extend init() to calc this I'm not sure how the timing of body load is related to the timing of loading segmenter.js and extending init()
+		// so it seems safer to calculate it in zoom, even though that means it is calculated several times - at each zoom action- so many times unneccessary - maybe can be improved
+		widthHeightRatio = imgWidthMaxZoom/imgHeightMaxZoom;
+
+		//var averageDimension = (imgWidthMaxZoom + imgHeightMaxZoom) / 2;
+		//heightToAverageDimensionFactor = averageDimension / imgHeightMaxZoom;
+		//widthToAverageDimensionFactor  = averageDimension / imgWidthMaxZoom;
+		//alert("imgWidthMaxZoom="+imgWidthMaxZoom+", imgHeightMaxZoom="+imgHeightMaxZoom+ "widthToAverageDimensionFactor="+widthToAverageDimensionFactor+", heightToAverageDimensionFactor="+heightToAverageDimensionFactor)
+
+		//sets threshold distances in drawing appropriate to present zoom level
+		setThresholdsToZoomLevel();
+	}
+
+}
+
+/*
+ * sets threshold distances appropriate to present zoom level
+ * Called by ZoomSvg()
+ */
+function setThresholdsToZoomLevel()
+{
+	setThresholdTrailDropMinDistance();
+	setThresholdTrailDropMaxDistance();
+	setThresholdDistanceFromPolygonLineToAddPoint();
+}
+
+
+/*
+ *sets the threshold distance from a polygon section line for a point to be added to the polygon (on click on the point). Depends on present zoom level.
+ */ 
+
+function setThresholdDistanceFromPolygonLineToAddPoint()
+{
+	var minPixelThreshold = 30;
+	thresholdDistanceFromPolygonLineToAddPoint = minPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;
+}
+
+/*
+*test n tries
+*	
  * native svg - succesful
  var svgContainer = document.getElementById("imageSegmentations");
 	//alert(scale2);
@@ -1294,4 +1492,4 @@ function ZoomSvg(e)
 
 	});
 */
-}
+

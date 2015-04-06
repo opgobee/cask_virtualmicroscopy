@@ -683,7 +683,6 @@ function handleMouseDown(event)
  */	
 function handleMouseUp(event)
 	{
-
 	//ih("mouseUp<br>");
 	clearZoomOutTimer(); //cancel autozoomout
 	zoomCenterOnCursor= false;

@@ -139,7 +139,7 @@ element.startPosition = {
 							}
 							/* when dragging ends */
 							end = function(event) {
-								event = event || window.event
+								event = event || window.event								
 								/* calculate move position */
 								var delta = {
 									x : event.pageX - element.startEvent.pageX,
