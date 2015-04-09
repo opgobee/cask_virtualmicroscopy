@@ -462,47 +462,100 @@ function initTrailDraw()
 	originalHandleMouseUp = handleMouseUp;
 }
 
-var lastAddedPoint, slope, distance; //will store the last dropped/added point (in traildrawing)
+var lastHandlePoint, slope, distance; //will store the last dropped/added point (in traildrawing)
 
 function startTrailDrawing(event)
 {
 	outerDiv.style.cursor = "crosshair";
 	var imgFractionCoords= getImgCoords(event.clientX,event.clientY);	
-	lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});
-	lastAddedPoint.deactivate();
-	//alert(lastAddedPoint);
+	lastHandlePoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y});
+	lastHandlePoint.deactivate();
+	//alert(lastHandlePoint);
 	// replace original mousemove and mouseup handlers by handlers for traildrawing
 	outerDiv.onmousemove = trailDraw; 
 	outerDiv.onmouseup = endTrailDrawing;
 
 }
 
-
-var thresholdTrailDropMinDistance = 0.010; //safety initial value, will be overwritten by setter
-var thresholdTrailDropMaxDistance = 0.025; //safety initial value, will be overwritten by setter
-var startAngle;
+var minPixelThreshold = 10;
+var maxPixelThreshold = 100; //was 30
+var thresholdTotalTrailAngleChange = Math.PI/3; //
+setThresholdTrailDropMinDistance(); //calc initial values expresseed in imgfraction
+setThresholdTrailDropMaxDistance(); 
+var lastTrailTracePoint = {"x":null,"y":null}; //will store the last point in the trace that trailing creates. Note: this is thus NOT a handlepoint, but some point on the trail being drawn from the previous handlepoint up to the next one.
+var nowTrailTraceAngle = null; //angle of line between point we're at now and previousTrailTracePoint
+var lastTrailTraceAngle = null; //angle of line between previousTrailTracePoint and the TrailTracePoint before that one.
+var totalTrailAngleChange = 0;
 
 function trailDraw(event)
 {
-	var imgFractionCoords= getImgCoords(event.clientX,event.clientY);
-	var lastPointX = lastAddedPoint.getImgFractionX();
-	var lastPointY = lastAddedPoint.getImgFractionY();
-	var distance = calculateDistance(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
-	var angle = calculateAngleRadian(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
-	var slope = calculateSlope(lastPointX, lastPointY, imgFractionCoords.x, imgFractionCoords.y);
-	document.getElementById('namePanel').innerHTML = "trail: x: " + imgFractionCoords.x + ", y: " + imgFractionCoords.y +", distance:" + distance + ", angle:" + angle + ", slope:" + slope +", thresholdTrailDropMaxDistance:" +thresholdTrailDropMaxDistance;	
-	//drop a new point
-	if(distance > thresholdTrailDropMinDistance)
+	var lastHandlePointX,lastHandlePointY,lastTrailTracePointX,lastTrailTracePointY,nowPointX,nowPointY,distanceFromLastHandlePoint,angleRadianChange;
+	var imgFractionCoords
+	
+	//1. last HandlePoint
+	lastHandlePointX = lastHandlePoint.getImgFractionX();
+	lastHandlePointY = lastHandlePoint.getImgFractionY();
+	//2. last stored interim point = trailtrace point ( = last point on the trail being drawn from the previous handlepoint up to the next one that called this function)
+	//initial point of the trail
+	if(lastTrailTracePoint.x == null)
 	{
-		
-		if(distance > thresholdTrailDropMaxDistance)
-		{
-			//enableDirectDrag = false because the draggability of a point must be turned off by mouseup on point and this doesn't occur on traildraw. Else all handlepoints give errors on all mouseups on window
-			lastAddedPoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"enableDirectDrag":false});
-			lastAddedPoint.deactivate();
-		}
+		lastTrailTracePoint.x = lastHandlePointX;
+		lastTrailTracePoint.y = lastHandlePointY;
+	}
+	lastTrailTracePointX = lastTrailTracePoint.x; //easy alias
+	lastTrailTracePointY = lastTrailTracePoint.y;
+	//3. point where we are now
+	imgFractionCoords= getImgCoords(event.clientX,event.clientY);
+	nowPointX = imgFractionCoords.x; 
+	nowPointY = imgFractionCoords.y;
+	distanceFromLastHandlePoint = calculateDistance(lastHandlePointX, lastHandlePointY, nowPointX, nowPointY);
+	nowTrailTraceAngle = calculateAngleRadian(lastTrailTracePointX, lastTrailTracePointY, nowPointX, nowPointY);
+	//initial angle = angle of line piece directly after leaving last handlePoint
+	if(lastTrailTraceAngle == null)
+	{
+		lastTrailTraceAngle = nowTrailTraceAngle;
+	}
+	//get angle change of last interim stretch to previous interim stretch //HERE SEEMS BUG: we get either half or quarter pi and nothing else
+	angleRadianChange = calculateAngleRadianChange(lastTrailTraceAngle, nowTrailTraceAngle);
+	//sum all angle changes so far
+	totalTrailAngleChange += angleRadianChange;
+	
+	//update the 'last' point and angle
+	lastTrailTracePoint.x = nowPointX;
+	lastTrailTracePoint.y = nowPointY;
+	lastTrailTraceAngle = nowTrailTraceAngle;
+	
+	//testing
+	var slope = calculateSlope(lastTrailTracePointX, lastTrailTracePointY, nowPointX, nowPointY);
+	document.getElementById('namePanel').innerHTML = "trail: x: " + nowPointX + ", y: " + nowPointY +", distance:" + distanceFromLastHandlePoint + ", angle:" + nowTrailTraceAngle + ", slope:" + slope +", angleRadianChange:" +angleRadianChange + ", totalTrailAngleChange:" + totalTrailAngleChange;	
+	
+	//determine if we should drop a new handlepoint
+	if( distanceFromLastHandlePoint > thresholdTrailDropMaxDistance )
+	{
+		trailDropPoint(event,nowPointX,nowPointY);
+	}
+	else if( (distanceFromLastHandlePoint > thresholdTrailDropMinDistance) &&  ( Math.abs(totalTrailAngleChange) > thresholdTotalTrailAngleChange))
+	{
+		trailDropPoint(event,nowPointX,nowPointY);
 	}
 	
+}
+
+/*
+ * creates a new handlePoint during trailDrawing and resets the trail trace memories
+ * @x = x point expressed in imgFraction
+ * @y = y point expressed in imgFraction 
+ */
+function trailDropPoint(event,x,y)
+{
+	//drop a new point
+	//enableDirectDrag = false because the draggability of a point must be turned off by mouseup on point and this doesn't occur on traildraw. Else all handlepoints give errors on all mouseups on window
+	lastHandlePoint = shapeObjects.polygonUnderConstruction.addPoint({"event":event,"imgFractionX":x,"imgFractionY":y,"enableDirectDrag":false});
+	lastHandlePoint.deactivate(); //handlepoints should only be user-actived
+	//restart all trails
+	lastTrailTracePoint = {"x":null,"y":null};
+	lastTrailTraceAngle = nowTrailTraceAngle = null;
+	totalTrailAngleChange = 0;
 }
 
 /*
@@ -511,10 +564,8 @@ function trailDraw(event)
  */
 function setThresholdTrailDropMinDistance()
 {
-	var minPixelThreshold = 10;
 	thresholdTrailDropMinDistance = minPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;	
 }
-
 
 /*
  * calculates max distance to drop a new point in trail drawing, dependent on present zoom
@@ -522,7 +573,6 @@ function setThresholdTrailDropMinDistance()
  */
 function setThresholdTrailDropMaxDistance()
 {
-	var maxPixelThreshold = 30;
 	thresholdTrailDropMaxDistance = maxPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;
 }
 
@@ -538,6 +588,9 @@ function calculateDistance(x1,y1,x2,y2)
 	return ( Math.sqrt( Math.pow(((x2-x1) * widthHeightRatio),2) + Math.pow(((y2-y1) ),2) )  / Math.sqrt(2) ) / widthHeightRatio; 
 }
 
+/*
+ * calculates the slope (dy/dx) corrected for the difference in scale of the fraction coordinates on the width and height axes
+ */
 function calculateSlope(x1,y1,x2,y2)
 {
 /*	
@@ -554,30 +607,30 @@ function calculateSlope(x1,y1,x2,y2)
 	return slope;
 }
 
+
 var twoPi=Math.PI*2;
 var pi=Math.PI;
 
-function calculateAngleDegrees(x1,y1,x2,y2)
-{
-	/*
-	 * Corrections for widthHeightRatio: 
-	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
-	 * Math.atan gives radians. Radians to degrees: http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-use-degrees-instead-of-radians
-	 */
-	var slope = (y2-y1)/((x2-x1) * widthHeightRatio);
-	var angle = Math.atan(slope) * 180/Math.PI;	
-	return angle;
-}
-
+/*
+ * calculates the angle of a line between two points related to the x-axis in a 2D Cartesian coordinate system, expressed in radians
+ * Cartesian coordinate system http://en.wikipedia.org/wiki/Cartesian_coordinate_system#/media/File:Cartesian_coordinates_2D.svg
+ * so: 
+ * 1st Quadrant = 0 - 1/2 pi
+ * 2nd Quadrant = 1/2 pi to pi
+ * 3rd Quadrant = pi to Oneandahalf pi
+ * 4th Quadrant = Oneandahalf pi to 2 pi
+ * 
+ * Note: is corrected for the difference in scale of the fraction coordinates on the width and height axes
+ * returns a number between 0 and 2 pi
+ */
 function calculateAngleRadian(x1,y1,x2,y2)
 {
 	/*
 	 * Corrections for widthHeightRatio: 
 	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
-	 * Math.atan gives radians. Radians to degrees: http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-use-degrees-instead-of-radians
 	 * Also see: www.mathopenref.com/trigangle.html
 	 */
-	var slope = (y2-y1)/ ((x2-x1) * widthHeightRatio);
+	var slope = calculateSlope(x1,y1,x2,y2);
 	var angle = Math.atan(slope);
 	var quadrant = getQuadrant(x1,y1,x2,y2);
 	
@@ -597,6 +650,11 @@ function calculateAngleRadian(x1,y1,x2,y2)
 	} 
 }
 
+/*
+ * based on two points, gets the Quadrant in a 2D Cartesian coordinate system that a line between these two points would be in, if the first point is taken to be the 0,0 point of the coordinate system
+ * 2D Cartesian coordinate system (http://en.wikipedia.org/wiki/Cartesian_coordinate_system#/media/File:Cartesian_coordinates_2D.svg)
+ * returns the number (integer) of the Quadrant: 1,2,3, or 4
+ */
 function getQuadrant(x1,y1,x2,y2)
 {
 	var dy = y2-y1;
@@ -629,9 +687,43 @@ function getQuadrant(x1,y1,x2,y2)
 	}
 }
 
-function calculateAngleChange(angle1, angle2)
+/*
+ * THIS FUNCTION IS NOT FULLY TESTED YET
+ * calculates the angle of a line between two points related to the x-axis in a 2D Cartesian coordinate system, expressed in degrees
+ * returns a number between 0 and 360
+ */
+function calculateAngleDegree(x1,y1,x2,y2)
 {
+	/*
+	 * Corrections for widthHeightRatio: 
+	 * 1. x and y lengths are made equally weighing by multiplying x length by widthHeightRatio
+	 * Math.atan gives radians. Radians to degrees: http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-use-degrees-instead-of-radians
+	 */
+	var angle = calculateAngleRadian(x1,y1,x2,y2) * 180/Math.PI;	
+	return angle;
+}
+
+/*
+ * Calculates the change in radian between two angles
+ * A clockwise change is negative, a counter clockwise change is positive. According to convention and agreeing with cartesian coord system. http://en.wikipedia.org/wiki/Sign_%28mathematics%29
+ * A change that crosses the 0=2pi border (thus the x axis between Quadrant 1 and Q4) is noramlized as if there were no 0/2pi jump
+ * Changes > pi or < -pi (that is >180 degrees or < -180 degrees) are considered to be changes the other way around
+ * returns change size in radians
+ */
+function calculateAngleRadianChange(angle1, angle2)
+{
+	var change;
 	
+	change = angle2 - angle1;
+	if(change > pi)
+	{
+		change = -(change - pi);
+	}
+	else if(change < -pi)
+	{
+		change = -(change + pi);
+	} 
+	return change;
 }
 
 function endTrailDrawing()
