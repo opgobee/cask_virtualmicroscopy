@@ -124,6 +124,24 @@ function getTarget(evt) //
 	}
 }	
 
+/*
+ *This function allows to find an element where an event occurred, below an absolutely positioned element
+ *use this if you want to transfer certain events to undrelying layers. if the forelying element does not meed to accept any pointer event, use css pointer-events:none; instead
+ *http://www.quirksmode.org/dom/w3c_cssom.html#documentview and http://stackoverflow.com/questions/1009753/pass-mouse-events-through-absolutely-positioned-element 
+ */
+function findElementBelow(e) 
+{ 
+	var evt = e || window.event;
+	var elem = e.target;
+	elem.style.display = 'none';
+	var receiver = document.elementFromPoint(evt.clientX,evt.clientY);
+	if (receiver.nodeType == 3) { // Opera
+		receiver = receiver.parentNode;
+	}
+	elem.style.display = '';
+	return receiver;
+}
+
 
 function makeElement(type,id,className)
 {

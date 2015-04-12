@@ -1,0 +1,136 @@
+/*
+ * This css belongs to the toolbar in caskviewer
+ * Written 2015 by Paul Gobee, dept. of Anatomy & Embryology, Leiden University Medical Center, the Netherlands, Contact: o--dot--p--dot--gobee--at--lumc--dot--nl
+ * See also: http://www.caskanatomy.info/microscopy and www.caskanatomy.info/products/caskviewer
+ * You are free to use this software for non-commercial use only, and only if proper credit is clearly visibly given wherever the code is used. 
+ * This notification should be kept intact, also in minified versions of the code. 
+ */
+
+#drawToolPanel {
+	position:absolute;bottom:0px; width:100%;min-height:35px;padding:5px;background:#e1e4ed;text-align:center;z-index:10;
+	opacity: 0.95;
+	filter: alpha(opacity=95);
+	 /*text-align-center in outer container and inner container: inline-block is workaround for css missing 'center', pos:abs to let it be in front of slide, width:100% to get the centering working again*/
+}
+
+
+
+button:hover {
+
+}
+
+button.down {
+	background: #8989ba; /* Old browsers */
+	background: -moz-linear-gradient(top,  #8989ba 0%, #8989ba 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#8989ba), color-stop(100%,#8989ba)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #8989ba 0%,#8989ba 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #8989ba 0%,#8989ba 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #8989ba 0%,#8989ba 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #8989ba 0%,#8989ba 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#8989ba', endColorstr='#8989ba',GradientType=0 ); /* IE6-9 */
+	color:#202020;
+}
+
+button#btNewDrawing.active {
+	color: #b60000;
+	font-weight: bold;
+}
+
+button#btDeletePoint.active, button#btDeletePolygon.active {
+	background: #febbbb; /* Old browsers */
+	background: -moz-linear-gradient(top,  #febbbb 0%, #fe9090 45%, #ff5c5c 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#febbbb), color-stop(45%,#fe9090), color-stop(100%,#ff5c5c)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #febbbb 0%,#fe9090 45%,#ff5c5c 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #febbbb 0%,#fe9090 45%,#ff5c5c 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #febbbb 0%,#fe9090 45%,#ff5c5c 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #febbbb 0%,#fe9090 45%,#ff5c5c 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#febbbb', endColorstr='#ff5c5c',GradientType=0 ); /* IE6-9 */
+	color:#404040;
+}
+
+
+/*non active deletepoint, deletepolygon, newdrawing button: font is light grey on lighter gray background*/
+button.nonActive {
+	background: #dbdbdb;
+	color:#c0c0c0;
+	font-weight: normal;	
+}
+
+button#btNormalMode {
+	min-width:8em;
+	-webkit-border-radius: 11 0 0 11;
+	-moz-border-radius: 11 0 0 11;
+	border-radius: 11px 0px 0px 11px;
+	margin-right: -1px;
+	border: 2px 1px 2px 2px;
+}
+
+button#btDrawMode {
+	min-width:8em;
+	-webkit-border-radius: 0 11 11 0;
+	-moz-border-radius: 0 11 11 0;
+	border-radius: 0px 11px 11px 0px;
+	margin-left: -1px;
+	border: 2px 2px 2px 1px;
+}
+
+button#btDrawMode.down, button#btNormalMode.down {
+	font-weight:bold;
+}
+
+button#btDrawPolygon {
+	background-image: url('../img/drawpolygon3.png');
+	min-width: 30px;
+}
+
+/*must be declared as last to work -why? */
+button {
+	min-width:100px;height:30px;
+
+	border: solid #808080 2px; 
+	-webkit-border-radius: 11;
+	-moz-border-radius: 11;
+	border-radius: 11px;
+	
+	background: #ffffff; /* Old browsers */
+	background: -moz-linear-gradient(top,  #ffffff 0%, #e5e5e5 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e5e5e5)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #ffffff 0%,#e5e5e5 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #ffffff 0%,#e5e5e5 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #ffffff 0%,#e5e5e5 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #ffffff 0%,#e5e5e5 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e5e5e5',GradientType=0 ); /* IE6-9 */
+
+	font-size: 1em;font-family:Arial,Helvetica,sans-serif;color:#808080;
+	text-align:center; text-decoration: none;
+	padding: 0.25em 0.5em;
+	opacity: 1;
+	filter: alpha(opacity=100);
+	margin: 3px;
+	z-index:10;
+}
+
+/*shows help text dependent on active button and activity, shown below buttons*/
+div#toolBarInfo {
+	min-height: 1.5em;
+	width:100%;
+	color:#808080;
+	font-style:italic;	
+	font-size:10.95
+}
+
+
+
+ul#menuDrawMethod {
+	width: 15em;
+	-webkit-border-radius: 5;
+	-moz-border-radius: 5;
+	border-radius: 5px;
+
+}
+
+ul#menuDrawMethod li {
+	font-size: 0.85em;	
+}
+
+

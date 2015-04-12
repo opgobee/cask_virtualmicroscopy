@@ -26,20 +26,16 @@ function isInRange(x,a,b)
 	return ( ((x-a)*(x-b)) < 0 );
 }
 
+//testing
+function showInNamePanel(string)
+{
+	document.getElementById('namePanel').innerHTML=  string;
+}
 
 
 
 jQ( document ).ready(function() {
 	
-	//test
-	function clearnamepanel()
-	{
-		document.getElementById('namePanel').innerHTML= "";	
-	}
-	//setInterval(clearnamepanel, 4000)
-	//end test
-
-
 	if (SVG.supported) 
 	{
 		/////////////////////////////////////////////////////////
@@ -57,7 +53,7 @@ jQ( document ).ready(function() {
 		shapeObjects.activeHandlePoint = null;
 		shapeObjects.activePolygon = null;
 		shapeObjects.polygonUnderConstruction = null;
-		settings = {"drawMethod" : "clickDraw"}
+		settings = {"drawMethod" : "trailDraw"}
 		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
 		
 		//turns off any drawing
@@ -183,232 +179,10 @@ jQ( document ).ready(function() {
 	//setTimeout("createPoly()",100);
 
 
-	///////////////////////////////////////
-	//Toolpanel
-	///////////////////////////////////////
-	
-	text["normalMode"] = "Normal mode";
-	text["start1"] = "Push button 'New Shape' to start a new drawing.";
-	text["start2"] = "Push button 'Draw mode' to continue drawing the shape.";
-	text["start3"] = "Push button 'Draw mode' to edit any existing shapes, or push button 'New Shape' to start a new drawing.";
-	text["drawMode"] = "Draw mode";
-	text["drawModeInfo1"] = "'Click around' a structure to outline it.";
-	text["drawModeInfo2"] = "You can interrupt drawing to move or zoom the slide by pushing 'Normal mode'. To insert a point between existing points, click just inside shape border.";
-	text["drawModeInfo3"] = "Click a shape or point to edit it. To insert a point between existing points, click just inside shape border.";
-	text["newDrawing"] = "New Shape";
-	text["newDrawingInfo"] = "Push button 'New Shape' to start a new drawing, or button 'Normal mode' to stop drawing.";
-	text["deletePoint"] = "Delete Point";
-	text["deleteShape"] = "Delete Shape";
-	text["confirmDeleteShape"] = "Are you sure you want to delete the selected (red) shape?";
-	text["hideShapes"] = "Hide Shapes";
-	text["showShapes"] = "Show Shapes";
-	text["trailDraw"] = "Trail Drawing";
-	text["clickDraw"] = "Click Drawing";
-		
-	//create and insert the toolpanel at the bottom
-	jQ( "body" ).append( '<div id="drawToolPanel">'
-			+'<button id="btNormalMode" class="down">'+ text["normalMode"] +'</button>'
-			+'<button id="btDrawMode">'+ text["drawMode"] +'</button>'
-			+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
-			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
-			+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
-			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'
-			+'<button id="btDrawMethod">'+text["clickDraw"]+'</button>'
-			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
-			+'</div>' );
-	
-	// button events
-	
-	// button 'Normal mode' - action
-	jQ('button#btNormalMode').click(function(){
-		ToolButton.normalMode();
-	});
-	
-	// button 'Draw mode' - action
-	jQ('button#btDrawMode').click(function(){
-		ToolButton.drawMode();
-	});
-	
-	// button 'Draw mode' - action
-	jQ('button#btNewDrawing').click(function(){
-		ToolButton.newDrawing();
-	});
-	
-	// button 'Delete handlepoint' - action
-	jQ('button#btDeletePoint').click(function(){
-		ToolButton.deleteHandlePoint();
-	});
-	
-	// button 'Delete handlepoint' - action
-	jQ('button#btDeletePolygon').click(function(){
-		ToolButton.deletePolygon();		
-	});
-	
-	// button 'Show/hide shapes' - action
-	jQ('button#btShowHideShapes').click(function(){
-		ToolButton.toggleShowHideShapes();
-	});
-	
-	// button 'drawmethod' - action
-	jQ('button#btDrawMethod').click(function(){
-		ToolButton.toggleDrawMethod();
-	});
-
-	//////////////////////////////////////////////// 
-	// End toolpanel
-	////////////////////////////////////////////////
 	
 }); //end document ready
 
 
-
-/*
- * stores all button actions
- */
-var ToolButton = 
-{
-
-	normalMode: function ()
-	{
-		//set to normal state
-		shapeObjects.setStateNormal();
-		shapeObjects.deactivateActivePolygon();
-		shapeObjects.deactivateActiveHandlePoint();
-		jQ('button#btNormalMode').addClass("down");
-		jQ('button#btDrawMode').removeClass("down");
-		jQ('button#btDrawMode').css("color","#808080");
-		if( !shapeObjects.hasPolygonUnderConstruction())
-		{
-			ToolButton.normalizeButtonNewDrawing();
-		}
-		var startText = (shapeObjects.getCountShapes == 0)? text["start1"] : (shapeObjects.hasPolygonUnderConstruction())? text["start2"] : text["start3"];
-		jQ('div#toolBarInfo').html(startText);
-
-	},	
-
-	drawMode: function (param)
-	{
-	 	//set to draw state
-		shapeObjects.setStateDrawPolygon();
-		//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
-		if(param != "justStartedNew" && shapeObjects.hasPolygonUnderConstruction())
-		{
-			shapeObjects.polygonUnderConstruction.activate();			
-		}
-		jQ('button#btNormalMode').removeClass("down");
-		jQ('button#btDrawMode').addClass("down");
-		jQ('button#btDrawMode').css("color","#000000");
-		ToolButton.toggleShowHideShapes("show");
-		var drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
-		jQ('div#toolBarInfo').html(drawModeText);
-
-	},
-	
-	newDrawing: function ()
-	{
-		if( !shapeObjects.hasPolygonUnderConstruction() )
-		{
-			//shapeObjects.deactivateActiveHandlePoint();
-			shapeObjects.newPolygon();
-			//switch to drawMode automatically
-			ToolButton.drawMode("justStartedNew");
-			ToolButton.deactivateButtonNewDrawing();
-		}
-	},
-	
-	activateButtonNewDrawing: function()
-	{
-		jQ('button#btNewDrawing').removeClass('nonActive').addClass('active');
-		jQ('div#toolBarInfo').html(text["newDrawingInfo"]);
-
-	},
-	
-	normalizeButtonNewDrawing: function()
-	{
-		jQ('button#btNewDrawing').removeClass('active').removeClass('nonActive');
-
-	},
-	
-	deactivateButtonNewDrawing: function()
-	{
-		jQ('button#btNewDrawing').removeClass('active').addClass('nonActive');
-
-	},
-	
-	//sets the style on button 'delete active handle point' that indicates that there is a handlepoint active, thus may be deleted
-	activateButtonDeleteHandlePoint: function()
-	{
-		jQ('button#btDeletePoint').removeClass('nonActive').addClass('active');
-	},
-
-	//sets the style on button 'delete active handle point' that indicates that there is no handlepoint active, thus none can be deleted
-	deactivateButtonDeleteHandlePoint:function()
-	{
-		jQ('button#btDeletePoint').removeClass('active').addClass('nonActive');
-	},
-	
-	deleteHandlePoint: function()
-	{
-		shapeObjects.deleteActiveHandlePoint();
-	},
-	
-	//sets the style on button 'delete active handle Polygon' that indicates that there is a handlePolygon active, thus may be deleted
-	activateButtonDeletePolygon: function()
-	{
-		jQ('button#btDeletePolygon').removeClass('nonActive').addClass('active');
-	},
-
-	//sets the style on button 'delete active handle Polygon' that indicates that there is no handlePolygon active, thus none can be deleted
-	deactivateButtonDeletePolygon: function()
-	{
-		jQ('button#btDeletePolygon').removeClass('active').addClass('nonActive');
-	},
-	
-	deletePolygon: function()
-	{
-		if (confirm( text["confirmDeleteShape"] ) == true) 
-		{
-			shapeObjects.deleteActivePolygon();
-	    } 
-	},
-		
-	/*
-	 * normal it toggles, but can also be steered directly with param "show" or "hide"
-	 */
-	toggleShowHideShapes: function(param)
-	{
-		param = (typeof param != "undefined")? param : null;
-		
-		if( param == "hide" || ( !param && jQ('#'+idSvgContainer).css("visibility") == "visible" ) )
-		{
-			jQ('#'+idSvgContainer).css("visibility", "hidden");
-			jQ('button#btShowHideShapes').html(text["showShapes"]);	
-			ToolButton.normalMode();
-			jQ('div#toolBarInfo').html("");
-			
-		}
-		else if(param == "show" || ( !param && jQ('#'+idSvgContainer).css("visibility") == "hidden") )
-		{
-			jQ('#'+idSvgContainer).css("visibility", "visible");
-			jQ('button#btShowHideShapes').html(text["hideShapes"]);
-		}
-	},
-	
-	toggleDrawMethod: function()
-	{
-		if(settings.drawMethod == "clickDraw")
-		{
-			settings.drawMethod = "trailDraw";
-			jQ('button#btDrawMethod').html(text["trailDraw"]);
-			initTrailDraw();
-		}
-		else
-		{
-			settings.drawMethod = "clickDraw";
-			jQ('button#btDrawMethod').html(text["clickDraw"]);
-		}		
-	}
-};
 
 
 /////////////////////////////////////////////////////////////////////
@@ -420,15 +194,18 @@ var ToolButton =
 var old_handleMouseDown = handleMouseDown;
 handleMouseDown = function(event) 
 {
+	//document.getElementById("namePanel").innerHTML= "mousedown";
+
 	var imgFractionCoords= getImgCoords(cursorX,cursorY);	
 	
-	//document.getElementById("namePanel").innerHTML= "mousedown";
+	//deactivate svg elements that are outside mousedown
 	if(!shapeObjects.hasPolygonUnderConstruction() && !event.isInPolygon)
 	{
 		shapeObjects.deactivateActivePolygon();		
 	}
 	shapeObjects.deactivateActiveHandlePoint();
 	
+	//start to draw
 	if(shapeObjects.getToolState() == "drawPolygon" && shapeObjects.polygonUnderConstruction != null) 
 	{
 		if(settings.drawMethod == "trailDraw")
@@ -475,21 +252,28 @@ function startTrailDrawing(event)
 	outerDiv.onmousemove = trailDraw; 
 	outerDiv.onmouseup = endTrailDrawing;
 
+	//testr
+	eventCoords =[];
 }
 
-var minPixelThreshold = 10;
-var maxPixelThreshold = 100; //was 30
-var thresholdTotalTrailAngleChange = Math.PI/3; //
+var minPixelThreshold = 5;
+var maxPixelThreshold = 20; //was 30
+var thresholdTrailAngleChange = Math.PI/6; //90 degrees
 setThresholdTrailDropMinDistance(); //calc initial values expresseed in imgfraction
 setThresholdTrailDropMaxDistance(); 
+var thresholdTrailDropMinDistanceReached = false;
+var minDistanceEventIndex;
 var lastTrailTracePoint = {"x":null,"y":null}; //will store the last point in the trace that trailing creates. Note: this is thus NOT a handlepoint, but some point on the trail being drawn from the previous handlepoint up to the next one.
 var nowTrailTraceAngle = null; //angle of line between point we're at now and previousTrailTracePoint
-var lastTrailTraceAngle = null; //angle of line between previousTrailTracePoint and the TrailTracePoint before that one.
+var startTrailTraceAngle = null; //angle of line between previousTrailTracePoint and the TrailTracePoint before that one.
 var totalTrailAngleChange = 0;
+var SampleStartEventIndex;
+var eventCoords =[];
+var minSamplePixelDistance = 5; //points of events should be at least 5 pixels away from each other to calculate angles through them (to prevent only 0,45,90 degree angles due to adjacent pixel events)
 
 function trailDraw(event)
 {
-	var lastHandlePointX,lastHandlePointY,lastTrailTracePointX,lastTrailTracePointY,nowPointX,nowPointY,distanceFromLastHandlePoint,angleRadianChange;
+	var lastHandlePointX,lastHandlePointY,lastTrailTracePointX,lastTrailTracePointY,nowImgFractionX,nowImgFractionY,distanceFromLastHandlePoint,angleRadianChange, nowPixelSum, earlierPixelSum, sampleStartEventIndex=null;
 	var imgFractionCoords
 	
 	//1. last HandlePoint
@@ -505,39 +289,73 @@ function trailDraw(event)
 	lastTrailTracePointX = lastTrailTracePoint.x; //easy alias
 	lastTrailTracePointY = lastTrailTracePoint.y;
 	//3. point where we are now
+	nowPixelX = event.clientX;
+	nowPixelY = event.clientY;
 	imgFractionCoords= getImgCoords(event.clientX,event.clientY);
-	nowPointX = imgFractionCoords.x; 
-	nowPointY = imgFractionCoords.y;
-	distanceFromLastHandlePoint = calculateDistance(lastHandlePointX, lastHandlePointY, nowPointX, nowPointY);
-	nowTrailTraceAngle = calculateAngleRadian(lastTrailTracePointX, lastTrailTracePointY, nowPointX, nowPointY);
-	//initial angle = angle of line piece directly after leaving last handlePoint
-	if(lastTrailTraceAngle == null)
-	{
-		lastTrailTraceAngle = nowTrailTraceAngle;
-	}
-	//get angle change of last interim stretch to previous interim stretch //HERE SEEMS BUG: we get either half or quarter pi and nothing else
-	angleRadianChange = calculateAngleRadianChange(lastTrailTraceAngle, nowTrailTraceAngle);
-	//sum all angle changes so far
-	totalTrailAngleChange += angleRadianChange;
-	
-	//update the 'last' point and angle
-	lastTrailTracePoint.x = nowPointX;
-	lastTrailTracePoint.y = nowPointY;
-	lastTrailTraceAngle = nowTrailTraceAngle;
-	
+	nowImgFractionX = imgFractionCoords.x; 
+	nowImgFractionY = imgFractionCoords.y;
+	distanceFromLastHandlePoint = calculateDistance(lastHandlePointX, lastHandlePointY, nowImgFractionX, nowImgFractionY);
+
 	//testing
-	var slope = calculateSlope(lastTrailTracePointX, lastTrailTracePointY, nowPointX, nowPointY);
-	document.getElementById('namePanel').innerHTML = "trail: x: " + nowPointX + ", y: " + nowPointY +", distance:" + distanceFromLastHandlePoint + ", angle:" + nowTrailTraceAngle + ", slope:" + slope +", angleRadianChange:" +angleRadianChange + ", totalTrailAngleChange:" + totalTrailAngleChange;	
-	
-	//determine if we should drop a new handlepoint
-	if( distanceFromLastHandlePoint > thresholdTrailDropMaxDistance )
+	//test
+	/*var prefix = "";
+	if(distanceFromLastHandlePoint < thresholdTrailDropMinDistance) {prefix="MIN"}
+	if(distanceFromLastHandlePoint > thresholdTrailDropMinDistance) {prefix="ACT"}
+	if(distanceFromLastHandlePoint > thresholdTrailDropMaxDistance) {prefix="MAX"}
+	*/ //eventCoords.push([prefix,event.clientX,event.clientY,rad2dgr(nowTrailTraceAngle),rad2dgr(angleRadianChange),distanceFromLastHandlePoint]);
+
+	//store all event points on the trail
+	//pixelSums of the events are used to find event that is at least minSamplePixelDistance away - to prevent calculating angle over adjacent pixels, which are only 0, 45 or 90 degrees, etc
+	//distances between events are crudely taken as difference in pixelSum, that is x distance plus y distance - this crude calculation saves performance
+	nowPixelSum = nowPixelX + nowPixelY;
+	eventCoords.push({"sum":nowPixelSum,"x":nowImgFractionX,"y":nowImgFractionY});
+	//find index of the last previous event that was at least minSamplePixelDistance away
+	nowEventIndex = eventCoords.length -1;
+	for(var i = nowEventIndex -1 ; i >= 0; i --) //decrement from current event to previous events
 	{
-		trailDropPoint(event,nowPointX,nowPointY);
+		earlierPixelSum = eventCoords[i].sum;
+		if(Math.abs(earlierPixelSum - nowPixelSum) >= minSamplePixelDistance)
+		{
+			sampleStartEventIndex = i;
+			break;
+		}
 	}
-	else if( (distanceFromLastHandlePoint > thresholdTrailDropMinDistance) &&  ( Math.abs(totalTrailAngleChange) > thresholdTotalTrailAngleChange))
+	//as soon as the minSamplePixelDistance is reached, start doing the angle calculus
+	if(sampleStartEventIndex != null)
 	{
-		trailDropPoint(event,nowPointX,nowPointY);
-	}
+		nowTrailTraceAngle = calculateAngleRadian(eventCoords[sampleStartEventIndex].x, eventCoords[sampleStartEventIndex].y, nowImgFractionX, nowImgFractionY);
+			
+		//initial angle = angle of line piece directly after leaving last handlePoint
+		if(startTrailTraceAngle == null)
+		{
+			startTrailTraceAngle = nowTrailTraceAngle;
+		}
+		//get angle change of last interim stretch to previous interim stretch //HERE SEEMS BUG: we get either half or quarter pi and nothing else
+		angleRadianChange = calculateAngleRadianChange(startTrailTraceAngle, nowTrailTraceAngle);
+		//sum all angle changes so far
+	//	totalTrailAngleChange += angleRadianChange;
+		
+		//update the 'last' point and angle
+	//	lastTrailTracePoint.x = nowImgFractionX;
+		//lastTrailTracePoint.y = nowImgFractionY;
+		//startTrailTraceAngle = nowTrailTraceAngle;
+		
+		
+		var slope = calculateSlope(lastTrailTracePointX, lastTrailTracePointY, nowImgFractionX, nowImgFractionY);
+		document.getElementById('namePanel').innerHTML = "trail: x: " + nowImgFractionX + ", y: " + nowImgFractionY +", distance:" + distanceFromLastHandlePoint + ", thresholdTrailDropMaxDistance:"+thresholdTrailDropMaxDistance+", angle:" + nowTrailTraceAngle +", angleRadianChange:" +angleRadianChange ;	
+		
+		//determine if we should drop a new handlepoint
+		if( distanceFromLastHandlePoint > thresholdTrailDropMaxDistance )
+		{
+			trailDropPoint(event,nowImgFractionX,nowImgFractionY);
+		}
+		else if( Math.abs(angleRadianChange) > thresholdTrailAngleChange)
+		{
+			trailDropPoint(event,nowImgFractionX,nowImgFractionY);
+		}
+		
+	} //eof if mindistance reached
+
 	
 }
 
@@ -554,8 +372,9 @@ function trailDropPoint(event,x,y)
 	lastHandlePoint.deactivate(); //handlepoints should only be user-actived
 	//restart all trails
 	lastTrailTracePoint = {"x":null,"y":null};
-	lastTrailTraceAngle = nowTrailTraceAngle = null;
+	startTrailTraceAngle = nowTrailTraceAngle = null;
 	totalTrailAngleChange = 0;
+	thresholdTrailDropMinDistanceReached = false;
 }
 
 /*
@@ -726,6 +545,11 @@ function calculateAngleRadianChange(angle1, angle2)
 	return change;
 }
 
+function rad2dgr(radian)
+{
+	return radian* 180/Math.PI;
+}
+
 function endTrailDrawing()
 {
 	outerDiv.style.cursor = "default";
@@ -733,6 +557,16 @@ function endTrailDrawing()
 	outerDiv.onmousemove = originalHandleMouseMove; 
 	outerDiv.onmouseup = originalHandleMouseUp;
 	shapeObjects.polygonUnderConstruction.closePolygon();
+	//report test
+/*	var report = "", p;
+	for (var i = 0; i <= eventCoords.length - 1; i++)
+	{
+		p = eventCoords[i];
+		//report+= p[0]+",x:"+p[1]+",y:"+p[2]+",angle:"+p[3]+",angleChg:"+p[4]+",dist:"+p[5]+"\n"
+		report+= p.sum+",x:"+p.x+",y:"+p.y+"\n"
+	}
+	alert(report)
+	*/
 }
 
 

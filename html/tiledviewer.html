@@ -18,8 +18,10 @@
 
 
 <!-- STYLES /////////////////////////////-->
+<link rel="stylesheet" href="../css/jquery-ui.css" type="text/css" />
 <link rel="stylesheet" href="../css/common.css" type="text/css" />
 <link rel="stylesheet" href="../css/segmenter.css" type="text/css" />
+<link rel="stylesheet" href="../css/toolbar.css" type="text/css" />
 
 <!-- NOTE Styles are included here instead of in a separate css, as this appears to work slightly faster during slide viewing, panning, zooming etc., gives a more immediate response experience-->
 <style>
@@ -39,8 +41,6 @@ div#outerDiv0 {position:absolute;left:0px;top:0px;width:100%;height:100%;overflo
 		div#bgDiv {position:absolute;left:0px;top:0px;background-color:#c0c0c0;} /*bgDiv= grey background*/
 		/*seems not neccessary?div#imagelabels {position:relative;top:0;left:0;z-index:1;width:900000px;height:900000px;}*/
 		div#newLabels {position:absolute;top:0px;left:0px;overflow:visible;} /*to let it not overlap outerdiv that senses the events, but still keep the newLabels visible*/
-        svg#imageSegmentations {}
-        div#svgContainer {position:absolute;z-index:100;width:100%;height:100%;}
         
 /*thumbImageHolder control*/
 div#controlsContainer {position:absolute;right:10px;top:25px;width:200px;height:200px;z-index:1;} /*positions the container with all the controls*/
@@ -249,7 +249,7 @@ var islteIE8 = false;
 <!-- libs -->
 <script type="text/javascript" src="../scripts/libs/jquery-1.9.0.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery_noconflict.js"></script>
-<script type="text/javascript" src="../scripts/libs/jquery-ui-1.10.1.custom.min.js"></script>
+<script type="text/javascript" src="../scripts/libs/jquery-ui-1.11.4.custom.min.js"></script>
 <script type="text/javascript" src="../scripts/libs/jquery.autosize.js"></script>
 <script type="text/javascript" src="../scripts/libs/svg-1.0.1.js"></script>
 <script type="text/javascript" src="../scripts/libs/svg.draggable.js"></script>
@@ -264,8 +264,8 @@ var islteIE8 = false;
 <script src="../slides/credits.js" type="text/javascript"></script>
 
 <!-- segmenting -->
+<script src="../scripts/toolbar.js" type="text/javascript" ></script>
 <script src="../scripts/segmenter.js" type="text/javascript" ></script>
-
 </head>
  
  
@@ -307,9 +307,10 @@ var islteIE8 = false;
 		<div id="innerDiv">
 			<noscript><big><b><br><br><br><br><br><br><br><br><br><blockquote>JavaScript must be enabled to use the CASK Viewer.</b>  However, it seems JavaScript is disabled in your browser. To view this page, please enable JavaScript by changing your browser options, and then try again.</big></noscript>			
 			<div id="bgDiv"></div>
-			<div id="imageTiles" style="position:relative;top:0;left:0;z-index:0;width:100%;"></div>
-			<div id="imageLabels" ></div>
-			
+            
+            <!-- all the slide image tiles are here -->
+            <div id="imageTiles" style="position:relative;top:0;left:0;z-index:0;width:100%;"></div>
+ 			
 			<div id="svgContainer" > <!-- needed to layer the svg on top of the images-->
 			    
 <!-- 			<svg id="imageSegmentations" xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" viewBox ="0 0 784 1604" width="100%" height="100%" style="border: 1px solid #ff0000; ">                    
@@ -321,8 +322,9 @@ var islteIE8 = false;
  --> 		
     			
 	        </div>
+           <div id="imageLabels" ></div>
+
 		</div>
-<!--156,184 141,198 135,239 154,265 182,263 221,232 205,237 193,221 160,212-->
 		<!-- credit area bottom left-->
 		<div id="credit" >
 			<a id="creditLinkLogo" href="#" target="_blank"><img id="creditSlideLogo" src="../img/emptyimage.gif" ></a>

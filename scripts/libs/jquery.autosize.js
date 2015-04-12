@@ -1,10 +1,13 @@
 /*
 	jQuery Autosize v1.16.5
+	A small, stand-alone script to automatically adjust textarea height.
+	http://www.jacklmoore.com/autosize/
 	(c) 2013 Jack Moore - jacklmoore.com
 	updated: 2013-02-11
 	license: http://www.opensource.org/licenses/mit-license.php
 */
 /*
+ * @CASK viewer: Used in the text entry fields of a label
  * Adapted: added CASK stuff to handle the font-size change upon zoom Paul Gobee
  * 
  */
