@@ -178,7 +178,21 @@ jQ( document ).ready(function() {
 	}
 	//setTimeout("createPoly()",100);
 
+	//polygon menu
+	jQ( "body" ).append( '<ul id="menuPolygon" >'
+		+'<li id="menuDrawPolygon_delete">'+text["deleteShape"]+'</li>'
+		+'</ul>');
 
+	jQ( "#menuPolygon" ).menu({
+			select: function( event, ui ) {
+				var chosenItemId = ui.item.attr("id");
+				var drawMethod = chosenItemId.substring(16);
+				ToolButton.deletePolygon();
+				event.stopPropagation();
+				},	
+		})
+		
+	
 	
 }); //end document ready
 
@@ -204,6 +218,12 @@ handleMouseDown = function(event)
 		shapeObjects.deactivateActivePolygon();		
 	}
 	shapeObjects.deactivateActiveHandlePoint();
+	
+	//hide menu polygon
+	if(event.target && event.target.id != "menuPolygon" && !event.isInPolygon)
+	{
+		jQ("#menuPolygon").hide();			
+	}
 	
 	//start to draw
 	if(shapeObjects.getToolState() == "drawPolygon" && shapeObjects.polygonUnderConstruction != null) 
@@ -375,6 +395,26 @@ function trailDropPoint(event,x,y)
 	startTrailTraceAngle = nowTrailTraceAngle = null;
 	totalTrailAngleChange = 0;
 	thresholdTrailDropMinDistanceReached = false;
+}
+
+
+function endTrailDrawing()
+{
+	outerDiv.style.cursor = "default";
+	// reconnect original mousemove and mouseup handlers
+	outerDiv.onmousemove = originalHandleMouseMove; 
+	outerDiv.onmouseup = originalHandleMouseUp;
+	shapeObjects.polygonUnderConstruction.closePolygon();
+	//report test
+/*	var report = "", p;
+	for (var i = 0; i <= eventCoords.length - 1; i++)
+	{
+		p = eventCoords[i];
+		//report+= p[0]+",x:"+p[1]+",y:"+p[2]+",angle:"+p[3]+",angleChg:"+p[4]+",dist:"+p[5]+"\n"
+		report+= p.sum+",x:"+p.x+",y:"+p.y+"\n"
+	}
+	alert(report)
+	*/
 }
 
 /*
@@ -550,24 +590,7 @@ function rad2dgr(radian)
 	return radian* 180/Math.PI;
 }
 
-function endTrailDrawing()
-{
-	outerDiv.style.cursor = "default";
-	// reconnect original mousemove and mouseup handlers
-	outerDiv.onmousemove = originalHandleMouseMove; 
-	outerDiv.onmouseup = originalHandleMouseUp;
-	shapeObjects.polygonUnderConstruction.closePolygon();
-	//report test
-/*	var report = "", p;
-	for (var i = 0; i <= eventCoords.length - 1; i++)
-	{
-		p = eventCoords[i];
-		//report+= p[0]+",x:"+p[1]+",y:"+p[2]+",angle:"+p[3]+",angleChg:"+p[4]+",dist:"+p[5]+"\n"
-		report+= p.sum+",x:"+p.x+",y:"+p.y+"\n"
-	}
-	alert(report)
-	*/
-}
+
 
 
 /////////////////////////////
@@ -608,7 +631,7 @@ function HandlePoint(params)
 
 
 	//sets this handlePoint to active state. 
-	this.activate = function() 
+	this.activate = function(event) 
 	{
 		//deactivate any other handlepoint that may previously be activated
 		shapeObjects.deactivateActiveHandlePoint();
@@ -620,7 +643,7 @@ function HandlePoint(params)
 		//also activate any larger shpae it may be in
 		if(this.parentObject)
 		{
-			this.parentObject.activate();
+			this.parentObject.activate(event);
 		}
 		ToolButton.activateButtonDeleteHandlePoint();
 	}
@@ -704,7 +727,7 @@ function HandlePoint(params)
 	//create reference from the svg shape to the containingObject HandlePoint (this)
 	this.svgCircle.parentObject = this;
 	//a new created handlePoint is activated
-	this.activate();
+	this.activate(event);
 
 
 	/////////////////////////////////////////
@@ -736,7 +759,7 @@ function HandlePoint(params)
 		{
 			event.stopPropagation();
 			var thisHandlePoint = this.parentObject;
-			thisHandlePoint.activate();
+			thisHandlePoint.activate(event);
 			//transfer event to handlePoint
 			thisHandlePoint.mouseDownInObject(event);
 		}
@@ -846,7 +869,7 @@ function Polygon()
 	this.bottomMostCoordinate = null;
 	
 	//sets this polygon to active state. 
-	this.activate = function() 
+	this.activate = function(event) 
 	{
 		//alert('poly activated')
 		//deactivate any other polygon that may previously be activated
@@ -859,7 +882,8 @@ function Polygon()
 		//switch on button delete polygon only after first point is added
 		if(this.points.length > 0)
 		{
-			ToolButton.activateButtonDeletePolygon();			
+			ToolButton.activateButtonDeletePolygon();
+			jQ( "#menuPolygon" ).position({ my: "left bottom", at: "right top-18", of: event}).show();
 		}
 	}
 
@@ -1122,6 +1146,7 @@ function Polygon()
 			}
 		}
 		
+		//showInNamePanel("thresholdDistanceFromPolygonLineToAddPoint:"+thresholdDistanceFromPolygonLineToAddPoint+", minDistancePointFromLine:"+minDistancePointFromLine);
 		//if deviation of point from nearest found section is below threshold, the point is considered to lie on the line section, 
 		//then return section index, else return null (meaning: point is not near enough to any section to be considered lying on a section line
 		return (minDistancePointFromLine < thresholdDistanceFromPolygonLineToAddPoint)? indexNearestSection : null;
@@ -1173,13 +1198,13 @@ function Polygon()
 		{
 			//calc distance point to sectionline = distance to intersection point; expressed in y imgFractions, corrected such that 0,1 is equal length on screen in y direction as in x direction
 			//we need to correct for widthHeightRatio: real lengths of x and y as x and y imgFractions are not equally long
-			var distancePointFromLine = Math.sqrt( Math.pow( ((pointX - intersectionX) * widthHeightRatio), 2) + Math.pow( (pointY - intersectionY), 2) );//Pythagoras
+			var distancePointFromLine = Math.sqrt( Math.pow( (pointX - intersectionX), 2) + Math.pow( ((pointY - intersectionY) / widthHeightRatio), 2) );//Pythagoras
 		}
 		else
 		{
 			var distancePointFromLine= null;		
 		}
-		//displayCalc+= "pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", widthHeightRatio="+widthHeightRatio+", slopeSection="+slopeSection+", perpendicularSlope="+perpendicularSlope+", bSection="+bSection+", bLineThroughPoint="+bLineThroughPoint+", intersectionX="+intersectionX+", intersectionY="+intersectionY+", distancePointFromLine="+distancePointFromLine+"\n\n"; 
+		displayCalc+= "pointX="+pointX+", pointY="+pointY+", lineHeadX="+lineHeadX+", lineHeadY="+lineHeadY+", lineFootX="+lineFootX+",lineFootY="+lineFootY+", widthHeightRatio="+widthHeightRatio+", slopeSection="+slopeSection+", perpendicularSlope="+perpendicularSlope+", bSection="+bSection+", bLineThroughPoint="+bLineThroughPoint+", intersectionX="+intersectionX+", intersectionY="+intersectionY+", distancePointFromLine="+distancePointFromLine+"\n\n"; 
 		return distancePointFromLine;
 		
 	}
@@ -1242,10 +1267,11 @@ function Polygon()
 		if(shapeObjects.getToolState() == "drawPolygon")
 		{			
 			//in case the polygon is not active, activate it
-			this.activate();
+			this.activate(event);
 			//test if we need to add point to the polygon
 			var imgFractionCoords= getImgCoords(cursorX,cursorY);
 			var indexSectionToAddPoint = this.findSectionWherePointIs(imgFractionCoords.x,imgFractionCoords.y);
+	//alert(displayCalc);
 			//document.getElementById("namePanel").innerHTML= 'mousedown on section '+indexSectionToAddPoint;
 			if(indexSectionToAddPoint != null)
 			{
@@ -1291,7 +1317,8 @@ Polygon.getCurrentStrokeWidth = function()
 }
 
 
-
+	
+	
 /////////////////////////////////////////////////////
 //Extend Zoom functions with zooming of svg shapes
 ////////////////////////////////////////////////////
@@ -1378,7 +1405,7 @@ function setThresholdsToZoomLevel()
 
 function setThresholdDistanceFromPolygonLineToAddPoint()
 {
-	var minPixelThreshold = 30;
+	var minPixelThreshold = 7;
 	thresholdDistanceFromPolygonLineToAddPoint = minPixelThreshold * Math.pow(2,(gTierCount-now.zoom-1))/ imgWidthMaxZoom;
 }
 

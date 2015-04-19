@@ -39,23 +39,24 @@ jQ( document ).ready(function() {
 	text["clickDraw"] = "Draw by clicking";
 		
 	//create and insert the toolpanel at the bottom
-	jQ( "body" ).append( '<ul id="menuDrawMethod" class="hideonbodyclick">'
+	jQ( "body" ).append( '<ul id="menuDrawMethod" >'
 			+'  <li id="menuDrawMethod_dragDraw"><span class="ui-icon ui-icon-blank"></span>'+text["dragDraw"]+'</li>'
 			+'  <li id="menuDrawMethod_dragDrawAvanced"><span class="ui-icon ui-icon-blank"></span>'+text["dragDrawAdvanced"]+'</li>'
 			+'  <li id="menuDrawMethod_clickDraw"><span class="ui-icon ui-icon-blank"></span>'+text["clickDraw"]+'</li>'
 			+'</ul>'
 			+'<div id="drawToolPanel">'
-			+'<button id="btNormalMode" class="down">'+ text["normalMode"] +'</button>'
+			+'<button id="btNormalMode" >'+ text["normalMode"] +'</button>'
 			+'<button id="btDrawMode">'+ text["drawMode"] +'</button>'
-			+'<button id="btDrawPolygon">.</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
+			+'<span id="drawTools">'	
+			+'<button id="btDrawPolygon">&nbsp;</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
 			+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
 			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
 			+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
-			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'
+			+'</span>'	//eof span drawtools
+			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'		
 			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
 			+'</div>' );
 	
-	/*positioning in menu() doesn't seem to work*/
 	jQ( "#menuDrawMethod" ).menu({
 		select: function( event, ui ) {
 			var chosenItemId = ui.item.attr("id");
@@ -65,9 +66,13 @@ jQ( document ).ready(function() {
 			DrawTools.activate(drawMethod);
 			event.stopPropagation();
 			},	
-	}).position({ my: "left bottom", at: "left top-18", of: "#btDrawPolygon"}).hide();
+	})
+	
 
 //	jQ( "#menuDrawMethod" ).menu( "option", "position", { my: "left top", at: "right-5 top+5", of: "#namePanel"} );
+	/*positioning in menu() doesn't seem to work, so call it separately*/
+	jQ( "#menuDrawMethod" ).position({ my: "left bottom", at: "left top-18", of: "#btDrawPolygon"}).hide(); //positioning top incorrect on Chrome
+
 	
 	
 	// button events
@@ -112,10 +117,16 @@ jQ( document ).ready(function() {
 	////////////////////////////////////////////////
 	
 	//hide temporary elements
-	jQ("body").click(function() {
-		jQ(".hideonbodyclick").hide();
+	jQ("body").click(function(event) {
+		if(event.target && event.target.id != "menuDrawMethod")
+		{
+			jQ("#menuDrawMethod").hide();			
+		}
 	});
 
+	//init draw panel
+	jQ('button#btNormalMode').click();
+	jQ('ul#menuPolygon').hide();
 	
 }); //end document ready
 
@@ -130,18 +141,24 @@ var ToolButton =
 
 	normalMode: function ()
 	{
+		var startText = "";
 		//set to normal state
-		shapeObjects.setStateNormal();
-		shapeObjects.deactivateActivePolygon();
-		shapeObjects.deactivateActiveHandlePoint();
+		if(shapeObjects)
+		{
+			shapeObjects.setStateNormal();
+			shapeObjects.deactivateActivePolygon();
+			shapeObjects.deactivateActiveHandlePoint();
+			
+			if( !shapeObjects.hasPolygonUnderConstruction())
+			{
+				ToolButton.normalizeButtonNewDrawing();
+			}
+			startText = (shapeObjects.getCountShapes == 0)? text["start1"] : (shapeObjects.hasPolygonUnderConstruction())? text["start2"] : text["start3"];
+		}
 		jQ('button#btNormalMode').addClass("down");
 		jQ('button#btDrawMode').removeClass("down");
 		jQ('button#btDrawMode').css("color","#808080");
-		if( !shapeObjects.hasPolygonUnderConstruction())
-		{
-			ToolButton.normalizeButtonNewDrawing();
-		}
-		var startText = (shapeObjects.getCountShapes == 0)? text["start1"] : (shapeObjects.hasPolygonUnderConstruction())? text["start2"] : text["start3"];
+		jQ('span#drawTools').css("visibility","hidden");
 		jQ('div#toolBarInfo').html(startText);
 		//return draw layer below the labels
 		jQ('#svgContainer').css({"z-index":1});
@@ -151,22 +168,27 @@ var ToolButton =
 
 	drawMode: function (param)
 	{
-	 	//set to draw state
-		shapeObjects.setStateDrawPolygon();
-		//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
-		if(param != "justStartedNew" && shapeObjects.hasPolygonUnderConstruction())
+		var drawModeText = "";
+		//set to draw state
+		if(shapeObjects)
 		{
-			shapeObjects.polygonUnderConstruction.activate();			
+			shapeObjects.setStateDrawPolygon();
+			//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
+			if(param != "justStartedNew" && shapeObjects.hasPolygonUnderConstruction())
+			{
+				shapeObjects.polygonUnderConstruction.activate();			
+			}
+			drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
 		}
 		jQ('button#btNormalMode').removeClass("down");
 		jQ('button#btDrawMode').addClass("down");
 		jQ('button#btDrawMode').css("color","#000000");
+		jQ('span#drawTools').css("visibility","visible");
 		ToolButton.toggleShowHideShapes("show");
-		var drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
 		jQ('div#toolBarInfo').html(drawModeText);
 		//temporarily put draw layer above the labels to allow receiving all events well on the svg elements
 		jQ('#svgContainer').css({"z-index":100});
-
+    	
 	},
 	
 	newDrawing: function ()
@@ -175,6 +197,10 @@ var ToolButton =
 		{
 			//shapeObjects.deactivateActiveHandlePoint();
 			shapeObjects.newPolygon();
+			if(settings.drawMethod == "trailDraw")
+			{		
+				initTrailDraw();
+			}
 			//switch to drawMode automatically
 			ToolButton.drawMode("justStartedNew");
 			ToolButton.deactivateButtonNewDrawing();
@@ -279,7 +305,6 @@ var DrawTools =
 	    case "dragDrawAdvanced":
 	    default:
 	    	settings.drawMethod = "trailDraw";
-	    	initTrailDraw();
 	        break;
 	    case "clickDraw":
 	    	settings.drawMethod = "clickDraw";
