@@ -27,19 +27,22 @@ jQ( document ).ready(function() {
 	text["drawModeInfo1"] = "'Click around' a structure to outline it.";
 	text["drawModeInfo2"] = "You can interrupt drawing to move or zoom the slide by pushing 'Normal mode'. To insert a point between existing points, click just inside shape border.";
 	text["drawModeInfo3"] = "Click a shape or point to edit it. To insert a point between existing points, click just inside shape border.";
+	text["drawModeInfo4"] = "Drag around a structure to trace an outline around it.<br>You can correct it afterwards.";
 	text["newDrawing"] = "New Shape";
 	text["newDrawingInfo"] = "Push button 'New Shape' to start a new drawing, or button 'Normal mode' to stop drawing.";
 	text["deletePoint"] = "Delete Point";
 	text["deleteShape"] = "Delete Shape";
-	text["confirmDeleteShape"] = "Are you sure you want to delete the selected (red) shape?";
 	text["hideShapes"] = "Hide Shapes";
 	text["showShapes"] = "Show Shapes";
 	text["dragDraw"] = "Draw by dragging";
 	text["dragDrawAdvanced"] = "Draw by dragging - Advanced";
 	text["clickDraw"] = "Draw by clicking";
+	text["gotIt"] = "Got it!";
+	text["dontShowAgain"] = "Don't show this again.";
 		
 	//create and insert the toolpanel at the bottom
-	jQ( "body" ).append( '<ul id="menuDrawMethod" >'
+	jQ( "body" ).append( '<div id="dialog"><div id="dialogText"></div> <img id="dialogImage" src="../img/polygon.png"> <form id="dialogCheckbox"> <input type="checkbox" id="showchoice" name="showchoice" value="noshow">'+text["dontShowAgain"]+'</form> </div>'
+			+'<ul id="menuDrawMethod" >'
 			+'  <li id="menuDrawMethod_dragDraw"><span class="ui-icon ui-icon-blank"></span>'+text["dragDraw"]+'</li>'
 			+'  <li id="menuDrawMethod_dragDrawAvanced"><span class="ui-icon ui-icon-blank"></span>'+text["dragDrawAdvanced"]+'</li>'
 			+'  <li id="menuDrawMethod_clickDraw"><span class="ui-icon ui-icon-blank"></span>'+text["clickDraw"]+'</li>'
@@ -49,9 +52,10 @@ jQ( document ).ready(function() {
 			+'<button id="btDrawMode">'+ text["drawMode"] +'</button>'
 			+'<span id="drawTools">'	
 			+'<button id="btDrawPolygon">&nbsp;</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
-			+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
+			+'<button id="btDrawPolygonOptions">+</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
+		//	+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
 			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
-			+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
+		//	+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
 			+'</span>'	//eof span drawtools
 			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'		
 			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
@@ -73,7 +77,10 @@ jQ( document ).ready(function() {
 	/*positioning in menu() doesn't seem to work, so call it separately*/
 	jQ( "#menuDrawMethod" ).position({ my: "left bottom", at: "left top-18", of: "#btDrawPolygon"}).hide(); //positioning top incorrect on Chrome
 
-	
+	jQ("#showchoice:checkbox").change(function(){
+		if(this.checked)
+			{ToolButton.settings.showDialog = false}	
+	})
 	
 	// button events
 	
@@ -88,20 +95,20 @@ jQ( document ).ready(function() {
 	});
 	
 	// button 'Draw mode' - action
-	jQ('button#btNewDrawing').click(function(){
-		ToolButton.newDrawing();
+/*	jQ('button#btNewDrawing').click(function(){
+		
 	});
-	
+*/	
 	// button 'Delete handlepoint' - action
 	jQ('button#btDeletePoint').click(function(){
 		ToolButton.deleteHandlePoint();
 	});
 	
 	// button 'Delete handlepoint' - action
-	jQ('button#btDeletePolygon').click(function(){
+/*	jQ('button#btDeletePolygon').click(function(){
 		ToolButton.deletePolygon();		
 	});
-	
+*/	
 	// button 'Show/hide shapes' - action
 	jQ('button#btShowHideShapes').click(function(){
 		ToolButton.toggleShowHideShapes();
@@ -109,9 +116,13 @@ jQ( document ).ready(function() {
 	
 	// button 'drawpolygon' - action
 	jQ('button#btDrawPolygon').click(function(event){
-		ToolButton.chooseDrawMethod(event);
+		ToolButton.newPolygon();
 	});
 
+	jQ('button#btDrawPolygonOptions').click(function(event){
+		ToolButton.chooseDrawMethod(event);
+	});
+	
 	//////////////////////////////////////////////// 
 	// End toolpanel
 	////////////////////////////////////////////////
@@ -126,7 +137,20 @@ jQ( document ).ready(function() {
 
 	//init draw panel
 	jQ('button#btNormalMode').click();
-	jQ('ul#menuPolygon').hide();
+	
+	jQ( "#dialog" ).dialog({ 
+		autoOpen: false, 
+		modal:true,
+		dialogClass: "noTitleBar",
+		  buttons: [
+		    {
+		      text: text["gotIt"],
+		      click: function() {
+		        jQ( this ).dialog( "close" );
+		      }
+		    }
+		  ]	
+	});		
 	
 }); //end document ready
 
@@ -139,6 +163,10 @@ jQ( document ).ready(function() {
 var ToolButton = 
 {
 
+	settings: {
+		"showDialog": true
+	},
+	
 	normalMode: function ()
 	{
 		var startText = "";
@@ -168,30 +196,18 @@ var ToolButton =
 
 	drawMode: function (param)
 	{
-		var drawModeText = "";
-		//set to draw state
-		if(shapeObjects)
-		{
-			shapeObjects.setStateDrawPolygon();
-			//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
-			if(param != "justStartedNew" && shapeObjects.hasPolygonUnderConstruction())
-			{
-				shapeObjects.polygonUnderConstruction.activate();			
-			}
-			drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
-		}
+
 		jQ('button#btNormalMode').removeClass("down");
 		jQ('button#btDrawMode').addClass("down");
 		jQ('button#btDrawMode').css("color","#000000");
 		jQ('span#drawTools').css("visibility","visible");
 		ToolButton.toggleShowHideShapes("show");
-		jQ('div#toolBarInfo').html(drawModeText);
 		//temporarily put draw layer above the labels to allow receiving all events well on the svg elements
 		jQ('#svgContainer').css({"z-index":100});
     	
 	},
 	
-	newDrawing: function ()
+	newPolygon: function ()
 	{
 		if( !shapeObjects.hasPolygonUnderConstruction() )
 		{
@@ -202,10 +218,40 @@ var ToolButton =
 				initTrailDraw();
 			}
 			//switch to drawMode automatically
-			ToolButton.drawMode("justStartedNew");
-			ToolButton.deactivateButtonNewDrawing();
-		}
+			ToolButton.drawMode();
+			var drawModeText = "";
+			//set to draw state
+			if(shapeObjects)
+			{
+				shapeObjects.setStateDrawPolygon();
+				//returns to a polygon that is still under construction (but no need to activate a new polygon that has just been activated) 
+				if(shapeObjects.hasPolygonUnderConstruction())
+				{
+					shapeObjects.polygonUnderConstruction.activate();			
+				}
+				//drawModeText = (shapeObjects.getCountShapes() == 0)?  text["start1"]: (param == "justStartedNew")? text["drawModeInfo1"] : (shapeObjects.hasPolygonUnderConstruction())? text["drawModeInfo2"] : text["drawModeInfo3"];
+				//jQ('div#toolBarInfo').html(drawModeText);
+
+			}			
+			ToolButton.setPolygonButtonToNew();
+			if(ToolButton.settings.showDialog)
+			{
+				jQ( "#dialogText" ).html(text["drawModeInfo4"])
+				jQ( "#dialog" ).dialog( "open" );
+			}
+			
+		}	
 	},
+	
+	setPolygonButtonToNew: function()
+	{
+		jQ('button#btDrawPolygon').addClass("new");
+	},
+	
+	unsetPolygonButtonToNew: function()
+	{
+		jQ('button#btDrawPolygon').removeClass("new");
+	}, 
 	
 	activateButtonNewDrawing: function()
 	{
@@ -255,14 +301,14 @@ var ToolButton =
 		jQ('button#btDeletePolygon').removeClass('active').addClass('nonActive');
 	},
 	
-	deletePolygon: function()
+/*	deletePolygon: function()
 	{
 		if (confirm( text["confirmDeleteShape"] ) == true) 
 		{
 			shapeObjects.deleteActivePolygon();
 	    } 
 	},
-		
+*/		
 	/*
 	 * normal it toggles, but can also be steered directly with param "show" or "hide"
 	 */

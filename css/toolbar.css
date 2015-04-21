@@ -81,6 +81,25 @@ button#btDrawMode.down, button#btNormalMode.down {
 button#btDrawPolygon {
 	background-image: url('../img/drawpolygon3.png');
 	min-width: 30px;
+	-webkit-border-radius: 11 0 0 11;
+	-moz-border-radius: 11 0 0 11;
+	border-radius: 11px 0px 0px 11px;
+	margin-right: -1px;
+	border: 2px 1px 2px 2px;}
+
+button#btDrawPolygon.new {
+	background-position: bottom;
+}
+
+button#btDrawPolygonOptions {
+	min-width: 30px;
+	font-size: 1em;
+	font-weight: bold;
+	-webkit-border-radius: 0 11 11 0;
+	-moz-border-radius: 0 11 11 0;
+	border-radius: 0px 11px 11px 0px;
+	margin-left: -1px;
+	border: 2px 2px 2px 1px;
 }
 
 /*must be declared as last to work -why? */
@@ -133,4 +152,21 @@ ul#menuDrawMethod li {
 	font-size: 0.85em;	
 }
 
+/*.ui-dialog-titlebar-close*/
+.no-close .ui-dialog-titlebar-close {
+  display: none;
+}
 
+.noTitleBar .ui-dialog-titlebar {
+	display:none
+}
+
+#dialogText, #dialogImage {
+	
+}
+
+#dialogText {
+		
+
+	
+}

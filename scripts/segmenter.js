@@ -17,6 +17,8 @@ var widthHeightRatio;
 //is used for getting equally far distributed points in traildrawing in x and y direction
 var widthToAverageDimensionFactor, heightToAverageDimensionFactor; 
 
+text["confirmDeleteShape"] = "Are you sure you want to delete the selected (red) shape?";
+
 /*
  * checks whether x lies between a and b, indifferent whether a>b or a<b and of pos or neg numbers
  * http://codegolf.stackexchange.com/questions/8649/shortest-code-to-check-if-a-number-is-in-a-range-in-javascript
@@ -186,11 +188,15 @@ jQ( document ).ready(function() {
 	jQ( "#menuPolygon" ).menu({
 			select: function( event, ui ) {
 				var chosenItemId = ui.item.attr("id");
-				var drawMethod = chosenItemId.substring(16);
-				ToolButton.deletePolygon();
+				var action = chosenItemId.substring(16);
+				if (action == "delete" && confirm( text["confirmDeleteShape"] ) == true) 
+				{
+					shapeObjects.deleteActivePolygon();
+					jQ( "#menuPolygon" ).hide();
+				}
 				event.stopPropagation();
 				},	
-		})
+		}).hide();
 		
 	
 	
@@ -222,8 +228,9 @@ handleMouseDown = function(event)
 	//hide menu polygon
 	if(event.target && event.target.id != "menuPolygon" && !event.isInPolygon)
 	{
-		jQ("#menuPolygon").hide();			
+		jQ("#menuPolygon").hide();
 	}
+
 	
 	//start to draw
 	if(shapeObjects.getToolState() == "drawPolygon" && shapeObjects.polygonUnderConstruction != null) 
@@ -244,6 +251,16 @@ handleMouseDown = function(event)
 	
 };
 
+var old_handleMouseMove = handleMouseMove;
+handleMouseMove = function(event) 
+{
+	if(dragging)
+	{
+		//to prevent the menuPolygon to stay on the same place while the image and shape is moved away
+		jQ( "#menuPolygon" ).hide();
+	}
+	old_handleMouseMove.apply(this, arguments);	
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Traildrawing
@@ -871,6 +888,7 @@ function Polygon()
 	//sets this polygon to active state. 
 	this.activate = function(event) 
 	{
+		if(this.isActive) {return;}
 		//alert('poly activated')
 		//deactivate any other polygon that may previously be activated
 		shapeObjects.deactivateActivePolygon(); 
@@ -880,11 +898,11 @@ function Polygon()
 		//styling
 		this.showAsActive();
 		//switch on button delete polygon only after first point is added
-		if(this.points.length > 0)
+/*		if(this.points.length > 0)
 		{
 			ToolButton.activateButtonDeletePolygon();
-			jQ( "#menuPolygon" ).position({ my: "left bottom", at: "right top-18", of: event}).show();
 		}
+*/
 	}
 
 	//sets this handlePoint to inactive state. 
@@ -895,6 +913,8 @@ function Polygon()
 		//styling
 		this.showAsInactive();
 		ToolButton.deactivateButtonDeletePolygon();
+		//hide any menu
+		jQ('ul#menuPolygon').hide();
 	}
 	
 	//apply 'active' style to this polygon
@@ -1224,8 +1244,7 @@ function Polygon()
 		this.formatDisplayToZoom(); 
 		//clean up
 		this.svgPolyline.remove();
-		//make button 'New drawing' prominent
-		ToolButton.activateButtonNewDrawing();
+		ToolButton.unsetPolygonButtonToNew();
 	}
 	
 	
@@ -1264,6 +1283,7 @@ function Polygon()
 	
 	this.handleMouseDownOnPoly = function(event)
 	{
+
 		if(shapeObjects.getToolState() == "drawPolygon")
 		{			
 			//in case the polygon is not active, activate it
@@ -1277,6 +1297,13 @@ function Polygon()
 			{
 				this.addPoint({"event":event,"imgFractionX":imgFractionCoords.x,"imgFractionY":imgFractionCoords.y,"indexSectionToAddPoint":indexSectionToAddPoint, "enableDirectDrag":true});					
 				event.stopPropagation();			
+			}
+			else
+			{
+				//show or hide polygon menu. Only on click in center of polygon - that does not trigger add point
+				//note: show() needs to be first, before position, else position cannot correctly determine the location! 
+				//http://stackoverflow.com/questions/12901528/jquery-ui-positioning-a-hidden-div-using-position-api-does-not-position-correc
+				jQ( "#menuPolygon" ).toggle().position({ my: "left bottom", at: "right+3 top-18", of: event})
 			}
 			//attach custom flag to event, which will enable the window mousedown handler to know it should not deactivate the polygon
 			event.isInPolygon = true;
