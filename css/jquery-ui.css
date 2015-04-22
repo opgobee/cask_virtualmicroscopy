@@ -250,7 +250,7 @@ button.ui-button-icons-only {
 	line-height: normal;
 }
 .ui-button-text-only .ui-button-text {
-	padding: .4em 1em;
+	padding: .2em 1em; /*original: .4em 1em;*/
 }
 .ui-button-icon-only .ui-button-text,
 .ui-button-icons-only .ui-button-text {
@@ -634,11 +634,17 @@ body .ui-tooltip {
 .ui-state-default,
 .ui-widget-content .ui-state-default,
 .ui-widget-header .ui-state-default {
-	border: 1px solid #d3d3d3;
+/* CASK change */
+/*	border: 1px solid #d3d3d3;
 	background: #e6e6e6 url("../img/jquery-ui/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50% repeat-x;
+*/
+/* End CASK change */
 	font-weight: normal;
 	color: #555555;
 }
+
+
+
 .ui-state-default a,
 .ui-state-default a:link,
 .ui-state-default a:visited {
@@ -735,6 +741,12 @@ body .ui-tooltip {
 .ui-state-disabled .ui-icon {
 	filter:Alpha(Opacity=35); /* support: IE8 - See #6059 */
 }
+
+/* CASK change */
+.ui-state-default {
+	border: none;
+}
+/* End CASK change */
 
 /* Icons
 ----------------------------------*/

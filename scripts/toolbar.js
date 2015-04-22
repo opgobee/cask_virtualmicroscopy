@@ -39,29 +39,36 @@ jQ( document ).ready(function() {
 	text["clickDraw"] = "Draw by clicking";
 	text["gotIt"] = "Got it!";
 	text["dontShowAgain"] = "Don't show this again.";
+	text["advanced"] = "Advanced";
+	text["drawOutline"] = "Draw outline";
+	
 		
 	//create and insert the toolpanel at the bottom
-	jQ( "body" ).append( '<div id="dialog"><div id="dialogText"></div> <img id="dialogImage" src="../img/polygon.png"> <form id="dialogCheckbox"> <input type="checkbox" id="showchoice" name="showchoice" value="noshow">'+text["dontShowAgain"]+'</form> </div>'
-			+'<ul id="menuDrawMethod" >'
-			+'  <li id="menuDrawMethod_dragDraw"><span class="ui-icon ui-icon-blank"></span>'+text["dragDraw"]+'</li>'
-			+'  <li id="menuDrawMethod_dragDrawAvanced"><span class="ui-icon ui-icon-blank"></span>'+text["dragDrawAdvanced"]+'</li>'
-			+'  <li id="menuDrawMethod_clickDraw"><span class="ui-icon ui-icon-blank"></span>'+text["clickDraw"]+'</li>'
-			+'</ul>'
+	jQ( "body" ).append( '<div id="dialog"><div id="dialogText"></div> <img id="dialogImage" src="../img/polygon.png"> </div>'
 			+'<div id="drawToolPanel">'
 			+'<button id="btNormalMode" >'+ text["normalMode"] +'</button>'
 			+'<button id="btDrawMode">'+ text["drawMode"] +'</button>'
 			+'<span id="drawTools">'	
-			+'<button id="btDrawPolygon">&nbsp;</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
-			+'<button id="btDrawPolygonOptions">+</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
+			+'<button id="btDrawPolygon">'+text["drawOutline"]+'</button>' /*for some reason a character must be in button, else button will be displaced downwards*/
 		//	+'<button id="btNewDrawing">'+ text["newDrawing"] +'</button>'
-			+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
-		//	+'<button id="btDeletePolygon" class="nonActive">'+text["deleteShape"]+'</button>'
+		//	+'<button id="btDeletePoint" class="nonActive">'+ text["deletePoint"] +'</button>'
+			+'<button id="btAdvanced" >'+text["advanced"]+'</button>'
 			+'</span>'	//eof span drawtools
-			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'		
+			+'<button id="btShowHideShapes">'+text["hideShapes"]+'</button>'
+			+'<div id="optionsBar">'
+			+'<span id="optionsDrawPolygonCont">'
+			+'<input type="radio" id="optionDragDraw" value="trailDraw" name="optionsDrawPolygon" checked="checked">'
+			+'<label class="textOnly" for="optionDragDraw">'+text["dragDraw"]+'</label>'	 
+			+'<input type="radio" id="optionDragDrawAvanced" value="dragDrawAvanced" name="optionsDrawPolygon">'
+			+'<label class="textOnly" for="optionDragDrawAvanced">'+text["dragDrawAdvanced"]+'</label>'	 
+			+'<input type="radio" id="optionClickDraw" value="clickDraw" name="optionsDrawPolygon">'
+			+'<label class="textOnly" for="optionClickDraw">'+text["clickDraw"]+'</label>'
+			+'</span>'	//eof span optionsDrawpolygon	
+			+'</div>'		
 			+'<div id="toolBarInfo">'+text["start1"]+'</div>'
 			+'</div>' );
 	
-	jQ( "#menuDrawMethod" ).menu({
+/*	jQ( "#menuDrawMethod" ).menu({
 		select: function( event, ui ) {
 			var chosenItemId = ui.item.attr("id");
 			var drawMethod = chosenItemId.substring(15);
@@ -71,16 +78,15 @@ jQ( document ).ready(function() {
 			event.stopPropagation();
 			},	
 	})
-	
+*/	
 
 //	jQ( "#menuDrawMethod" ).menu( "option", "position", { my: "left top", at: "right-5 top+5", of: "#namePanel"} );
 	/*positioning in menu() doesn't seem to work, so call it separately*/
-	jQ( "#menuDrawMethod" ).position({ my: "left bottom", at: "left top-18", of: "#btDrawPolygon"}).hide(); //positioning top incorrect on Chrome
+//	jQ( "#menuDrawMethod" ).position({ my: "left bottom", at: "left top-18", of: "#btDrawPolygon"}).hide(); //positioning top incorrect on Chrome
 
-	jQ("#showchoice:checkbox").change(function(){
-		if(this.checked)
-			{ToolButton.settings.showDialog = false}	
-	})
+	jQ("input[name=optionsDrawPolygon]:radio").change(ToolButton.setDrawMethod);
+	jQ("#optionsDrawPolygonCont").buttonset();
+	jQ("#optionsBar").hide();
 	
 	// button events
 	
@@ -100,15 +106,15 @@ jQ( document ).ready(function() {
 	});
 */	
 	// button 'Delete handlepoint' - action
-	jQ('button#btDeletePoint').click(function(){
+/*	jQ('button#btDeletePoint').click(function(){
 		ToolButton.deleteHandlePoint();
 	});
-	
-	// button 'Delete handlepoint' - action
-/*	jQ('button#btDeletePolygon').click(function(){
-		ToolButton.deletePolygon();		
-	});
 */	
+	// button 'Advanced' - action
+	jQ('button#btAdvanced').click(function(){
+		ToolButton.showAdvancedOptions();		
+	});
+	
 	// button 'Show/hide shapes' - action
 	jQ('button#btShowHideShapes').click(function(){
 		ToolButton.toggleShowHideShapes();
@@ -119,9 +125,7 @@ jQ( document ).ready(function() {
 		ToolButton.newPolygon();
 	});
 
-	jQ('button#btDrawPolygonOptions').click(function(event){
-		ToolButton.chooseDrawMethod(event);
-	});
+
 	
 	//////////////////////////////////////////////// 
 	// End toolpanel
@@ -164,7 +168,7 @@ var ToolButton =
 {
 
 	settings: {
-		"showDialog": true
+		showDialog : true
 	},
 	
 	normalMode: function ()
@@ -234,10 +238,12 @@ var ToolButton =
 
 			}			
 			ToolButton.setPolygonButtonToNew();
+			//dialog window showing info how to draw
 			if(ToolButton.settings.showDialog)
 			{
 				jQ( "#dialogText" ).html(text["drawModeInfo4"])
 				jQ( "#dialog" ).dialog( "open" );
+				ToolButton.settings.showDialog = false; //show only once
 			}
 			
 		}	
@@ -284,11 +290,11 @@ var ToolButton =
 		jQ('button#btDeletePoint').removeClass('active').addClass('nonActive');
 	},
 	
-	deleteHandlePoint: function()
+/*	deleteHandlePoint: function()
 	{
 		shapeObjects.deleteActiveHandlePoint();
 	},
-	
+*/	
 	//sets the style on button 'delete active handle Polygon' that indicates that there is a handlePolygon active, thus may be deleted
 	activateButtonDeletePolygon: function()
 	{
@@ -301,14 +307,11 @@ var ToolButton =
 		jQ('button#btDeletePolygon').removeClass('active').addClass('nonActive');
 	},
 	
-/*	deletePolygon: function()
+	showAdvancedOptions: function()
 	{
-		if (confirm( text["confirmDeleteShape"] ) == true) 
-		{
-			shapeObjects.deleteActivePolygon();
-	    } 
+		jQ('div#optionsBar').toggle();
 	},
-*/		
+		
 	/*
 	 * normal it toggles, but can also be steered directly with param "show" or "hide"
 	 */
@@ -331,11 +334,12 @@ var ToolButton =
 		}
 	},
 	
-	chooseDrawMethod: function(event)
+	setDrawMethod: function()
 	{
-		jQ( "#menuDrawMethod" ).toggle();
-		event.stopPropagation();
+		var drawMethod= document.querySelector('[name="optionsDrawPolygon"]:checked').value;
+		settings.setDrawMethod(drawMethod);
 	}
+	
 	
 }; //eof ToolButton
 

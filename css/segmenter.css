@@ -32,3 +32,9 @@ li#menuDrawPolygon_delete{
 	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#febbbb', endColorstr='#ff5c5c',GradientType=0 ); /* IE6-9 */
 	color:#404040;
 }
+
+img#xDeletePoint {
+	position: absolute;
+	z-index:100;
+	cursor:pointer;
+}

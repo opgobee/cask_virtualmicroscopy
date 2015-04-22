@@ -55,7 +55,6 @@ jQ( document ).ready(function() {
 		shapeObjects.activeHandlePoint = null;
 		shapeObjects.activePolygon = null;
 		shapeObjects.polygonUnderConstruction = null;
-		settings = {"drawMethod" : "trailDraw"}
 		setTimeout("ZoomSvg()",100); //temp workaround because at document ready the initialization of the tiles is not yet ready so the size is not yet known. timeout can be removed when svg area is made on demand of wanting to draw something
 		
 		//turns off any drawing
@@ -198,7 +197,21 @@ jQ( document ).ready(function() {
 				},	
 		}).hide();
 		
+	//delete handlepoint x
+	jQ("div#innerDiv").append('<img id="xDeletePoint" src="../img/close3.png">');
+	jQ("img#xDeletePoint").mousedown(shapeObjects.deleteActiveHandlePoint).hide();
 	
+	settings = {
+		drawMethod : "trailDraw",
+		
+		setDrawMethod: function(drawMethod)
+		{
+			settings.drawMethod = drawMethod;
+		},
+		
+	
+	}
+
 	
 }); //end document ready
 
@@ -663,6 +676,8 @@ function HandlePoint(params)
 			this.parentObject.activate(event);
 		}
 		ToolButton.activateButtonDeleteHandlePoint();
+		this.showDeleteX();
+		this.positionDeleteX(); 
 	}
 
 	//sets this handlePoint to inactive state. 
@@ -674,7 +689,8 @@ function HandlePoint(params)
 			shapeObjects.unregisterActiveHandlePoint();
 			//styling
 			this.showAsInactive();
-			ToolButton.deactivateButtonDeleteHandlePoint();			
+			ToolButton.deactivateButtonDeleteHandlePoint();	
+			this.hideDeleteX();
 		}
 	}
 	
@@ -701,7 +717,24 @@ function HandlePoint(params)
 		this.isShownAsStartPoint = false;
 		this.formatDisplayToZoom();
 	}
-		
+
+	this.showDeleteX = function()
+	{
+		jQ("img#xDeletePoint").show();
+	}
+	
+	this.positionDeleteX = function()
+	{
+		var xPos = (this.imgFractionX * imgWidthPresentZoom) + 10;
+		var yPos = (this.imgFractionY * imgHeightPresentZoom) - 10;
+		jQ("img#xDeletePoint").css({"left": xPos + "px", "top": yPos + "px"});
+	}
+	
+	this.hideDeleteX = function()
+	{
+		jQ("#xDeletePoint").hide();
+	}
+	
 	//set reference to possible shapeobject that contains this handlePoint
 	this.setParentObject = function(parentObject)
 	{
@@ -802,6 +835,7 @@ function HandlePoint(params)
 			this.imgFractionX = this.startImgFractionX + imgFractionDeltaX; //expressed in image fraction (0-1)
 			this.imgFractionY = this.startImgFractionY + imgFractionDeltaY;
 			//this was for testing: document.getElementById('namePanel').innerHTML='x='+ this.imgFractionX + ', y=' + this.imgFractionY + ', deltax=' + imgFractionDeltaX + ', deltay=' + imgFractionDeltaY;		 
+			this.positionDeleteX();
 		}
 	}.bind(this); 
 

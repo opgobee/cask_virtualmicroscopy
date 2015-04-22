@@ -58,18 +58,18 @@ button.nonActive {
 
 button#btNormalMode {
 	min-width:8em;
-	-webkit-border-radius: 11 0 0 11;
-	-moz-border-radius: 11 0 0 11;
-	border-radius: 11px 0px 0px 11px;
+	-webkit-border-radius: 8 0 0 8;
+	-moz-border-radius: 8 0 0 8;
+	border-radius: 8px 0px 0px 8px;
 	margin-right: -1px;
 	border: 2px 1px 2px 2px;
 }
 
 button#btDrawMode {
 	min-width:8em;
-	-webkit-border-radius: 0 11 11 0;
-	-moz-border-radius: 0 11 11 0;
-	border-radius: 0px 11px 11px 0px;
+	-webkit-border-radius: 0 8 8 0;
+	-moz-border-radius: 0 8 8 0;
+	border-radius: 0px 8px 8px 0px;
 	margin-left: -1px;
 	border: 2px 2px 2px 1px;
 }
@@ -81,35 +81,27 @@ button#btDrawMode.down, button#btNormalMode.down {
 button#btDrawPolygon {
 	background-image: url('../img/drawpolygon3.png');
 	min-width: 30px;
-	-webkit-border-radius: 11 0 0 11;
-	-moz-border-radius: 11 0 0 11;
-	border-radius: 11px 0px 0px 11px;
-	margin-right: -1px;
-	border: 2px 1px 2px 2px;}
+	padding-left:25px;
+	background-position: left top;
+	background-repeat: no-repeat;
+	}
 
 button#btDrawPolygon.new {
-	background-position: bottom;
+	background-position: left bottom;
 }
 
-button#btDrawPolygonOptions {
-	min-width: 30px;
-	font-size: 1em;
-	font-weight: bold;
-	-webkit-border-radius: 0 11 11 0;
-	-moz-border-radius: 0 11 11 0;
-	border-radius: 0px 11px 11px 0px;
-	margin-left: -1px;
-	border: 2px 2px 2px 1px;
-}
+
+
+
 
 /*must be declared as last to work -why? */
 button {
 	min-width:100px;height:30px;
 
 	border: solid #808080 2px; 
-	-webkit-border-radius: 11;
-	-moz-border-radius: 11;
-	border-radius: 11px;
+	-webkit-border-radius: 8;
+	-moz-border-radius: 8;
+	border-radius: 8px;
 	
 	background: #ffffff; /* Old browsers */
 	background: -moz-linear-gradient(top,  #ffffff 0%, #e5e5e5 100%); /* FF3.6+ */
@@ -127,6 +119,11 @@ button {
 	filter: alpha(opacity=100);
 	margin: 3px;
 	z-index:10;
+}
+
+div#optionsBar {
+	height: 1em;
+	margin-top: 3px;
 }
 
 /*shows help text dependent on active button and activity, shown below buttons*/
