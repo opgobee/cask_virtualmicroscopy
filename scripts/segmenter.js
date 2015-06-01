@@ -259,7 +259,13 @@ handleMouseDown = function(event)
 	}
 	else
 	{
-		old_handleMouseDown.apply(this, arguments);		
+		old_handleMouseDown.apply(this, arguments);	
+		//as long as we are drawing cancel autozzoomout
+		//note: this must be changed to a generic drawing signal, not only polygon
+		if(shapeObjects.getToolState() == "drawPolygon")
+		{
+			clearZoomOutTimer(); //cancel autozoomout
+		}
 	}
 	
 };
