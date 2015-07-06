@@ -4,6 +4,7 @@ CASK Virtual Microscopy Viewer
 A virtual microscopy viewer originally based on brainmaps viewer, 
 that allows viewing virtual slides directly in the browser without need to install anything.
 Used regularly in teaching at Leiden University Medical Center, the Netherlands.
+
 License: 
 You are free to use this software if you conform to the following requirements:
 <ul>
