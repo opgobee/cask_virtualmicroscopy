@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<buildpath>
-	<buildpathentry kind="src" path="scripts/libs/jquery-ui-1.10.0.custom/jquery-ui-1.10.0.custom/development-bundle/demos/autocomplete"/>
-	<buildpathentry kind="src" path="scripts/libs/jquery-ui-1.10.0.custom/jquery-ui-1.10.0.custom/development-bundle/demos/tabs/ajax"/>
-	<buildpathentry kind="lib" path="brainmaps-cask-api.zip"/>
-	<buildpathentry kind="con" path="org.eclipse.php.core.LANGUAGE"/>
-</buildpath>
