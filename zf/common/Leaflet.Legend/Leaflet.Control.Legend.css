@@ -1,0 +1,35 @@
+.leaflet-control-legend {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	padding:4px;
+}
+
+.leaflet-touch .leaflet-control-legend {
+	box-shadow: none;
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+}
+
+ul.leaflet-legend-overlays {
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+li.leaflet-legend-overlay {
+    list-style:none;
+    line-height:15px;
+    padding:2px 4px;
+    border-radius: 3px;
+    margin-bottom:3px;
+    
+}
+
+li.leaflet-legend-overlay i{
+    width: 20px;
+    height: 15px;
+    display:inline-block;
+    vertical-align:middle;
+    margin-right:2px;
+}

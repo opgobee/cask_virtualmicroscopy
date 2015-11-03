@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Leaflet 1.0.0-b1 Zoomify Demo</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet.css" />
+    <style type="text/css">
+        html, body, #photo {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="photo"></div>
+    <script src="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet-src.js"></script>
+    <script type="text/javascript" src="L.TileLayer.Zoomify.js"></script>  
+    
+    <script type="application/javascript">
+		var map = L.map('photo', {
+        	maxZoom: 15, //Does not matter anymore, maxNativeZoom prevents loading of missing zoom levels
+	        minZoom: 0,
+   	     	crs: L.CRS.Simple //Set a flat projection, as we are projecting an image
+    	});
+    	
+    	//Loading the Zoomify tile layer, notice the URL
+    	var layer = L.tileLayer.zoomify('http://thematicmapping.org/playground/zoomify/books/{g}/{z}-{x}-{y}.jpg', {
+			width: 5472,
+			height: 3648,
+			attribution: '&copy; Photo: Bjørn Sandvik'
+		}).addTo(map);
+
+		//Setting the view to our layer bounds, set by our Zoomify plugin
+		map.fitBounds(layer.options.bounds);
+    </script>
+</body>
+</html>

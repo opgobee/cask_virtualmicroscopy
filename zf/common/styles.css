@@ -1,0 +1,77 @@
+html, body{
+	height:100%;
+}
+
+
+#map{
+	min-width:100%;
+	width:100%;
+    top: 50px;
+    bottom: 0;
+    position: absolute;
+}
+
+/* Fix for bootstrap */
+.leaflet-control-minimap{
+    box-sizing:content-box;
+}
+
+.material-icons
+{
+    font-size:20px;
+}
+
+/* toolbar styles */
+ul.leaflet-control-toolbar
+{
+    margin-bottom: 0;
+}
+
+.leaflet-control-toolbar a.leaflet-toolbar-icon,
+.leaflet-popup-toolbar a.leaflet-toolbar-icon
+{
+    color:#000;
+}
+
+.leaflet-toolbar-0
+{
+    border-radius:4px;
+}
+
+.leaflet-toolbar-icon i.material-icons{
+    line-height:inherit;
+}
+
+.leaflet-control-toolbar .leaflet-toolbar-1 > li:last-child .leaflet-toolbar-icon{
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* Label text markup */
+.leaflet-div-label {
+    color: white;
+    text-shadow: -1px 0 1px black, 0 1px 1px black, 1px 0 1px black, 0 -1px 1px black;
+    font-size:32px;
+    white-space: nowrap;
+}
+
+.leaflet-div-label.leaflet-marker-draggable {
+    color: #1E90FF;
+    text-shadow: 0 0 4px black;
+}
+
+.leaflet-label-input {
+    font-size: 16px;
+    height: 24px;
+    color: black;
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.action-text-field .leaflet-label-input {
+    border:none;
+}
+
+.leaflet-touch .leaflet-label-input {
+    height: 28px;
+}

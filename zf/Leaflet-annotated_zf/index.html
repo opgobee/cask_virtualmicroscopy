@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Leaflet-viewer demo page</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Helpers -->
+    <script src="../common/pages.js"></script>
+    <script src="../common/slides.js"></script>
+    <link rel="stylesheet" href="../common/styles.css">
+    
+    <!-- Leaflet core -->
+    <link rel="stylesheet" type="text/css" href="https://leafletjs-cdn.s3.amazonaws.com/content/build/master/dist/leaflet.css" />
+	<script type="text/javascript" src="https://leafletjs-cdn.s3.amazonaws.com/content/build/master/dist/leaflet-src.js"></script>
+		
+    <!-- Leaflet.Toolbar -->
+    <link rel="stylesheet" type="text/css" href="../extern/Leaflet.toolbar-master/dist/leaflet.toolbar.css" />
+	<script type="text/javascript" src="../extern/Leaflet.toolbar-master/dist/leaflet.toolbar-src.js"></script>
+			
+	<!-- L.TileLayer.Zoomify -->
+	<script type="text/javascript" src="../extern/Leaflet.Zoomify-cba7bf6/L.TileLayer.Zoomify.js"></script>
+
+	<!-- Leaflet.Util.Extra -->
+	<script type="text/javascript" src="../common/Leaflet.Util.Extra.js"></script>
+
+    <!-- L.Mixin.FeatureProperties -->
+	<script type="text/javascript" src="../common/Leaflet.Mixin.FeatureProperties.js"></script>
+
+    <!-- L.Map.UrlView -->
+	<script type="text/javascript" src="../common/Leaflet.Map.UrlView.js"></script>
+
+    <!-- L.Marker.Label -->
+	<script type="text/javascript" src="../common/Leaflet.Marker.Label.js"></script>
+
+    <!-- L.Editable -->
+	<script type="text/javascript" src="../extern/Leaflet.Editable-gh-pages/src/Leaflet.Editable.js"></script>
+
+    <!-- L.Toolbar.Common -->
+	<script type="text/javascript" src="../common/Leaflet.Toolbar.Common.js"></script>
+
+    <!-- L.Control.MiniMap -->
+    <link rel="stylesheet" type="text/css" href="../common/Leaflet.ThumbnailMap/Leaflet.ThumbnailMap.css" />
+	<script type="text/javascript" src="../common/Leaflet.ThumbnailMap/Leaflet.ThumbnailMap.js"></script>
+	
+    <!-- L.Control.SlideScale -->
+	<script type="text/javascript" src="../common/Leaflet.Control.SlideScale.js"></script>
+
+    <!-- L.Control.Ruler -->
+    <link rel="stylesheet" type="text/css" href="../common/Leaflet.Control.Ruler.css" />
+	<script type="text/javascript" src="../common/Leaflet.Control.Ruler.js"></script>
+	<script type="text/javascript" src="../common/Leaflet.Toolbar.Ruler.js"></script>
+
+    <!-- L.Control.Legend -->
+    <link rel="stylesheet" type="text/css" href="../common/Leaflet.Legend/Leaflet.Control.Legend.css" />
+	<script type="text/javascript" src="../common/Leaflet.Legend/Leaflet.Control.Legend.js"></script>
+
+    <!-- L.Toolbar.Annotate -->
+	<script type="text/javascript" src="../common/Leaflet.Toolbar.Annotate.js"></script>
+
+    <!-- L.Storage.Myjson -->
+	<script type="text/javascript" src="../common/Leaflet.Storage.Myjson.js"></script>
+
+    <!-- L.Toolbar.ExportImport -->
+	<script type="text/javascript" src="../common/Leaflet.Toolbar.ExportImport.js"></script>
+
+	<script type="text/javascript" src="annotations.js"></script>
+  </head>
+<body>
+
+<div class="content">
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="navbar-text pull-left">
+            <a href="../index.html"><span style="font-size: 13px" class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>Terug</a>
+        </div>
+        <div class="navbar-header pull-left">
+          <a class="navbar-brand" href="#"></a>
+       </div>
+    </nav>
+    <div id="map"></div>
+</div>
+
+
+<script type="text/javascript">
+
+//Slide parameters
+	var slide = slides[1]; 
+
+//Custom CRS to translate between pixels and meters.
+    L.CRS.Slide = L.extend({}, L.CRS.Simple,{
+        transformation: (function(){
+            var longestSide = Math.max(slide.width, slide.height);
+            var maxZoom = Math.ceil(Math.log(longestSide / 256) / Math.log(2));
+            var correctedRes = slide.res*Math.pow(2, maxZoom);
+            return new L.Transformation(1 / correctedRes, 0, -1 / correctedRes, 0)
+        })()
+    });
+    
+//Map setup
+    var map = L.map('map', {
+        crs: L.CRS.Slide,
+        urlView:true,
+        editable: false
+    });
+		
+	var layerMap = L.tileLayer.zoomify(slideUrl+'/{ id }/{g}/{z}-{x}-{y}.jpg', {
+		width: slide.width,
+		height: slide.height,
+		id: slide.id,
+		attribution: 'Zoomify slide viewer by <a href="https://github.com/cmulders">Coen Mulders</a>'
+	}).addTo(map);
+	
+	//Prevent the map to zoom further than we specify
+	map.setMaxZoom(layerMap.options.maxNativeZoom);
+	
+	if(!map.urlSetView) {
+        //reset the viewport to fit the current slide
+        map.fitBounds(layerMap.options.bounds);
+	}
+	
+//Scalebar
+	L.control.scale({imperial:false}).addTo(map);
+
+//Minimap
+    //Plugin magic goes here! Note that you cannot use the same layer object again, as that will confuse the two map controls
+    var layerMinimap = L.tileLayer.zoomify(layerMap._url, layerMap.options)
+
+    var bounds = layerMinimap.options.bounds
+    var zeroZoomSize = map.project(bounds.getSouthEast(),0)
+	
+    var miniMap = L.control.thumbnailmap(layerMinimap,{
+		height: zeroZoomSize.y, 
+		width: zeroZoomSize.x, 
+		toggleDisplay: true,
+		autoToggleDisplay: true,
+		position:'topright',
+		aimingRectOptions: {color: "#29ffde"},
+	}).addTo(map);
+
+//Ruler toolbar icon
+    L.AnnotateToolbar = L.Toolbar.Control.extend({
+        options: {
+            position: 'topleft',
+            actions: [
+                RulerAction,
+            ],
+            className: ''
+        }
+    });
+    var annotateToolbar = new L.AnnotateToolbar().addTo(map);
+
+    var annotationsOptions = {
+        weight:1, 
+        opacity:0.3, 
+        style: function(feature) {
+            return feature.properties && feature.properties.style || {};
+        }
+    }
+    
+    var annotations = L.geoJson(false,annotationsOptions).addTo(map)
+    
+    for( var type in ZFannotations ){
+        annotations.addData(JSON.parse(ZFannotations[type]))
+    }
+    
+    var overlayLegend = L.control.overlaylegend(annotations).addTo(map);
+    
+    annotations.on('mouseover mouseout click preclick',function(e) {
+        switch(e.type) {
+            case 'mouseout':
+            case 'preclick':
+                this.setStyle({fillOpacity: 0.3})
+                overlayLegend.getOverlayItems().forEach(function(item) {
+                    item.style.backgroundColor = '';
+                });
+                break;
+            case 'mouseover':
+            case 'click':
+                e.layer.setStyle({fillOpacity: 0.6})
+                overlayLegend.getOverlayItem(e.layer).style.backgroundColor = "lightgrey";
+                break;
+        }    
+    });    
+    
+    map.on('zoomend', function(e) {
+        if(e.target.getZoom() >= 7) {
+            e.target.removeLayer(annotations);
+            e.target.removeControl(overlayLegend);
+            
+            //Reset legend and selected overlay
+            annotations.setStyle({fillOpacity: 0.3})
+            overlayLegend.getOverlayItems().forEach(function(item) {
+                item.style.backgroundColor = '';
+            });
+        } else if(!e.target.hasLayer(annotations)) {
+            e.target.addLayer(annotations);
+            e.target.addControl(overlayLegend);
+        }
+    })
+</script>
+
+</body>
+</html>
